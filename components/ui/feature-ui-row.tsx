@@ -95,7 +95,7 @@ export interface ChecklistVisualProps {
 
 export function ChecklistVisual({ title, rows, stat }: ChecklistVisualProps) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: false, amount: 0.22 });
+  const inView = useInView(ref, { once: true, amount: 0.16 });
 
   return (
     <div ref={ref} className="relative mt-12 w-[min(410px,82vw)]">
@@ -191,7 +191,7 @@ export function TimelineVisual({
   note,
 }: TimelineVisualProps) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: false, amount: 0.22 });
+  const inView = useInView(ref, { once: true, amount: 0.16 });
   let acc = 0;
 
   const axisTicks =
@@ -200,10 +200,10 @@ export function TimelineVisual({
   return (
     <motion.div
       ref={ref}
-      className="w-[min(450px,80vw)] rounded-[10px] border border-white/15 bg-[#0b1424]/90 p-5 text-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]"
-      initial={{ opacity: 0, y: 44 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 44 }}
-      transition={{ duration: 0.8, ease: EASE_SMOOTH }}
+      className="w-[min(450px,80vw)] rounded-[10px] border border-white/15 bg-[#0b1424]/90 p-5 text-white shadow-[0_14px_32px_-12px_rgba(0,0,0,0.45)]"
+      initial={{ opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      transition={{ duration: 0.65, ease: EASE_SMOOTH }}
     >
       <div className="flex items-baseline justify-between gap-3 text-[13.5px]">
         <span className="font-medium text-white">{title}</span>
@@ -287,24 +287,35 @@ export function VideoTutorialVisual({
     const video = videoRef.current;
     if (!container || !video) return;
 
+    let playTimer: number | null = null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
+        if (playTimer !== null) {
+          window.clearTimeout(playTimer);
+          playTimer = null;
+        }
         if (entry.isIntersecting && !userPaused) {
-          const p = video.play();
-          if (p && typeof p.catch === "function") {
-            p.catch(() => {});
-          }
+          // Debounce playback start so rapid scrolling past multiple video rows
+          // never spins up 4 hardware video decoders synchronously mid-scroll.
+          playTimer = window.setTimeout(() => {
+            const p = video.play();
+            if (p && typeof p.catch === "function") {
+              p.catch(() => {});
+            }
+          }, 150);
         } else {
           video.pause();
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.35 },
     );
 
     observer.observe(container);
     return () => {
+      if (playTimer !== null) window.clearTimeout(playTimer);
       observer.disconnect();
       video.pause();
     };
@@ -325,9 +336,9 @@ export function VideoTutorialVisual({
   return (
     <div
       ref={containerRef}
-      className="w-full max-w-[560px] rounded-[10px] border border-white/15 bg-white/[0.08] p-2 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]"
+      className="w-full max-w-[560px] rounded-[10px] border border-white/15 bg-white/[0.08] p-2 shadow-[0_12px_28px_-10px_rgba(0,0,0,0.42)] [contain:layout_paint]"
     >
-      <div className="group/vid relative aspect-video w-full overflow-hidden rounded-[8px] bg-[#0b1424]">
+      <div className="group/vid relative aspect-video w-full overflow-hidden rounded-[8px] bg-[#0b1424] transform-gpu">
         <video
           ref={videoRef}
           src={src}
@@ -335,11 +346,11 @@ export function VideoTutorialVisual({
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           aria-label={ariaLabel}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          className="h-full w-full object-cover object-top"
+          className="h-full w-full object-cover object-top transform-gpu [backface-visibility:hidden]"
         />
 
         {/* Subtle bottom-left product label (keeps dashboard header clear) */}
@@ -399,10 +410,7 @@ export function FeatureUIRow({
   className,
 }: FeatureUIRowProps) {
   const rowRef = React.useRef<HTMLDivElement>(null);
-  const inView = useInView(rowRef, { once: false, amount: 0.16 });
-
-  const textHiddenX = reverse ? 36 : -36;
-  const visualHiddenX = reverse ? -36 : 36;
+  const inView = useInView(rowRef, { once: true, amount: 0.12 });
 
   return (
     <div
@@ -416,14 +424,10 @@ export function FeatureUIRow({
       )}
     >
       <motion.div
-        className={cn("max-w-[460px]", reverse && "md:order-2")}
-        initial={{ opacity: 0, x: textHiddenX, y: 20 }}
-        animate={
-          inView
-            ? { opacity: 1, x: 0, y: 0 }
-            : { opacity: 0, x: textHiddenX, y: 20 }
-        }
-        transition={{ duration: 0.65, ease: EASE_OUT_EXPO }}
+        className={cn("max-w-[460px] will-change-[transform,opacity]", reverse && "md:order-2")}
+        initial={{ opacity: 0, y: 18 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
+        transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
       >
         <p className="flex items-center gap-2.5 text-[13px] font-medium tracking-[0.01em] text-[#52525B] dark:text-zinc-400">
           <span className="h-px w-5 bg-[#09090B]/35 dark:bg-white/35" />
@@ -452,22 +456,18 @@ export function FeatureUIRow({
 
       <motion.div
         className={cn(
-          "relative flex w-full items-center justify-center overflow-hidden rounded-[10px] border px-4 py-12 sm:px-6 md:aspect-[7/5] md:px-7 md:py-7",
+          "relative flex w-full items-center justify-center overflow-hidden rounded-[10px] border px-4 py-12 sm:px-6 md:aspect-[7/5] md:px-7 md:py-7 [contain:layout_paint] will-change-[transform,opacity]",
           tone === "royal"
             ? "bg-[#1d3a8a] border-[#1d3a8a]/25 dark:border-white/10"
             : "bg-[#0b1424] border-[#0b1424]/20 dark:border-white/10",
           reverse && "md:order-1",
         )}
-        initial={{ opacity: 0, x: visualHiddenX, y: 26, scale: 0.97 }}
-        animate={
-          inView
-            ? { opacity: 1, x: 0, y: 0, scale: 1 }
-            : { opacity: 0, x: visualHiddenX, y: 26, scale: 0.97 }
-        }
+        initial={{ opacity: 0, y: 20 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         transition={{
-          duration: 0.72,
+          duration: 0.6,
           ease: EASE_OUT_EXPO,
-          delay: inView ? 0.08 : 0,
+          delay: inView ? 0.06 : 0,
         }}
       >
         {/* Hairline texture on both edges */}
@@ -489,12 +489,7 @@ export function FeatureUIRow({
             maskImage: "linear-gradient(270deg, #000, transparent)",
           }}
         />
-        <div
-          data-parallax="float"
-          data-parallax-depth="0.14"
-          data-parallax-max="42"
-          className="relative z-10 flex w-full items-center justify-center"
-        >
+        <div className="relative z-10 flex w-full items-center justify-center">
           {visual}
         </div>
       </motion.div>

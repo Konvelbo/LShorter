@@ -27,10 +27,10 @@ export function HeroSection() {
       <SectionRailFrame className="relative z-30 min-h-[calc(100svh-74px)] sm:min-h-[calc(100svh-86px)] flex flex-col justify-center">
         <div className="my-auto py-[clamp(12px,2.8svh,44px)] flex flex-col items-center text-center w-full">
           <motion.h1
-            initial={{ opacity: 0.92, y: 6 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
-            className="text-[clamp(36px,min(13.2vw,6.4svh),64px)] sm:text-[clamp(48px,min(7vw,8.6svh),86px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance"
+            transition={{ duration: 0.85, delay: 0.05, ease: EASE_OUT_EXPO }}
+            className="text-[clamp(36px,min(13.2vw,6.4svh),64px)] sm:text-[clamp(48px,min(7vw,8.6svh),86px)] font-bold tracking-[-0.04em] leading-[1.03] sm:leading-[1.02] text-[#09090B] dark:text-white max-w-[1020px] text-balance will-change-[transform,opacity]"
           >
             Short links you actually{" "}
             <FlipWords
@@ -42,10 +42,10 @@ export function HeroSection() {
           {/* React Bits <VariableProximity /> Interactive Subtitle (zero-reflow GRAD axis + scoped pointer) */}
           <motion.div
             ref={proximityContainerRef}
-            initial={{ opacity: 0.92, y: 6 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.04, ease: EASE_OUT_EXPO }}
-            className="mt-[clamp(12px,2.4svh,26px)] relative max-w-[660px] mx-auto text-[clamp(14.5px,min(4.6vw,2.2svh),18.5px)] sm:text-[clamp(16px,2.1svh,18.5px)] leading-[1.52] sm:leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default"
+            transition={{ duration: 0.85, delay: 0.22, ease: EASE_OUT_EXPO }}
+            className="mt-[clamp(12px,2.4svh,26px)] relative max-w-[660px] mx-auto text-[clamp(14.5px,min(4.6vw,2.2svh),18.5px)] sm:text-[clamp(16px,2.1svh,18.5px)] leading-[1.52] sm:leading-[1.6] text-[#3F3F46] dark:text-zinc-300 text-pretty cursor-default will-change-[transform,opacity]"
           >
             <VariableProximity
               label="Turn every click into a smart destination — route visitors by country or device in under 12ms, lock private links with PathLock™, and track real-time revenue attribution."
@@ -63,10 +63,10 @@ export function HeroSection() {
 
           {/* Primary Interactive Guest Shortener Command Bar + Cascading Two-Bar Link Row */}
           <motion.div
-            initial={{ opacity: 0.95, y: 6 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.38, delay: 0.08, ease: EASE_OUT_EXPO }}
-            className="mt-[clamp(16px,3.2svh,38px)] w-full"
+            transition={{ duration: 0.8, delay: 0.36, ease: EASE_OUT_EXPO }}
+            className="mt-[clamp(16px,3.2svh,38px)] w-full will-change-[transform,opacity]"
           >
             <HeroShortener />
           </motion.div>
@@ -79,9 +79,14 @@ export function HeroSection() {
         aria-label="Social networks and ad pixel platforms tracked by LShorter"
         className="relative z-10 w-full mt-12 sm:mt-16 pt-7 pb-5 sm:pt-8 sm:pb-6 border-t border-b border-[#6366F1]/25 dark:border-white/[0.12] bg-white/45 dark:bg-[#0B0A16]/70 flex flex-col justify-center gap-12 sm:gap-16"
       >
-        <p className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.85, delay: 0.48, ease: EASE_OUT_EXPO }}
+          className="text-center font-sans text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.22em] text-[#312E81]/65 dark:text-[#C7D2FE]/65 select-none px-4"
+        >
           Track your links everywhere — whether in paid ads or your daily social posts
-        </p>
+        </motion.p>
 
         <BrandScroller iconSize={32} duration="64s" />
       </div>

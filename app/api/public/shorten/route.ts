@@ -20,6 +20,7 @@ import {
   createGuestId,
   signGuestToken,
   verifyGuestToken,
+  isLoopbackRequest,
   getClientIpHash,
   generateGuestSlug,
   recordGuestLink,
@@ -225,21 +226,25 @@ async function fetchAuthenticatedOwnedLink(
 export async function GET(req: NextRequest) {
   try {
     const ipHash = getClientIpHash(req);
+    const isLoopback = isLoopbackRequest(req);
     const token = req.cookies.get(GUEST_COOKIE_NAME)?.value;
     const guestId = verifyGuestToken(token);
     const hintSlug = req.nextUrl.searchParams.get("slug")?.trim() || null;
 
     const authUser = await resolveAuthenticatedUser();
     if (authUser) {
-      // Silently claim any pre-login guest link into this permanent dashboard account
-      const claimed = await claimGuestLinksForUser({
-        guestId,
-        ipHash,
-        userId: authUser.userId,
-        userEmail: authUser.userEmail,
-        userName: authUser.userName,
-        userPlan: authUser.effectivePlan,
-      }).catch(() => ({ claimedCount: 0, claimedSlugs: [] as string[] }));
+      // Silently claim any pre-login guest link belonging to THIS browser cookie
+      // into this permanent dashboard account (never claim another browser's link by IP).
+      const claimed = guestId
+        ? await claimGuestLinksForUser({
+            guestId,
+            ipHash: null,
+            userId: authUser.userId,
+            userEmail: authUser.userEmail,
+            userName: authUser.userName,
+            userPlan: authUser.effectivePlan,
+          }).catch(() => ({ claimedCount: 0, claimedSlugs: [] as string[] }))
+        : { claimedCount: 0, claimedSlugs: [] as string[] };
 
       const slugToFetch = hintSlug || claimed.claimedSlugs[0] || null;
       const ownedLink = slugToFetch
@@ -260,11 +265,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // A brand-new unauthenticated browser with no guest cookie and no localStorage hint
+    // must always start empty (zero default link leaked across browser profiles or shared IPs).
+    if (!guestId && !hintSlug) {
+      return NextResponse.json(
+        {
+          success: true,
+          authenticated: false,
+          links: [],
+          usedCount: 0,
+          remaining: GUEST_MAX_LINKS,
+          maxLinks: GUEST_MAX_LINKS,
+          limitReached: false,
+        },
+        { headers: NO_STORE_HEADERS }
+      );
+    }
+
     const links = await getGuestLinksWithLiveClicks(guestId, ipHash, hintSlug);
     const usage = await countGuestLinksUsage(
       guestId || links[0]?.guestId || null,
       ipHash,
-      hintSlug
+      hintSlug,
+      { ignoreIpLimit: isLoopback }
     );
 
     const response = NextResponse.json(
@@ -551,6 +574,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── GUEST PATH: Strict 1-link limit + 24h TTL ──
+    const isLoopback = isLoopbackRequest(req);
     const hintSlug =
       typeof body.existingSlug === "string" ? body.existingSlug.trim() : null;
 
@@ -559,7 +583,9 @@ export async function POST(req: NextRequest) {
       ipHash,
       hintSlug
     );
-    const usage = await countGuestLinksUsage(existingGuestId, ipHash, hintSlug);
+    const usage = await countGuestLinksUsage(existingGuestId, ipHash, hintSlug, {
+      ignoreIpLimit: isLoopback,
+    });
     if (usage.limitReached || existingLinks.length >= GUEST_MAX_LINKS) {
       return NextResponse.json(
         {
@@ -645,7 +671,9 @@ export async function POST(req: NextRequest) {
     });
 
     const [updatedUsage, updatedLinks] = await Promise.all([
-      countGuestLinksUsage(guestId, ipHash, createdSlug),
+      countGuestLinksUsage(guestId, ipHash, createdSlug, {
+        ignoreIpLimit: isLoopback,
+      }),
       getGuestLinksWithLiveClicks(guestId, ipHash, createdSlug),
     ]);
 
@@ -721,6 +749,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const ipHash = getClientIpHash(req);
+    const isLoopback = isLoopbackRequest(req);
     const token = req.cookies.get(GUEST_COOKIE_NAME)?.value;
     const guestId = verifyGuestToken(token);
 
@@ -737,7 +766,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     const [usage, links] = await Promise.all([
-      countGuestLinksUsage(guestId, ipHash),
+      countGuestLinksUsage(guestId, ipHash, null, {
+        ignoreIpLimit: isLoopback,
+      }),
       getGuestLinksWithLiveClicks(guestId, ipHash),
     ]);
 

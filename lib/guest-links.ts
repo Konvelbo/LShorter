@@ -105,6 +105,19 @@ export function verifyGuestToken(
   }
 }
 
+export function isLoopbackRequest(req: Request): boolean {
+  const cfIp = req.headers.get("cf-connecting-ip");
+  const xff = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  const rawIp = (cfIp || xff || realIp || "127.0.0.1").toLowerCase();
+  return (
+    rawIp === "127.0.0.1" ||
+    rawIp === "::1" ||
+    rawIp === "::ffff:127.0.0.1" ||
+    rawIp === "localhost"
+  );
+}
+
 export function getClientIpHash(req: Request): string {
   const cfIp = req.headers.get("cf-connecting-ip");
   const xff = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -293,7 +306,8 @@ export async function recordGuestLink(entry: {
 export async function countGuestLinksUsage(
   guestId: string | null,
   ipHash: string,
-  hintSlug?: string | null
+  hintSlug?: string | null,
+  options?: { ignoreIpLimit?: boolean }
 ): Promise<{
   cookieCount: number;
   ipCount: number;
@@ -311,24 +325,27 @@ export async function countGuestLinksUsage(
   if (guestId) {
     const rows = await executeD1Query<{ cnt: number }>(
       `SELECT COUNT(*) AS cnt FROM guest_links
-       WHERE guest_id = ? AND expires_at > ?`,
+       WHERE guest_id = ? AND claimed_by IS NULL AND expires_at > ?`,
       [guestId, nowIso]
     ).catch(() => []);
     cookieCount = Number(rows[0]?.cnt || 0);
   }
 
-  const ipRows = await executeD1Query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM guest_links
-     WHERE ip_hash = ? AND created_at > ? AND expires_at > ?`,
-    [ipHash, cutoffIso, nowIso]
-  ).catch(() => []);
-  const ipCount = Number(ipRows[0]?.cnt || 0);
+  let ipCount = 0;
+  if (!options?.ignoreIpLimit) {
+    const ipRows = await executeD1Query<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM guest_links
+       WHERE ip_hash = ? AND claimed_by IS NULL AND created_at > ? AND expires_at > ?`,
+      [ipHash, cutoffIso, nowIso]
+    ).catch(() => []);
+    ipCount = Number(ipRows[0]?.cnt || 0);
+  }
 
   let slugCount = 0;
   if (hintSlug && hintSlug.trim()) {
     const slugRows = await executeD1Query<{ cnt: number }>(
       `SELECT COUNT(*) AS cnt FROM guest_links
-       WHERE LOWER(slug) = LOWER(?) AND expires_at > ?`,
+       WHERE LOWER(slug) = LOWER(?) AND claimed_by IS NULL AND expires_at > ?`,
       [hintSlug.trim(), nowIso]
     ).catch(() => []);
     slugCount = Number(slugRows[0]?.cnt || 0);
@@ -355,7 +372,10 @@ export async function getGuestLinksWithLiveClicks(
   await purgeExpiredGuestLinks().catch(() => {});
 
   const cleanHintSlug = hintSlug?.trim() || null;
-  if (!guestId && !ipHash && !cleanHintSlug) return [];
+  // Strictly scope guest link visibility to THIS browser's signed cookie or localStorage hintSlug.
+  // Never match by ip_hash alone so a fresh Chrome window / shared Wi-Fi visitor never sees
+  // another browser's or an already-claimed user account's link by default.
+  if (!guestId && !cleanHintSlug) return [];
   const nowIso = new Date().toISOString();
 
   const conditions: string[] = [];
@@ -364,10 +384,6 @@ export async function getGuestLinksWithLiveClicks(
   if (guestId) {
     conditions.push("g.guest_id = ?");
     params.push(guestId);
-  }
-  if (ipHash) {
-    conditions.push("g.ip_hash = ?");
-    params.push(ipHash);
   }
   if (cleanHintSlug) {
     conditions.push("LOWER(g.slug) = LOWER(?)");
@@ -391,14 +407,15 @@ export async function getGuestLinksWithLiveClicks(
        COALESCE(l.clicks_count, 0) AS live_clicks
      FROM guest_links g
      LEFT JOIN links l ON l.id = g.link_id OR LOWER(l.slug) = LOWER(g.slug)
-     WHERE (${conditions.join(" OR ")}) AND g.expires_at > ?
+     WHERE (${conditions.join(" OR ")}) AND g.claimed_by IS NULL AND g.expires_at > ?
      ORDER BY g.created_at DESC
      LIMIT 1`,
     params
   ).catch(() => []);
 
   // Fallback recovery: if the browser passes a hintSlug that exists in `links` (created within the last 24h)
-  // but wasn't recorded in `guest_links` yet, backfill `guest_links` so the Hero link persists across refreshes
+  // as an unclaimed guest link, backfill `guest_links` so the Hero link persists across refreshes.
+  // Never recover links owned by a signed-in user account.
   if (rows.length === 0 && cleanHintSlug) {
     const linkRows = await executeD1Query<{
       id: string;
@@ -417,7 +434,10 @@ export async function getGuestLinksWithLiveClicks(
     ).catch(() => []);
 
     const found = linkRows[0];
-    if (found) {
+    const isUserOwned = Boolean(
+      found?.user_id && !found.user_id.startsWith("guest_")
+    );
+    if (found && !isUserOwned) {
       const createdMs = found.created_at
         ? new Date(found.created_at).getTime()
         : Date.now();
@@ -430,8 +450,6 @@ export async function getGuestLinksWithLiveClicks(
         const recoveredExpiresAt = new Date(computedExpiresMs).toISOString();
         const recoveredCreatedAt = found.created_at || new Date().toISOString();
         const shortUrl = `https://lsho.cc/${found.slug}`;
-        const isUserOwned =
-          found.user_id && !found.user_id.startsWith("guest_");
 
         await executeD1Query(
           `INSERT OR REPLACE INTO guest_links (link_id, slug, target_url, short_url, guest_id, ip_hash, expires_at, created_at, claimed_by, claimed_at)
@@ -445,8 +463,8 @@ export async function getGuestLinksWithLiveClicks(
             ipHash || "recovered",
             recoveredExpiresAt,
             recoveredCreatedAt,
-            isUserOwned ? found.user_id : null,
-            isUserOwned ? recoveredCreatedAt : null,
+            null,
+            null,
           ]
         ).catch(() => {});
 
@@ -460,8 +478,8 @@ export async function getGuestLinksWithLiveClicks(
             ip_hash: ipHash || "recovered",
             expires_at: recoveredExpiresAt,
             created_at: recoveredCreatedAt,
-            claimed_by: isUserOwned ? found.user_id : null,
-            claimed_at: isUserOwned ? recoveredCreatedAt : null,
+            claimed_by: null,
+            claimed_at: null,
             live_clicks: Number(found.clicks_count ?? 0),
           },
         ];
