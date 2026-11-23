@@ -2,12 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Search, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Languages, Search, Sparkles } from "lucide-react";
 import gsap from "gsap";
 import { useSession } from "next-auth/react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 // Utilise flagcdn.com pour les vrais drapeaux (images PNG haute qualite)
 // Format: flag = URL de l'image du drapeau (a utiliser dans <img src={flag} />)
@@ -645,6 +646,7 @@ const USE_CASES = [
 
 export function OnboardingWizard() {
   const router = useRouter();
+  const { locale, setLocale, tr } = useI18n();
   const { data: session, update: updateSession } = useSession();
   const userEmail = session?.user?.email || "";
   const userId =
@@ -658,27 +660,24 @@ export function OnboardingWizard() {
   // Active card focus state for the SaleSkip floating-label aesthetic
   const [activeField, setActiveField] = useState<string>("field-3");
 
-  // Step 1 State: Profile & Industry (matches reference screenshot fields + workspace)
-  const [sellingStatus, setSellingStatus] = useState(
-    "Yes, actively scaling traffic",
-  );
+  // Step 2 State: Profile & Industry
+  const [sellingStatus, setSellingStatus] = useState("scaling");
   const [monthlyVolume, setMonthlyVolume] = useState("10k-100k");
   const [profession, setProfession] = useState("commercant");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // Step 2 State: Location & Workspace
+  // Step 3 State: Location & Workspace
   const [country, setCountry] = useState(ALL_COUNTRIES[0]);
   const [countrySearch, setCountrySearch] = useState("");
   const [city, setCity] = useState("New York");
   const [workspaceName, setWorkspaceName] = useState("My Workspace");
 
-  // Step 3 State: Discovery & Attribution
+  // Step 4 State: Discovery & Attribution
   const [source, setSource] = useState("twitter");
   const [primaryDomainMode, setPrimaryDomainMode] = useState(
     "lsho.cc Edge Shortener + Custom Domain",
   );
 
-  // Step 4 State: Core Features / Use Cases
   const [useCases, setUseCases] = useState<string[]>([
     "short_links",
     "utm_attribution",
@@ -693,7 +692,7 @@ export function OnboardingWizard() {
   const progressLineRef = useRef<HTMLDivElement>(null);
   const stepCircleRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   // Initial mount entrance animation via GSAP
   useEffect(() => {
@@ -780,14 +779,14 @@ export function OnboardingWizard() {
           email: userEmail || undefined,
           country: country.code,
           city: city.trim() || undefined,
-          language: "en",
+          language: locale,
           profession,
           source,
           useCases,
           role: profession || "other",
           goal: useCases.length > 0 ? useCases.join(", ") : "general",
           monthlyClicksEstimate: monthlyVolume,
-          workspaceName: workspaceName.trim() || "My Workspace",
+          workspaceName: workspaceName.trim() || tr("My Workspace", "Mon espace"),
         });
       }
 
@@ -800,13 +799,23 @@ export function OnboardingWizard() {
         await updateSession?.({ hasCompletedOnboarding: true });
       } catch {}
 
-      showToast.success("Welcome to LShorter! Your workspace is ready.");
+      showToast.success(
+        tr(
+          "Welcome to LShorter! Your workspace is ready.",
+          "Bienvenue sur LShorter ! Votre espace est prêt.",
+        ),
+      );
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 500);
     } catch (err) {
       console.error(err);
-      showToast.error("Error saving onboarding details");
+      showToast.error(
+        tr(
+          "Error saving onboarding details",
+          "Erreur lors de l'enregistrement de votre configuration",
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -822,14 +831,14 @@ export function OnboardingWizard() {
           email: userEmail || undefined,
           country: country.code || "US",
           city: city || undefined,
-          language: "en",
+          language: locale,
           profession: profession || "general",
           source: source || "direct",
           useCases: useCases.length ? useCases : ["general"],
           role: profession || "general",
           goal: "general",
           monthlyClicksEstimate: monthlyVolume || "10k-100k",
-          workspaceName: workspaceName || "My Workspace",
+          workspaceName: workspaceName || tr("My Workspace", "Mon espace"),
         });
       }
 
@@ -854,6 +863,32 @@ export function OnboardingWizard() {
     }
   };
 
+  const sellingOptions = [
+    {
+      id: "scaling",
+      label: tr("Yes, actively scaling traffic", "Oui, je développe activement mon trafic"),
+    },
+    {
+      id: "migrating",
+      label: tr("Migrating from Bitly / Dub / Rebrandly", "Migration depuis Bitly / Dub / Rebrandly"),
+    },
+    {
+      id: "launching",
+      label: tr("Launching a brand new product or store", "Lancement d'un nouveau produit ou boutique"),
+    },
+    {
+      id: "api",
+      label: tr("Integrating REST API & SDK in code", "Intégration de l'API REST et du SDK"),
+    },
+    {
+      id: "no",
+      label: tr("Not yet, just getting started", "Pas encore, je débute"),
+    },
+  ];
+  const selectedSellingLabel =
+    sellingOptions.find((o) => o.id === sellingStatus)?.label ||
+    sellingOptions[0].label;
+
   const selectedProfessionObj =
     PROFESSIONS.find((p) => p.id === profession) || PROFESSIONS[0];
   const selectedVolumeObj =
@@ -867,12 +902,12 @@ export function OnboardingWizard() {
         className="w-full max-w-[440px] mx-auto flex flex-col items-center"
       >
         {/* =========================================================
-            1. TOP CENTERED BRAND LOGO (SaleSkip Layout)
+            1. TOP CENTERED BRAND LOGO
            ========================================================= */}
         <a
           href="/"
           className="flex items-center gap-2.5 mb-9 group cursor-pointer"
-          title="Retour à la landing page"
+          title={tr("Back to homepage", "Retour à l'accueil")}
         >
           <div className="w-8 h-8 rounded-[10px] bg-[#465FFF] group-hover:bg-[#3641F5] flex items-center justify-center text-white font-extrabold text-sm tracking-tight shadow-[0_4px_12px_rgba(70,95,255,0.28)] transition-colors">
             LS
@@ -885,7 +920,7 @@ export function OnboardingWizard() {
         {/* =========================================================
             2. HORIZONTAL 4-STEP NUMBERED STEPPER WITH LINE
            ========================================================= */}
-        <div className="w-full max-w-[300px] mb-9 relative flex items-center justify-between">
+        <div className="w-full max-w-[340px] mb-9 relative flex items-center justify-between">
           {/* Background connecting line */}
           <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#e4e4e7] dark:bg-[#27272a] z-0">
             <div
@@ -895,7 +930,7 @@ export function OnboardingWizard() {
             />
           </div>
 
-          {[1, 2, 3].map((step) => {
+          {[1, 2, 3, 4].map((step) => {
             const isActive = currentStep === step;
             const isCompleted = currentStep > step;
             return (
@@ -929,12 +964,25 @@ export function OnboardingWizard() {
            ========================================================= */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-[#09090b] dark:text-white">
-            {currentStep === 1 && "Onboarding Getting Started!"}
-            {currentStep === 2 && "Configure Your Edge Region"}
-            {currentStep === 3 && "Routing & Attribution Setup"}
+            {currentStep === 1 &&
+              tr("Choose Your Default Language", "Choisissez votre langue par défaut")}
+            {currentStep === 2 &&
+              tr("Onboarding Getting Started!", "Personnalisons votre profil")}
+            {currentStep === 3 &&
+              tr("Configure Your Edge Region", "Configurez votre région Edge")}
+            {currentStep === 4 &&
+              tr("Routing & Attribution Setup", "Découverte & attribution")}
           </h1>
           <p className="text-xs sm:text-sm text-[#71717a] dark:text-[#a1a1aa] mt-2">
-            Allow us to offer you a pleasant experience.
+            {currentStep === 1
+              ? tr(
+                  "You can change your interface language anytime in your profile settings.",
+                  "Vous pourrez modifier la langue de l'interface à tout moment dans votre profil.",
+                )
+              : tr(
+                  "Allow us to offer you a pleasant experience.",
+                  "Aidez-nous à préparer un espace parfaitement adapté à vos besoins.",
+                )}
           </p>
         </div>
 
@@ -942,8 +990,71 @@ export function OnboardingWizard() {
             4. STEP FIELDS CONTAINER (Animated by GSAP)
            ========================================================= */}
         <div ref={stepContentRef} className="w-full space-y-3 mb-7">
-          {/* ---------------- STEP 1 ---------------- */}
+          {/* ---------------- STEP 1: DEFAULT LANGUAGE ---------------- */}
           {currentStep === 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(
+                [
+                  {
+                    code: "en" as const,
+                    label: "English",
+                    nativeSub: "Default international interface",
+                    tag: "EN",
+                  },
+                  {
+                    code: "fr" as const,
+                    label: "Français",
+                    nativeSub: "Interface complète en français",
+                    tag: "FR",
+                  },
+                ]
+              ).map((opt) => {
+                const selected = locale === opt.code;
+                return (
+                  <button
+                    key={opt.code}
+                    type="button"
+                    onClick={() => setLocale(opt.code, { syncRemote: false })}
+                    aria-pressed={selected}
+                    className={`onb-card-item text-left w-full rounded-[10px] p-4 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                      selected
+                        ? "bg-white dark:bg-[#121215] border-[1.5px] border-[#0066FF] shadow-[0_0_0_3px_rgba(0,102,255,0.12)]"
+                        : "bg-[#f1f1f3] dark:bg-[#16161a] border border-transparent hover:border-[#e4e4e7] dark:hover:border-[#27272a]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 font-mono text-[11px] font-bold tracking-wider ${
+                          selected
+                            ? "bg-[#0066FF] text-white"
+                            : "bg-black/[0.06] dark:bg-white/[0.08] text-[#52525b] dark:text-[#a1a1aa]"
+                        }`}
+                      >
+                        <Languages className="w-3.5 h-3.5" />
+                        {opt.tag}
+                      </span>
+                      {selected && (
+                        <span className="w-5 h-5 rounded-full bg-[#0066FF] text-white flex items-center justify-center">
+                          <Check className="w-3 h-3 stroke-[2.8]" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-base font-bold text-[#09090b] dark:text-white">
+                        {opt.label}
+                      </div>
+                      <div className="text-[11.5px] text-[#71717a] dark:text-[#a1a1aa] mt-0.5 leading-snug">
+                        {opt.nativeSub}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ---------------- STEP 2: PROFILE & INDUSTRY ---------------- */}
+          {currentStep === 2 && (
             <>
               {/* Field 1: Are you already routing links / selling? */}
               <div className="onb-card-item relative">
@@ -963,10 +1074,13 @@ export function OnboardingWizard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        Are you already managing short links or campaigns?
+                        {tr(
+                          "Are you already managing short links or campaigns?",
+                          "Gérez-vous déjà des liens courts ou des campagnes ?",
+                        )}
                       </div>
                       <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
-                        {sellingStatus}
+                        {selectedSellingLabel}
                       </div>
                     </div>
                     <ChevronDown className="w-4 h-4 text-[#71717a] shrink-0" />
@@ -975,27 +1089,21 @@ export function OnboardingWizard() {
 
                 {openDropdown === "selling" && (
                   <div className="mt-1.5 w-full rounded-[10px] bg-white dark:bg-[#141418] border border-[#e4e4e7] dark:border-[#27272a] shadow-xl p-1.5 z-30 space-y-1">
-                    {[
-                      "Yes, actively scaling traffic",
-                      "Migrating from Bitly / Dub / Rebrandly",
-                      "Launching a brand new product or store",
-                      "Integrating REST API & SDK in code",
-                      "No",
-                    ].map((opt) => (
+                    {sellingOptions.map((opt) => (
                       <div
-                        key={opt}
+                        key={opt.id}
                         onClick={() => {
-                          setSellingStatus(opt);
+                          setSellingStatus(opt.id);
                           setOpenDropdown(null);
                         }}
                         className={`px-3 py-2 rounded-[10px] text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                          sellingStatus === opt
+                          sellingStatus === opt.id
                             ? "bg-[#0066FF]/10 text-[#0066FF] font-semibold"
                             : "text-[#09090b] dark:text-[#e4e4e7] hover:bg-[#f4f4f5] dark:hover:bg-[#1f1f24]"
                         }`}
                       >
-                        <span>{opt}</span>
-                        {sellingStatus === opt && (
+                        <span>{opt.label}</span>
+                        {sellingStatus === opt.id && (
                           <Check className="w-3.5 h-3.5 text-[#0066FF]" />
                         )}
                       </div>
@@ -1022,7 +1130,10 @@ export function OnboardingWizard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        What is your estimated monthly click volume?
+                        {tr(
+                          "What is your estimated monthly click volume?",
+                          "Quel est votre volume de clics mensuel estimé ?",
+                        )}
                       </div>
                       <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
                         {selectedVolumeObj.label}
@@ -1057,7 +1168,7 @@ export function OnboardingWizard() {
                 )}
               </div>
 
-              {/* Field 3: Primary Industry / Role (Active by default like Clothing in SaleSkip) */}
+              {/* Field 3: Primary Industry / Role */}
               <div className="onb-card-item relative">
                 <div
                   onClick={() => {
@@ -1075,7 +1186,10 @@ export function OnboardingWizard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        Which Industry will you be operating in?
+                        {tr(
+                          "Which Industry will you be operating in?",
+                          "Dans quel secteur d'activité évoluez-vous ?",
+                        )}
                       </div>
                       <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
                         {selectedProfessionObj.label}
@@ -1117,8 +1231,8 @@ export function OnboardingWizard() {
             </>
           )}
 
-          {/* ---------------- STEP 2 ---------------- */}
-          {currentStep === 2 && (
+          {/* ---------------- STEP 3: EDGE REGION & WORKSPACE ---------------- */}
+          {currentStep === 3 && (
             <>
               {/* Country Selector Card */}
               <div className="onb-card-item relative">
@@ -1138,7 +1252,7 @@ export function OnboardingWizard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        Primary Cloudflare Edge Country
+                        {tr("Primary Cloudflare Edge Country", "Pays principal Cloudflare Edge")}
                       </div>
                       <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5 flex items-center gap-2">
                         <img
@@ -1162,7 +1276,7 @@ export function OnboardingWizard() {
                         type="text"
                         value={countrySearch}
                         onChange={(e) => setCountrySearch(e.target.value)}
-                        placeholder="Search country..."
+                        placeholder={tr("Search country...", "Rechercher un pays...")}
                         className="w-full h-8 pl-8 pr-3 rounded-[10px] bg-[#fafafa] dark:bg-[#09090b] border border-[#e4e4e7] dark:border-[#27272a] text-xs text-[#09090b] dark:text-white focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
@@ -1210,14 +1324,14 @@ export function OnboardingWizard() {
                 }`}
               >
                 <label className="block text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                  Primary City / Hub
+                  {tr("Primary City / Hub", "Ville principale")}
                 </label>
                 <input
                   type="text"
                   value={city}
                   onFocus={() => setActiveField("step2-city")}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. New York, Paris, London, Tokyo..."
+                  placeholder={tr("e.g. New York, Paris, London, Tokyo...", "ex. Paris, Montréal, Lyon, Bruxelles...")}
                   className="w-full bg-transparent text-sm font-bold text-[#09090b] dark:text-white mt-0.5 focus:outline-none placeholder:font-normal placeholder:text-[#a1a1aa]"
                 />
               </div>
@@ -1232,22 +1346,22 @@ export function OnboardingWizard() {
                 }`}
               >
                 <label className="block text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                  Organization / Workspace Name
+                  {tr("Organization / Workspace Name", "Nom de l'organisation / espace")}
                 </label>
                 <input
                   type="text"
                   value={workspaceName}
                   onFocus={() => setActiveField("step2-workspace")}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="My Workspace"
+                  placeholder={tr("My Workspace", "Mon espace")}
                   className="w-full bg-transparent text-sm font-bold text-[#09090b] dark:text-white mt-0.5 focus:outline-none placeholder:font-normal placeholder:text-[#a1a1aa]"
                 />
               </div>
             </>
           )}
 
-          {/* ---------------- STEP 3 ---------------- */}
-          {currentStep === 3 && (
+          {/* ---------------- STEP 4: DISCOVERY ---------------- */}
+          {currentStep === 4 && (
             <>
               {/* Discovery Channel */}
               <div className="onb-card-item relative">
@@ -1267,7 +1381,7 @@ export function OnboardingWizard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-medium text-[#71717a] dark:text-[#a1a1aa]">
-                        How did you hear about LShorter?
+                        {tr("How did you hear about LShorter?", "Comment avez-vous connu LShorter ?")}
                       </div>
                       <div className="text-sm font-bold text-[#09090b] dark:text-white mt-0.5">
                         {selectedSourceObj.label}
@@ -1301,13 +1415,12 @@ export function OnboardingWizard() {
                   </div>
                 )}
               </div>
-
             </>
           )}
         </div>
 
         {/* =========================================================
-            5. FULL-WIDTH BLUE "NEXT" CTA BUTTON (SaleSkip Style)
+            5. FULL-WIDTH BLUE "NEXT" CTA BUTTON
            ========================================================= */}
         <button
           type="button"
@@ -1316,10 +1429,10 @@ export function OnboardingWizard() {
           className="w-full h-12 rounded-[10px] bg-[#0066FF] hover:bg-[#0052cc] active:scale-[0.99] text-white font-semibold text-sm shadow-[0_6px_20px_rgba(0,102,255,0.32)] transition-all flex items-center justify-center cursor-pointer disabled:opacity-60"
         >
           {isSubmitting
-            ? "Configuring Workspace..."
+            ? tr("Configuring Workspace...", "Configuration de l'espace...")
             : currentStep < totalSteps
-              ? "Next"
-              : "Launch Dashboard"}
+              ? tr("Next", "Suivant")
+              : tr("Launch Dashboard", "Ouvrir le tableau de bord")}
         </button>
 
         {/* Subtle Back / Skip navigation row */}
@@ -1330,7 +1443,7 @@ export function OnboardingWizard() {
               onClick={() => setCurrentStep((s) => s - 1)}
               className="hover:text-[#09090b] dark:hover:text-white transition-colors cursor-pointer font-medium"
             >
-              ← Previous step
+              {tr("← Previous step", "← Étape précédente")}
             </button>
           ) : (
             <span />

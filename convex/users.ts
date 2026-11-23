@@ -231,6 +231,7 @@ export const completeOnboarding = mutation({
     if (user) {
       await ctx.db.patch(user._id, {
         hasCompletedOnboarding: true,
+        ...(args.language ? { language: args.language } : {}),
         onboarding: {
           country: args.country,
           city: args.city,
@@ -282,6 +283,7 @@ export const completeOnboarding = mutation({
         provider: "credentials",
         plan: "FREEMIUM",
         hasCompletedOnboarding: true,
+        ...(args.language ? { language: args.language } : {}),
         onboarding: {
           country: args.country,
           city: args.city,
@@ -616,6 +618,8 @@ export const updateProfilePreferences = mutation({
         name: args.name || "User",
         email: (args.email || (args.userId.includes("@") ? args.userId : "")).toLowerCase().trim(),
         avatarUrl: args.avatarUrl,
+        ...(args.language ? { language: args.language } : {}),
+        ...(args.timezone ? { timezone: args.timezone } : {}),
         plan: "FREEMIUM",
         hasCompletedOnboarding: false,
         createdAt: now,

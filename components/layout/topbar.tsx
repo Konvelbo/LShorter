@@ -16,8 +16,10 @@ import {
   LogOut,
   User as UserIcon,
   CreditCard,
+  Languages,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { useSession, signOut } from "next-auth/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -29,6 +31,7 @@ import { DashboardMobileMenu } from "./dashboard-mobile-menu";
 
 export function Topbar() {
   const { theme, toggleTheme } = useTheme();
+  const { locale, toggleLocale, t } = useI18n();
   const { data: session } = useSession();
   const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
   const rawEmail = session?.user?.email || "";
@@ -560,7 +563,7 @@ export function Topbar() {
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >
                       <UserIcon className="h-4 w-4 ds-text-muted" />
-                      Edit Profile
+                      {t("topbar.editProfile")}
                     </Link>
                     <Link
                       href="/dashboard/settings?tab=billing"
@@ -569,7 +572,7 @@ export function Topbar() {
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >
                       <CreditCard className="h-4 w-4 ds-text-muted" />
-                      Billing & Plan ({planDef.name})
+                      {t("topbar.billingPlan")} ({planDef.name})
                     </Link>
                     <Link
                       href="/dashboard/settings"
@@ -578,7 +581,7 @@ export function Topbar() {
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05]"
                     >
                       <Settings className="h-4 w-4 ds-text-muted" />
-                      Account Settings
+                      {t("topbar.accountSettings")}
                     </Link>
                     <button
                       type="button"
@@ -591,10 +594,23 @@ export function Topbar() {
                         ) : (
                           <Moon className="h-4 w-4 ds-text-muted" />
                         )}
-                        <span>Theme</span>
+                        <span>{t("topbar.theme")}</span>
                       </span>
-                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted capitalize">
-                        {theme === "dark" ? "Dark" : "Light"}
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted">
+                        {theme === "dark" ? t("topbar.dark") : t("topbar.light")}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleLocale}
+                      className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.05] cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Languages className="h-4 w-4 ds-text-muted" />
+                        <span>{t("topbar.language")}</span>
+                      </span>
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted">
+                        {locale === "fr" ? "Français" : "English"}
                       </span>
                     </button>
                   </div>
@@ -605,7 +621,7 @@ export function Topbar() {
                       className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[#D92D20] hover:bg-[#FEF3F2] dark:hover:bg-[#D92D20]/10 cursor-pointer"
                     >
                       <LogOut className="h-4 w-4" />
-                      Sign out
+                      {t("topbar.signOut")}
                     </button>
                   </div>
                 </div>

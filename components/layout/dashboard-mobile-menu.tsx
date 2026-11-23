@@ -21,7 +21,9 @@ import {
   Moon,
   LogOut,
   Sparkles,
+  Languages,
 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   Avatar,
   AvatarImage,
@@ -174,6 +176,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
   toggleTheme,
 }: DashboardMobileMenuProps) {
   const pathname = usePathname();
+  const { locale, toggleLocale, t, tr } = useI18n();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     Analytics: true,
   });
@@ -743,10 +746,10 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
 
             {/* Badge Plan */}
             <div className="flex items-center justify-between px-3 py-2 rounded-[8px] bg-black/[0.03] dark:bg-white/[0.04]">
-              <span className="text-xs ds-text-muted">Abonnement</span>
+              <span className="text-xs ds-text-muted">{tr("Subscription", "Abonnement")}</span>
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0066FF] dark:text-[#5294FF]">
                 <Sparkles className="w-3.5 h-3.5" />
-                Plan {planDef.name}
+                {tr("Plan", "Forfait")} {planDef.name}
               </span>
             </div>
 
@@ -761,7 +764,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                 <UserIcon className="h-4 w-4 ds-text-muted" />
-                <span>Edit Profile</span>
+                <span>{t("topbar.editProfile")}</span>
               </Link>
 
               <Link
@@ -773,7 +776,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                 <CreditCard className="h-4 w-4 ds-text-muted" />
-                <span>Billing & Plan ({planDef.name})</span>
+                <span>{t("topbar.billingPlan")} ({planDef.name})</span>
               </Link>
 
               <Link
@@ -785,7 +788,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                 <Settings className="h-4 w-4 ds-text-muted" />
-                <span>Account Settings</span>
+                <span>{t("topbar.accountSettings")}</span>
               </Link>
 
               {/* Theme Toggle */}
@@ -800,10 +803,25 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                   ) : (
                     <Moon className="h-4 w-4 ds-text-muted" />
                   )}
-                  <span>Thème</span>
+                  <span>{t("topbar.theme")}</span>
                 </span>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted capitalize">
-                  {theme === "dark" ? "Dark" : "Light"}
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted">
+                  {theme === "dark" ? t("topbar.dark") : t("topbar.light")}
+                </span>
+              </button>
+
+              {/* Language Toggle */}
+              <button
+                type="button"
+                onClick={toggleLocale}
+                className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-sm ds-text-secondary hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Languages className="h-4 w-4 ds-text-muted" />
+                  <span>{t("topbar.language")}</span>
+                </span>
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-black/[0.04] dark:bg-white/[0.06] ds-text-muted">
+                  {locale === "fr" ? "Français" : "English"}
                 </span>
               </button>
             </div>
@@ -816,7 +834,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-sm text-[#D92D20] hover:bg-[#FEF3F2] dark:hover:bg-[#D92D20]/10 cursor-pointer transition-colors"
               >
                 <LogOut className="h-4 w-4" />
-                <span>Se déconnecter</span>
+                <span>{t("topbar.signOut")}</span>
               </button>
             </div>
           </div>

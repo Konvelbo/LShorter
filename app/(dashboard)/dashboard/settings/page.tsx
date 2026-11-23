@@ -56,7 +56,10 @@ import {
   Mail,
   Pencil,
   X,
+  Languages,
 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { normalizeLocale } from "@/lib/i18n/types";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { WebhookModal, WebhookModalData } from "@/components/dashboard/webhook-modal";
 import { useSession, signOut } from "next-auth/react";
@@ -221,9 +224,10 @@ function SettingsPageContent() {
   }, []);
 
   // ─── Profile State ──────────────────────────────────────────────────────────
+  const { locale, setLocale, tr } = useI18n();
   const [name, setName] = useState(session?.user?.name || "My Account");
   const [email, setEmail] = useState(session?.user?.email || "");
-  const [language, setLanguage] = useState("English (US)");
+  const [language, setLanguage] = useState<string>(locale);
   const [timezone, setTimezone] = useState(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -1545,7 +1549,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
       if (convexUser.name) setName(convexUser.name);
       if (convexUser.email) setEmail(convexUser.email);
       if (convexUser.avatarUrl) setAvatarUrl(convexUser.avatarUrl);
-      if (convexUser.language) setLanguage(convexUser.language);
+      if (convexUser.language) {
+        const normalized = normalizeLocale(convexUser.language);
+        setLanguage(normalized || locale);
+      }
       if (convexUser.timezone) setTimezone(convexUser.timezone);
     } else if (session?.user) {
       if (session.user.name) setName(session.user.name);
@@ -2236,7 +2243,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                      Full name
+                      {tr("Full name", "Nom complet")}
                     </label>
                     <Input
                       value={name}
@@ -2246,7 +2253,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                      Login email address
+                      {tr("Login email address", "Adresse e-mail de connexion")}
                     </label>
                     <Input
                       type="email"
@@ -2257,9 +2264,61 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   </div>
                 </div>
 
+                {/* Interface Language Selector */}
+                <div className="pt-4 border-t border-zinc-200 dark:border-[#222225]">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-neutral-300">
+                        <Languages className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#5294FF]" />
+                        <span>{tr("Interface language", "Langue de l'interface")}</span>
+                      </label>
+                      <p className="text-[11.5px] text-zinc-500 dark:text-neutral-400 mt-1">
+                        {tr(
+                          "Choose the display language applied across all LShorter pages and your dashboard.",
+                          "Choisissez la langue d'affichage appliquée à toutes les pages LShorter et à votre tableau de bord.",
+                        )}
+                      </p>
+                    </div>
+                    <div
+                      role="group"
+                      aria-label={tr("Interface language", "Langue de l'interface")}
+                      className="inline-flex items-center rounded-[8px] border border-zinc-200 dark:border-[#27272a] bg-zinc-50 dark:bg-white/[0.03] p-1 shrink-0"
+                    >
+                      {(
+                        [
+                          { code: "en" as const, label: "English" },
+                          { code: "fr" as const, label: "Français" },
+                        ]
+                      ).map((opt) => {
+                        const active = locale === opt.code;
+                        return (
+                          <button
+                            key={opt.code}
+                            type="button"
+                            onClick={() => {
+                              setLanguage(opt.code);
+                              setLocale(opt.code);
+                            }}
+                            aria-pressed={active}
+                            className={`px-3.5 py-1.5 rounded-[6px] text-xs font-semibold transition-colors cursor-pointer ${
+                              active
+                                ? "bg-[#0066FF] text-white shadow-xs"
+                                : "text-zinc-600 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-[#222225]">
                   <Button type="submit" variant="glow" className="text-xs px-6">
-                    {profileSuccess ? "Saved successfully!" : "Save changes"}
+                    {profileSuccess
+                      ? tr("Saved successfully!", "Enregistré avec succès !")
+                      : tr("Save changes", "Enregistrer les modifications")}
                   </Button>
                 </div>
               </div>

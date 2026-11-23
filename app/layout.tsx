@@ -6,9 +6,11 @@ import { ToastProvider } from "@/components/ui/toast-provider";
 import { UndoDeleteProvider } from "@/components/ui/undo-delete-provider";
 import { PlanUpgradeModal } from "@/components/dashboard/plan-upgrade-modal";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
+import { I18nProvider } from "@/components/providers/i18n-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RouteProgressBar } from "@/components/layout/route-progress-bar";
 import { RootStructuredData } from "@/components/seo/json-ld";
+import { getServerLocale } from "@/lib/i18n/server";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -207,16 +209,17 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const gaId = (process.env.NEXT_PUBLIC_GA_ID || "").trim();
+  const initialLocale = await getServerLocale();
 
   return (
     <html
-      lang="en"
+      lang={initialLocale}
       className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} ${caveat.variable} light antialiased overflow-x-clip max-w-[100vw]`}
       suppressHydrationWarning
     >
@@ -256,12 +259,14 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <ConvexClientProvider>
-            <ToastProvider>
-              <UndoDeleteProvider>
-                {children}
-                <PlanUpgradeModal />
-              </UndoDeleteProvider>
-            </ToastProvider>
+            <I18nProvider initialLocale={initialLocale}>
+              <ToastProvider>
+                <UndoDeleteProvider>
+                  {children}
+                  <PlanUpgradeModal />
+                </UndoDeleteProvider>
+              </ToastProvider>
+            </I18nProvider>
           </ConvexClientProvider>
         </ThemeProvider>
       </body>

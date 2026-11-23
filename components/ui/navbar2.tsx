@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { lerp, useLenis } from "@/components/providers/smooth-scroll-provider";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 
@@ -262,8 +263,51 @@ export function Navbar2() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { locale, toggleLocale, t, tr } = useI18n();
   const { lenis } = useLenis();
   const { data: session, status } = useSession();
+
+  const navItems = [
+    { id: "demo-video", label: t("nav.demoVideo"), hasMenu: false, href: "/#demo-video" },
+    { id: "features", label: t("nav.features"), hasMenu: false, href: "/#features" },
+    { id: "pathlock", label: t("nav.pathlock"), hasMenu: false, href: "/#pathlock" },
+    { id: "difference", label: t("nav.difference"), hasMenu: false, href: "/#difference" },
+    { id: "docs-api", label: t("nav.docsApi"), hasMenu: true },
+    { id: "pricing", label: t("nav.pricing"), hasMenu: false, href: "/pricing" },
+  ] as const;
+
+  const docsApiMenu: MegaMenu = {
+    columns: [
+      {
+        eyebrow: tr("Documentation", "Documentation"),
+        links: [
+          { label: tr("Documentation Hub", "Centre de documentation"), href: "/docs", active: true },
+          { label: tr("REST API Quickstart", "Démarrage rapide API REST"), href: "/docs/sdk-quickstart", badge: "v1" },
+          { label: tr("PathLock™ Guide", "Guide PathLock™"), href: "/docs/path-lock" },
+          { label: tr("Webhooks & Events", "Webhooks & Événements"), href: "/docs/webhooks-and-events" },
+        ],
+      },
+      {
+        eyebrow: tr("Capabilities & Guides", "Fonctionnalités & Guides"),
+        links: [
+          { label: tr("Smart Geo & OS Routing", "Routage intelligent Géo & OS"), href: "/docs/geo-routing" },
+          { label: tr("Click Caps & Expiry", "Limites de clics & Expiration"), href: "/docs/click-limits-and-expiration" },
+          { label: tr("Dynamic QR Studio", "Studio QR Dynamique"), href: "/docs/dynamic-qr-codes" },
+          { label: tr("Real-Time Analytics", "Statistiques en temps réel"), href: "/docs/realtime-analytics" },
+        ],
+      },
+    ],
+    footerLinks: [
+      { label: tr("Interactive API Terminal", "Terminal API interactif"), href: "/#api" },
+      { label: tr("Revenue Attribution", "Attribution des revenus"), href: "/docs/conversion-tracking-amount-count" },
+    ],
+    showSocials: true,
+    image: DOCS_API_MENU.image,
+    imageCaption: tr(
+      "REST API v1, PathLock™ & live edge telemetry across 310+ PoPs",
+      "API REST v1, PathLock™ & télémétrie edge sur plus de 310 PoPs"
+    ),
+  };
 
   const sessionUser = session?.user as
     | { userNotFound?: boolean; hasCompletedOnboarding?: boolean }
@@ -585,14 +629,14 @@ export function Navbar2() {
 
             {/* Desktop nav (ordered strictly top-to-bottom with landing page) */}
             <nav
-              aria-label="Main navigation"
+              aria-label={tr("Main navigation", "Navigation principale")}
               className="hidden items-center gap-0.5 xl:gap-1 lg:flex"
             >
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 if (!item.hasMenu) {
                   return (
                     <Link
-                      key={item.label}
+                      key={item.id}
                       href={item.href ?? "#"}
                       onClick={() => setDocsOpen(false)}
                       className="rounded-full px-3 xl:px-3.5 py-2 text-[14px] font-medium whitespace-nowrap text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-100/80 dark:hover:bg-white/[0.06] hover:text-zinc-900 dark:hover:text-white cursor-pointer"
@@ -603,7 +647,7 @@ export function Navbar2() {
                 }
                 return (
                   <button
-                    key={item.label}
+                    key={item.id}
                     type="button"
                     onClick={() => setDocsOpen((prev) => !prev)}
                     aria-expanded={docsOpen}
@@ -630,14 +674,23 @@ export function Navbar2() {
             </nav>
 
             {/* Right actions */}
-            <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
+            <div className="hidden shrink-0 items-center gap-2 lg:flex">
+              {/* Simple, sober compact EN/FR language toggle strictly to the left of the theme toggle */}
+              <button
+                type="button"
+                onClick={toggleLocale}
+                aria-label={t("lang.switchToOther")}
+                title={t("lang.switchToOther")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200/80 dark:border-white/12 bg-zinc-50/80 dark:bg-white/[0.05] font-mono text-[11.5px] font-semibold tracking-wider text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10] hover:text-zinc-900 dark:hover:text-white cursor-pointer select-none"
+              >
+                {locale.toUpperCase()}
+              </button>
+
               <button
                 type="button"
                 onClick={toggleTheme}
                 aria-label={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
+                  theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")
                 }
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200/80 dark:border-white/12 bg-zinc-50/80 dark:bg-white/[0.05] text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10] hover:text-zinc-900 dark:hover:text-white cursor-pointer"
               >
@@ -658,7 +711,7 @@ export function Navbar2() {
                   icon={<LayoutDashboard className="h-3.5 w-3.5" />}
                   className="h-9 rounded-full px-4 text-[13.5px]"
                 >
-                  Dashboard
+                  {t("nav.dashboard")}
                 </WaveRevealButton>
               ) : (
                 <>
@@ -667,7 +720,7 @@ export function Navbar2() {
                     onClick={closeAll}
                     className="inline-flex h-9 items-center rounded-full border border-zinc-200 dark:border-white/14 bg-zinc-50 dark:bg-white/[0.05] px-5 text-sm font-semibold text-zinc-900 dark:text-zinc-100 transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow hover:bg-zinc-100 dark:hover:bg-white/[0.10]"
                   >
-                    Sign in
+                    {t("nav.signIn")}
                   </Link>
 
                   <WaveRevealButton
@@ -678,21 +731,28 @@ export function Navbar2() {
                     wave
                     className="h-9 rounded-full px-4 text-[13.5px]"
                   >
-                    Shorten a link
+                    {t("nav.shortenLink")}
                   </WaveRevealButton>
                 </>
               )}
             </div>
 
             {/* Mobile actions */}
-            <div className="flex items-center gap-1.5 lg:hidden">
+            <div className="flex items-center gap-1 lg:hidden">
+              <button
+                type="button"
+                onClick={toggleLocale}
+                aria-label={t("lang.switchToOther")}
+                title={t("lang.switchToOther")}
+                className="flex h-9 w-9 items-center justify-center rounded-full font-mono text-[11.5px] font-semibold tracking-wider text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer select-none"
+              >
+                {locale.toUpperCase()}
+              </button>
               <button
                 type="button"
                 onClick={toggleTheme}
                 aria-label={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
+                  theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")
                 }
                 className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
@@ -706,7 +766,7 @@ export function Navbar2() {
                 type="button"
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 {mobileOpen ? (
@@ -740,14 +800,14 @@ export function Navbar2() {
             className="will-change-[transform,opacity]"
           >
             <div className="grid grid-cols-[1fr_1fr_auto] gap-10 px-8 pb-7 pt-6">
-              {DOCS_API_MENU.columns.map((col, colIdx) => (
+              {docsApiMenu.columns.map((col, colIdx) => (
                 <div key={col.eyebrow} className="flex flex-col gap-5">
                   <span className="w-fit rounded-full border border-zinc-200 dark:border-white/12 px-3.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {col.eyebrow}
                   </span>
                   <ul className="flex flex-col gap-3.5">
                     {col.links.map((link) => (
-                      <li key={link.label}>
+                      <li key={link.href}>
                         <Link
                           href={link.href}
                           onClick={closeAll}
@@ -768,12 +828,12 @@ export function Navbar2() {
                     ))}
                   </ul>
 
-                  {colIdx === DOCS_API_MENU.columns.length - 1 &&
-                    DOCS_API_MENU.footerLinks && (
+                  {colIdx === docsApiMenu.columns.length - 1 &&
+                    docsApiMenu.footerLinks && (
                       <div className="mt-auto flex flex-col gap-1.5 pt-10">
-                        {DOCS_API_MENU.footerLinks.map((item) => (
+                        {docsApiMenu.footerLinks.map((item) => (
                           <Link
-                            key={item.label}
+                            key={item.href}
                             href={item.href}
                             onClick={closeAll}
                             className="text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
@@ -788,22 +848,22 @@ export function Navbar2() {
 
               {/* Pre-decoded API Preview Card */}
               <Link
-                href={DOCS_API_MENU.image.href}
+                href={docsApiMenu.image.href}
                 onClick={closeAll}
                 className="group relative hidden h-64 w-72 flex-col justify-end overflow-hidden rounded-[10px] border border-zinc-200/80 dark:border-white/12 bg-white dark:bg-zinc-900 md:flex"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={DOCS_API_MENU.image.src}
-                  alt={DOCS_API_MENU.image.alt}
+                  src={docsApiMenu.image.src}
+                  alt={docsApiMenu.image.alt}
                   loading="lazy"
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
                 />
-                {DOCS_API_MENU.imageCaption && (
+                {docsApiMenu.imageCaption && (
                   <div className="relative z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
                     <p className="text-sm font-medium leading-snug text-white">
-                      {DOCS_API_MENU.imageCaption}
+                      {docsApiMenu.imageCaption}
                     </p>
                   </div>
                 )}
@@ -851,9 +911,9 @@ export function Navbar2() {
             style={{ transform: "translate3d(0, -14px, 0)", opacity: 0 }}
             className="flex max-h-[calc(100svh-96px)] flex-col gap-1 overflow-y-auto px-5 pb-5 pt-3 will-change-[transform,opacity]"
           >
-            {NAV_ITEMS.map((item) =>
+            {navItems.map((item) =>
               item.hasMenu ? (
-                <div key={item.label} className="flex flex-col">
+                <div key={item.id} className="flex flex-col">
                   <button
                     type="button"
                     onClick={() => setMobileDocsOpen((v) => !v)}
@@ -896,10 +956,10 @@ export function Navbar2() {
                         className="overflow-hidden will-change-[height,opacity]"
                       >
                         <div className="ml-3 mb-2 flex flex-col gap-2.5 border-l border-zinc-200 dark:border-white/10 pl-4 pt-2">
-                          {DOCS_API_MENU.columns.flatMap((c) =>
+                          {docsApiMenu.columns.flatMap((c) =>
                             c.links.map((link) => (
                               <Link
-                                key={link.label}
+                                key={link.href}
                                 href={link.href}
                                 onClick={closeAll}
                                 className="flex items-center gap-2 py-0.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#60A5FA]"
@@ -920,7 +980,7 @@ export function Navbar2() {
                 </div>
               ) : (
                 <Link
-                  key={item.label}
+                  key={item.id}
                   href={item.href ?? "#"}
                   onClick={closeAll}
                   className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-left text-[15px] font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-white/[0.06]"
@@ -941,7 +1001,7 @@ export function Navbar2() {
                   icon={<LayoutDashboard className="h-4 w-4" />}
                   className="w-full rounded-full"
                 >
-                  Open Dashboard
+                  {tr("Open Dashboard", "Ouvrir le tableau de bord")}
                 </WaveRevealButton>
               ) : (
                 <>
@@ -950,7 +1010,7 @@ export function Navbar2() {
                     onClick={closeAll}
                     className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 dark:border-white/15 bg-zinc-50 dark:bg-white/[0.05] px-5 text-center text-sm font-semibold text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-white/[0.10] transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow"
                   >
-                    Sign in
+                    {t("nav.signIn")}
                   </Link>
                   <WaveRevealButton
                     href="/register"
@@ -960,7 +1020,7 @@ export function Navbar2() {
                     wave
                     className="w-full rounded-full"
                   >
-                    Shorten a link
+                    {t("nav.shortenLink")}
                   </WaveRevealButton>
                 </>
               )}
