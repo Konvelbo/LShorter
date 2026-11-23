@@ -35,7 +35,7 @@ const poppins = Poppins({
 
 const caveat = Caveat({
   variable: "--font-caveat",
-  weight: ["500", "600"],
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
   display: "swap",
   fallback: ["Segoe Script", "Brush Script MT", "cursive"],

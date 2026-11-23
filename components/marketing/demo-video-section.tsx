@@ -19,7 +19,7 @@ const DEMO_VIDEO_SOURCES: Record<
 > = {
   en: {
     src: "/videos/demo-walkthrough-en.mp4?v=2",
-    poster: "/videos/demo-walkthrough-en-poster.jpg?v=2",
+    poster: "/videos/demo-walkthrough-en-poster.jpg?v=3",
     chapters: [
       { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
       { id: "dashboard", time: "01:29", seconds: 89, label: "Dashboard & links" },
@@ -31,7 +31,7 @@ const DEMO_VIDEO_SOURCES: Record<
   },
   fr: {
     src: "/videos/demo-walkthrough-fr.mp4?v=2",
-    poster: "/videos/demo-walkthrough-fr-poster.jpg?v=2",
+    poster: "/videos/demo-walkthrough-fr-poster.jpg?v=3",
     chapters: [
       { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
       { id: "dashboard", time: "01:32", seconds: 92, label: "Dashboard & links" },

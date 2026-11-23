@@ -788,18 +788,18 @@ export function HeroShortener() {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="hidden lg:flex items-start gap-1 xl:gap-1.5 absolute left-[calc(100%+8px)] xl:left-[calc(100%+14px)] top-1/2 -translate-y-[74%] z-20 select-none cursor-pointer group text-[#0066FF] dark:text-[#60A5FA] focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-4 rounded-[6px]"
+          className="hidden lg:flex items-start gap-1.5 xl:gap-2 absolute left-[calc(100%+6px)] xl:left-[calc(100%+16px)] top-1/2 -translate-y-[78%] z-20 select-none cursor-pointer group text-[#0066FF] dark:text-[#60A5FA] focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-4 rounded-[6px]"
         >
           <svg
             viewBox="0 0 88 52"
             fill="none"
             aria-hidden="true"
-            className="w-[56px] h-[34px] xl:w-[76px] xl:h-[46px] shrink-0 overflow-visible transition-transform duration-300 ease-out group-hover:-translate-x-1"
+            className="w-[54px] h-[32px] xl:w-[98px] xl:h-[58px] 2xl:w-[108px] 2xl:h-[64px] shrink-0 overflow-visible transition-transform duration-300 ease-out group-hover:-translate-x-1"
           >
             <motion.path
               d="M 84 15 C 66 5, 38 13, 42 27 C 46 39, 61 35, 57 22 C 53 10, 29 21, 8 42"
               stroke="currentColor"
-              strokeWidth="2.1"
+              strokeWidth="2.35"
               strokeLinecap="round"
               strokeLinejoin="round"
               initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
@@ -809,7 +809,7 @@ export function HeroShortener() {
             <motion.path
               d="M 10 30 C 9.5 35, 8.5 39, 7 43 C 12 42, 16.5 41.8, 21.5 42.5"
               stroke="currentColor"
-              strokeWidth="2.1"
+              strokeWidth="2.35"
               strokeLinecap="round"
               strokeLinejoin="round"
               initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
@@ -818,7 +818,7 @@ export function HeroShortener() {
             />
           </svg>
           <span
-            className="font-caveat font-semibold text-[20px] xl:text-[24px] leading-none tracking-[0.01em] text-left -rotate-[8deg] -mt-1 whitespace-nowrap transition-transform duration-300 ease-out group-hover:-rotate-[6deg]"
+            className="font-caveat font-bold text-[21px] xl:text-[32px] 2xl:text-[36px] leading-none tracking-[0.01em] text-left -rotate-[8deg] -mt-1.5 xl:-mt-2 whitespace-nowrap transition-transform duration-300 ease-out group-hover:-rotate-[6deg]"
           >
             Try it for free
           </span>
