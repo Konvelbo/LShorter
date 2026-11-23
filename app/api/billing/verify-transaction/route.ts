@@ -4,6 +4,7 @@ import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/lib/sync-user-server";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
+import { resolvePlanFromDodoProductId } from "@/src/config/pricing";
 import { auth } from "@/auth";
 import { parseBody, verifyTransactionBodySchema } from "@/lib/api-schemas";
 
@@ -99,26 +100,8 @@ export async function POST(request: NextRequest) {
         const meta = targetSub.metadata || {};
         const productId = String(targetSub.product_id || "").trim();
 
-        let productDerivedPlan = "";
-        if (
-          productId &&
-          (productId === process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
-            productId === process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY)
-        ) {
-          productDerivedPlan = "ENTERPRISE";
-        } else if (
-          productId &&
-          (productId === process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
-            productId === process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY)
-        ) {
-          productDerivedPlan = "BUSINESS";
-        } else if (
-          productId &&
-          (productId === process.env.DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
-            productId === process.env.DODO_PAYMENTS_PRODUCT_PRO_YEARLY)
-        ) {
-          productDerivedPlan = "PRO";
-        }
+        const productResolved = resolvePlanFromDodoProductId(productId);
+        const productDerivedPlan = productResolved?.planId || "";
 
         // Security: Never trust client-supplied `requestedPlan` to elevate plan tier
         const rawPlan = String(
@@ -128,12 +111,12 @@ export async function POST(request: NextRequest) {
           ["PRO", "BUSINESS", "ENTERPRISE"].includes(rawPlan) ? rawPlan : "PRO"
         ) as "PRO" | "BUSINESS" | "ENTERPRISE";
         const cycle =
-          String(meta.cycle || "").toUpperCase() === "YEARLY" ||
+          productResolved?.cycle ||
+          (String(meta.cycle || "").toUpperCase() === "YEARLY" ||
           targetSub.subscription_period_interval === "Year"
             ? "YEARLY"
-            : "MONTHLY";
-        const customerEmail =
-          targetSub.customer?.email || sessionEmail || `${sessionUserId}@lshorter.local`;
+            : "MONTHLY");
+        const customerEmail = targetSub.customer?.email || sessionEmail || "";
         const customerName = targetSub.customer?.name || sessionName;
 
         const parsedStart = targetSub.previous_billing_date

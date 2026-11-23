@@ -55,7 +55,7 @@ async function resolveLinkData(slug: string, req: Request) {
     maxClicks: linkObj.max_clicks !== undefined ? linkObj.max_clicks : linkObj.maxClicks !== undefined ? linkObj.maxClicks : null,
     fallbackUrl: linkObj.fallback_url || linkObj.fallbackUrl || null,
     clicksCount: Number(linkObj.clicks_count || (linkObj as any).clicksCount || linkObj.clicks || 0),
-    userId: linkObj.userId || (linkObj as any).user_id || "usr_default",
+    userId: linkObj.userId || (linkObj as any).user_id || "",
   };
 }
 
