@@ -10,7 +10,7 @@ import React, {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import QRCode from "qrcode";
 import {
   Link2,
@@ -215,6 +215,7 @@ export function HeroShortener() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const expiringSlugsRef = useRef<Set<string>>(new Set());
+  const prefersReducedMotion = useReducedMotion();
 
   // Display the latest shortened Hero link
   const orderedLinks = useMemo(() => {
@@ -717,64 +718,111 @@ export function HeroShortener() {
       id="hero-shortener"
       className="w-full max-w-[740px] mx-auto scroll-mt-28"
     >
-      {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
-      <div
-        className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#0D1320]/95 border shadow-[0_10px_30px_rgba(0,102,255,0.10)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
-          isPulseHighlighted
-            ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
-            : errorMsg
-              ? "border-red-500/70"
-              : "border-[#D4D4D8]/90 dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
-        }`}
-      >
-        <form onSubmit={handleShorten} className="p-[clamp(8px,1.2svh,12px)] sm:p-2">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[clamp(8px,1.2svh,12px)] sm:gap-2">
-            <div className="relative flex-1 flex items-center min-w-0 bg-transparent">
-              <Link2 className="w-4 h-4 sm:w-4 sm:h-4 text-[#71717A] dark:text-zinc-400 ml-3 sm:ml-3.5 shrink-0 pointer-events-none" />
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="url"
-                autoComplete="off"
-                spellCheck={false}
-                value={urlInput}
-                onChange={(e) => {
-                  setUrlInput(e.target.value);
-                  if (errorMsg) setErrorMsg(null);
-                }}
-                placeholder="Paste a long URL to shorten..."
-                aria-label="Paste a long URL to shorten"
-                className="w-full h-[clamp(42px,6.4svh,54px)] sm:h-12 px-3 bg-transparent text-[16px] sm:text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
-              />
-              {urlInput && (
-                <span
-                  aria-hidden="true"
-                  className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-400 shrink-0 select-none"
-                >
-                  <CornerDownLeft className="w-2.5 h-2.5" />
-                  <span>Enter</span>
-                </span>
-              )}
-            </div>
+      {/* Relative anchor strictly wrapping the input bar so the desktop handwritten callout never shifts when a result row opens below */}
+      <div className="relative">
+        {/* ── Clean Single-Surface Link Shortener Bar (strictly rounded-[10px]) ── */}
+        <div
+          className={`relative z-20 rounded-[10px] bg-white/95 dark:bg-[#0D1320]/95 border shadow-[0_10px_30px_rgba(0,102,255,0.10)] dark:shadow-[0_18px_44px_rgba(0,0,0,0.52)] transition-[border-color,box-shadow] duration-200 overflow-hidden ${
+            isPulseHighlighted
+              ? "border-[#0066FF] ring-2 ring-[#0066FF]/25"
+              : errorMsg
+                ? "border-red-500/70"
+                : "border-[#D4D4D8]/90 dark:border-white/[0.14] focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
+          }`}
+        >
+          <form onSubmit={handleShorten} className="p-[clamp(8px,1.2svh,12px)] sm:p-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[clamp(8px,1.2svh,12px)] sm:gap-2">
+              <div className="relative flex-1 flex items-center min-w-0 bg-transparent">
+                <Link2 className="w-4 h-4 sm:w-4 sm:h-4 text-[#71717A] dark:text-zinc-400 ml-3 sm:ml-3.5 shrink-0 pointer-events-none" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="url"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={urlInput}
+                  onChange={(e) => {
+                    setUrlInput(e.target.value);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  placeholder="Paste a long URL to shorten..."
+                  aria-label="Paste a long URL to shorten"
+                  className="w-full h-[clamp(42px,6.4svh,54px)] sm:h-12 px-3 bg-transparent text-[16px] sm:text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
+                />
+                {urlInput && (
+                  <span
+                    aria-hidden="true"
+                    className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-400 shrink-0 select-none"
+                  >
+                    <CornerDownLeft className="w-2.5 h-2.5" />
+                    <span>Enter</span>
+                  </span>
+                )}
+              </div>
 
-            <WaveRevealButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              wave
-              disabled={isSubmitting}
-              showArrow={!isSubmitting}
-              className="sm:shrink-0 h-[clamp(42px,6.4svh,54px)] sm:h-12 px-6 text-[clamp(15px,2svh,17px)] sm:text-[15px]"
-              icon={
-                isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : undefined
-              }
-            >
-              {isSubmitting ? "Shortening..." : "Shorten"}
-            </WaveRevealButton>
-          </div>
-        </form>
+              <WaveRevealButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                wave
+                disabled={isSubmitting}
+                showArrow={!isSubmitting}
+                className="sm:shrink-0 h-[clamp(42px,6.4svh,54px)] sm:h-12 px-6 text-[clamp(15px,2svh,17px)] sm:text-[15px]"
+                icon={
+                  isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : undefined
+                }
+              >
+                {isSubmitting ? "Shortening..." : "Shorten"}
+              </WaveRevealButton>
+            </div>
+          </form>
+        </div>
+
+        {/* ── Desktop-only Handwritten Callout + Hand-Drawn Looped Arrow (strictly hidden on mobile & tablet) ── */}
+        <motion.button
+          type="button"
+          onClick={() => inputRef.current?.focus()}
+          aria-label="Focus the URL input to shorten a link for free"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="hidden lg:flex items-start gap-1 xl:gap-1.5 absolute left-[calc(100%+8px)] xl:left-[calc(100%+14px)] top-1/2 -translate-y-[74%] z-20 select-none cursor-pointer group text-[#0066FF] dark:text-[#60A5FA] focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-4 rounded-[6px]"
+        >
+          <svg
+            viewBox="0 0 88 52"
+            fill="none"
+            aria-hidden="true"
+            className="w-[56px] h-[34px] xl:w-[76px] xl:h-[46px] shrink-0 overflow-visible transition-transform duration-300 ease-out group-hover:-translate-x-1"
+          >
+            <motion.path
+              d="M 84 15 C 66 5, 38 13, 42 27 C 46 39, 61 35, 57 22 C 53 10, 29 21, 8 42"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.85, delay: 0.62, ease: [0.22, 1, 0.36, 1] }}
+            />
+            <motion.path
+              d="M 10 30 C 9.5 35, 8.5 39, 7 43 C 12 42, 16.5 41.8, 21.5 42.5"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.32, delay: 1.25, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </svg>
+          <span
+            className="font-caveat font-semibold text-[20px] xl:text-[24px] leading-none tracking-[0.01em] text-left -rotate-[8deg] -mt-1 whitespace-nowrap transition-transform duration-300 ease-out group-hover:-rotate-[6deg]"
+          >
+            Try it for free
+          </span>
+        </motion.button>
       </div>
 
       {/* Inline Validation Error */}

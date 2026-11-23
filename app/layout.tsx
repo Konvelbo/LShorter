@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Bebas_Neue, Poppins } from "next/font/google";
+import { Inter, Bebas_Neue, Poppins, Caveat } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { UndoDeleteProvider } from "@/components/ui/undo-delete-provider";
@@ -31,6 +31,14 @@ const poppins = Poppins({
   subsets: ["latin"],
   display: "swap",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  weight: ["500", "600"],
+  subsets: ["latin"],
+  display: "swap",
+  fallback: ["Segoe Script", "Brush Script MT", "cursive"],
 });
 
 import { getSiteUrl } from "@/lib/site-url";
@@ -209,7 +217,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} light antialiased overflow-x-clip max-w-[100vw]`}
+      className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} ${caveat.variable} light antialiased overflow-x-clip max-w-[100vw]`}
       suppressHydrationWarning
     >
       <head>

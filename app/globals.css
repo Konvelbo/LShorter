@@ -10,6 +10,7 @@
 @theme inline {
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --font-poppins: var(--font-poppins), 'Poppins', sans-serif;
+    --font-caveat: var(--font-caveat), 'Segoe Script', cursive;
     --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
