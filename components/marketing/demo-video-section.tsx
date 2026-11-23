@@ -4,13 +4,7 @@ import React, { useState, useCallback } from "react";
 import { SectionRailFrame } from "@/components/marketing/swiss-frame";
 import { Skiper67 } from "@/components/ui/skiper67";
 
-/**
- * Easy-to-swap demo video source & thumbnail.
- * Thumbnail copied from `LShorter-Cartoon-Full-6min-4K-v4-Thumbnail-1080p.png`.
- */
-export const DEMO_VIDEO_SRC =
-  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "/videos/demo-walkthrough.mp4?v=4";
-export const DEMO_VIDEO_THUMBNAIL = "/videos/demo-walkthrough-thumbnail.png";
+type VideoLang = "en" | "fr";
 
 export interface VideoChapter {
   id: string;
@@ -19,26 +13,44 @@ export interface VideoChapter {
   label: string;
 }
 
-const VIDEO_CHAPTERS: VideoChapter[] = [
-  { id: "overview", time: "00:00", seconds: 0, label: "Overview & shortening" },
-  { id: "routing", time: "01:10", seconds: 70, label: "Smart routing" },
-  { id: "pathlock", time: "02:25", seconds: 145, label: "PathLock™ security" },
-  { id: "caps", time: "03:45", seconds: 225, label: "Click caps & password" },
-  { id: "qr", time: "04:40", seconds: 280, label: "Dynamic QR studio" },
-  {
-    id: "analytics",
-    time: "05:20",
-    seconds: 320,
-    label: "Live analytics & revenue",
+const DEMO_VIDEO_SOURCES: Record<
+  VideoLang,
+  { src: string; poster: string; chapters: VideoChapter[] }
+> = {
+  en: {
+    src: "/videos/demo-walkthrough-en.mp4?v=1",
+    poster: "/videos/demo-walkthrough-en-poster.jpg?v=1",
+    chapters: [
+      { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
+      { id: "dashboard", time: "01:29", seconds: 89, label: "Dashboard & links" },
+      { id: "tools", time: "02:02", seconds: 122, label: "Smart routing, PathLock & QR" },
+      { id: "analytics", time: "04:04", seconds: 244, label: "Analytics & real sales" },
+      { id: "api", time: "05:04", seconds: 304, label: "Integration API & 5 SDKs" },
+      { id: "offer", time: "05:57", seconds: 357, label: "Launch offer -75% Pro" },
+    ],
   },
-];
+  fr: {
+    src: "/videos/demo-walkthrough-fr.mp4?v=1",
+    poster: "/videos/demo-walkthrough-fr-poster.jpg?v=1",
+    chapters: [
+      { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
+      { id: "dashboard", time: "01:32", seconds: 92, label: "Dashboard & links" },
+      { id: "tools", time: "02:09", seconds: 129, label: "Smart routing, PathLock & QR" },
+      { id: "analytics", time: "04:07", seconds: 247, label: "Analytics & real sales" },
+      { id: "api", time: "05:07", seconds: 307, label: "Integration API & 5 SDKs" },
+      { id: "offer", time: "06:01", seconds: 361, label: "Launch offer -75% Pro" },
+    ],
+  },
+};
 
 export function DemoVideoSection() {
+  const [lang, setLang] = useState<VideoLang>("en");
   const [isPopOverOpen, setIsPopOverOpen] = useState(false);
   const [seekSeconds, setSeekSeconds] = useState<number | null>(null);
-  const [activeChapterId, setActiveChapterId] = useState<string>(
-    VIDEO_CHAPTERS[0].id
-  );
+  const [activeChapterId, setActiveChapterId] = useState<string>("intro");
+
+  const activeSource = DEMO_VIDEO_SOURCES[lang];
+  const chapters = activeSource.chapters;
 
   const handleOpenAtChapter = useCallback(
     (seconds: number, chapterId: string) => {
@@ -49,13 +61,16 @@ export function DemoVideoSection() {
     []
   );
 
-  const handleTimeUpdate = useCallback((t: number) => {
-    let current = VIDEO_CHAPTERS[0].id;
-    for (const ch of VIDEO_CHAPTERS) {
-      if (t >= ch.seconds) current = ch.id;
-    }
-    setActiveChapterId(current);
-  }, []);
+  const handleTimeUpdate = useCallback(
+    (t: number) => {
+      let current = chapters[0].id;
+      for (const ch of chapters) {
+        if (t >= ch.seconds) current = ch.id;
+      }
+      setActiveChapterId(current);
+    },
+    [chapters]
+  );
 
   return (
     <section
@@ -69,12 +84,38 @@ export function DemoVideoSection() {
               See the full workflow in six minutes
             </h2>
           </div>
-          <div className="lg:col-span-5">
-            <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
-              Walk through link shortening, Smart Routing, PathLock™ rules,
-              Dynamic QR codes, and live revenue tracking, or jump straight to
-              any chapter below.
+          <div className="lg:col-span-5 flex flex-col items-start lg:items-end gap-4">
+            <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty lg:text-right">
+              Start from what a link shortener does, explore Smart Routing,
+              PathLock™, Dynamic QR codes, revenue analytics, and our
+              integration API — available in English and French.
             </p>
+            <div
+              role="group"
+              aria-label="Demo video language"
+              className="inline-flex items-center rounded-full border border-[#E4E7EC] dark:border-white/12 bg-[#F8F9FB] dark:bg-white/[0.04] p-1"
+            >
+              {(
+                [
+                  { code: "en", label: "English" },
+                  { code: "fr", label: "Français" },
+                ] as const
+              ).map(({ code, label }) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLang(code)}
+                  aria-pressed={lang === code}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                    lang === code
+                      ? "bg-[#0066FF] text-white shadow-xs"
+                      : "text-[#52525B] dark:text-zinc-400 hover:text-[#09090B] dark:hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -86,20 +127,22 @@ export function DemoVideoSection() {
           className="rounded-[10px] border border-[#E4E7EC] dark:border-white/[0.10] overflow-hidden bg-[#F5F4F3] dark:bg-[#111216]"
         >
           <Skiper67
-            videoSrc={DEMO_VIDEO_SRC}
-            thumbnailSrc={DEMO_VIDEO_THUMBNAIL}
-            thumbnailAlt="LShorter 6-minute 4K walkthrough thumbnail"
+            videoSrc={activeSource.src}
+            thumbnailSrc={activeSource.poster}
+            thumbnailAlt={`LShorter 6-minute product walkthrough (${lang.toUpperCase()})`}
             caption="Click the video to play"
             initialSeekSeconds={seekSeconds}
             isOpen={isPopOverOpen}
             onOpenChange={setIsPopOverOpen}
             onTimeUpdate={handleTimeUpdate}
+            lang={lang}
+            onLangChange={setLang}
             className="border-0 rounded-none"
           />
 
           {/* 6 Chapter Buttons */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y lg:divide-y-0 sm:divide-x divide-[#E4E7EC] dark:divide-white/[0.08] border-t border-[#E4E7EC] dark:border-white/[0.08] bg-white dark:bg-[#111216]">
-            {VIDEO_CHAPTERS.map((ch) => {
+            {chapters.map((ch) => {
               const isActive = activeChapterId === ch.id && isPopOverOpen;
               return (
                 <button

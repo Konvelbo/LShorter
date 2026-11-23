@@ -10,14 +10,42 @@ function formatTime(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }
 
+type VideoLang = "en" | "fr";
+
+const VIDEO_SOURCES: Record<VideoLang, { src: string; poster: string; defaultDuration: number }> = {
+  en: {
+    src: "/videos/api-cartoon-en.mp4?v=1",
+    poster: "/videos/api-cartoon-en-poster.jpg?v=1",
+    defaultDuration: 58.6,
+  },
+  fr: {
+    src: "/videos/api-cartoon-fr.mp4?v=1",
+    poster: "/videos/api-cartoon-fr-poster.jpg?v=1",
+    defaultDuration: 62.6,
+  },
+};
+
 export function ApiCartoonPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const pendingResumeRef = useRef<{ ratio: number; shouldPlay: boolean } | null>(null);
+  const [lang, setLang] = useState<VideoLang>("en");
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(55.6);
+  const [duration, setDuration] = useState(VIDEO_SOURCES.en.defaultDuration);
+
+  const handleSwitchLang = (nextLang: VideoLang, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nextLang === lang) return;
+    const video = videoRef.current;
+    const ratio = video && duration > 0 ? video.currentTime / duration : 0;
+    const shouldPlay = video ? !video.paused : false;
+    pendingResumeRef.current = { ratio, shouldPlay };
+    setLang(nextLang);
+    setDuration(VIDEO_SOURCES[nextLang].defaultDuration);
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -115,8 +143,8 @@ export function ApiCartoonPanel() {
     >
       <video
         ref={videoRef}
-        src="/videos/api-cartoon.mp4?v=3"
-        poster="/videos/api-cartoon-poster.jpg?v=3"
+        src={VIDEO_SOURCES[lang].src}
+        poster={VIDEO_SOURCES[lang].poster}
         muted={isMuted}
         loop
         playsInline
@@ -127,12 +155,43 @@ export function ApiCartoonPanel() {
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
-          if (Number.isFinite(e.currentTarget.duration) && e.currentTarget.duration > 0) {
-            setDuration(e.currentTarget.duration);
+          const v = e.currentTarget;
+          if (Number.isFinite(v.duration) && v.duration > 0) {
+            setDuration(v.duration);
+            if (pendingResumeRef.current) {
+              const { ratio, shouldPlay } = pendingResumeRef.current;
+              pendingResumeRef.current = null;
+              v.currentTime = Math.min(v.duration - 0.1, Math.max(0, ratio * v.duration));
+              if (shouldPlay) v.play().catch(() => {});
+            }
           }
         }}
         className="h-full w-full object-cover cursor-pointer"
       />
+
+      {/* Sleek EN / FR Language Switcher */}
+      <div
+        role="group"
+        aria-label="Video language"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-3 top-3 z-20 inline-flex items-center rounded-full border border-white/20 bg-black/65 p-0.5 backdrop-blur-md shadow-md"
+      >
+        {(["en", "fr"] as const).map((code) => (
+          <button
+            key={code}
+            type="button"
+            onClick={(e) => handleSwitchLang(code, e)}
+            aria-pressed={lang === code}
+            className={`px-2.5 py-1 rounded-full font-mono text-[11px] font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
+              lang === code
+                ? "bg-[#0066FF] text-white shadow-xs"
+                : "text-white/75 hover:text-white"
+            }`}
+          >
+            {code}
+          </button>
+        ))}
+      </div>
 
       {/* Subtle Center Play Button when paused */}
       {!isPlaying && (

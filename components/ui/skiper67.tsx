@@ -142,18 +142,22 @@ export interface Skiper67Props {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   onTimeUpdate?: (currentTime: number) => void;
+  lang?: "en" | "fr";
+  onLangChange?: (lang: "en" | "fr") => void;
   className?: string;
 }
 
 export const Skiper67 = ({
-  videoSrc = "/videos/demo-walkthrough.mp4?v=4",
-  thumbnailSrc = "/videos/demo-walkthrough-thumbnail.png",
+  videoSrc = "/videos/demo-walkthrough-en.mp4?v=1",
+  thumbnailSrc = "/videos/demo-walkthrough-en-poster.jpg?v=1",
   thumbnailAlt = "LShorter 6-minute product walkthrough preview",
   caption = "Click the video to play",
   initialSeekSeconds = null,
   isOpen,
   onOpenChange,
   onTimeUpdate,
+  lang,
+  onLangChange,
   className,
 }: Skiper67Props) => {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -207,6 +211,8 @@ export const Skiper67 = ({
             thumbnailSrc={thumbnailSrc}
             initialSeekSeconds={initialSeekSeconds}
             onTimeUpdate={onTimeUpdate}
+            lang={lang}
+            onLangChange={onLangChange}
             setShowVideoPopOver={setShowVideoPopOver}
           />
         )}
@@ -266,18 +272,32 @@ const VideoPopOver = ({
   thumbnailSrc,
   initialSeekSeconds,
   onTimeUpdate,
+  lang,
+  onLangChange,
   setShowVideoPopOver,
 }: {
   videoSrc: string;
   thumbnailSrc: string;
   initialSeekSeconds?: number | null;
   onTimeUpdate?: (currentTime: number) => void;
+  lang?: "en" | "fr";
+  onLangChange?: (lang: "en" | "fr") => void;
   setShowVideoPopOver: (showVideoPopOver: boolean) => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controllerRef = useRef<HTMLElement | null>(null);
+  const pendingRatioRef = useRef<number | null>(null);
 
   const [canStartPlayback, setCanStartPlayback] = useState(false);
+
+  const handleSwitchLang = (next: "en" | "fr") => {
+    if (!onLangChange || next === lang) return;
+    const v = videoRef.current;
+    if (v && Number.isFinite(v.duration) && v.duration > 0) {
+      pendingRatioRef.current = v.currentTime / v.duration;
+    }
+    onLangChange(next);
+  };
 
   const handleClose = useCallback(() => {
     // Immediately pause 4K playback before closing so the exit animation runs at a locked 60fps
@@ -318,7 +338,10 @@ const VideoPopOver = ({
   const handleLoadedMetadata = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (typeof initialSeekSeconds === "number" && initialSeekSeconds > 0) {
+    if (pendingRatioRef.current !== null && Number.isFinite(v.duration) && v.duration > 0) {
+      v.currentTime = Math.min(v.duration - 0.1, Math.max(0, pendingRatioRef.current * v.duration));
+      pendingRatioRef.current = null;
+    } else if (typeof initialSeekSeconds === "number" && initialSeekSeconds > 0) {
       v.currentTime = initialSeekSeconds;
     }
     if (canStartPlayback) {
@@ -391,14 +414,39 @@ const VideoPopOver = ({
             style={{ width: "100%", height: "100%" }}
           />
 
-          <button
-            type="button"
-            aria-label="Close video player"
-            onClick={handleClose}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-[8px] bg-black/75 hover:bg-black/95 border border-white/15 text-white transition-colors cursor-pointer"
-          >
-            <Plus className="size-5 rotate-45 text-white" />
-          </button>
+          <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
+            {lang && onLangChange && (
+              <div
+                role="group"
+                aria-label="Video language"
+                className="inline-flex items-center rounded-[8px] border border-white/15 bg-black/75 p-0.5 backdrop-blur-md"
+              >
+                {(["en", "fr"] as const).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => handleSwitchLang(code)}
+                    aria-pressed={lang === code}
+                    className={`px-2.5 py-1 rounded-[6px] font-mono text-[11px] font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
+                      lang === code
+                        ? "bg-[#0066FF] text-white"
+                        : "text-white/75 hover:text-white"
+                    }`}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              aria-label="Close video player"
+              onClick={handleClose}
+              className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-black/75 hover:bg-black/95 border border-white/15 text-white transition-colors cursor-pointer"
+            >
+              <Plus className="size-5 rotate-45 text-white" />
+            </button>
+          </div>
 
           <VideoPlayerControlBar className="absolute bottom-0 left-1/2 flex w-full max-w-6xl -translate-x-1/2 items-center justify-center gap-1.5 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-4 py-2.5 md:px-6 md:py-3 [--media-background-color:transparent] [--media-control-background:transparent] [--media-control-hover-background:rgba(255,255,255,0.14)] [--media-primary-color:#ffffff] [--media-secondary-color:rgba(255,255,255,0.85)] [--media-range-bar-color:#0066FF]">
             <VideoPlayerPlayButton className="h-8 w-8 rounded-[6px] bg-transparent" />
