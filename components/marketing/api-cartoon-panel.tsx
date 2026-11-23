@@ -14,13 +14,13 @@ type VideoLang = "en" | "fr";
 
 const VIDEO_SOURCES: Record<VideoLang, { src: string; poster: string; defaultDuration: number }> = {
   en: {
-    src: "/videos/api-cartoon-en.mp4?v=1",
-    poster: "/videos/api-cartoon-en-poster.jpg?v=1",
+    src: "/videos/api-cartoon-en.mp4?v=2",
+    poster: "/videos/api-cartoon-en-poster.jpg?v=2",
     defaultDuration: 58.6,
   },
   fr: {
-    src: "/videos/api-cartoon-fr.mp4?v=1",
-    poster: "/videos/api-cartoon-fr-poster.jpg?v=1",
+    src: "/videos/api-cartoon-fr.mp4?v=2",
+    poster: "/videos/api-cartoon-fr-poster.jpg?v=2",
     defaultDuration: 62.6,
   },
 };

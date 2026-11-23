@@ -14,13 +14,13 @@ type VideoLang = "en" | "fr";
 
 const PATHLOCK_SOURCES: Record<VideoLang, { src: string; poster: string; defaultDuration: number }> = {
   en: {
-    src: "/videos/pathlock-cartoon-en.mp4?v=1",
-    poster: "/videos/pathlock-cartoon-en-poster.jpg?v=1",
+    src: "/videos/pathlock-cartoon-en.mp4?v=2",
+    poster: "/videos/pathlock-cartoon-en-poster.jpg?v=2",
     defaultDuration: 190.4,
   },
   fr: {
-    src: "/videos/pathlock-cartoon-fr.mp4?v=1",
-    poster: "/videos/pathlock-cartoon-fr-poster.jpg?v=1",
+    src: "/videos/pathlock-cartoon-fr.mp4?v=2",
+    poster: "/videos/pathlock-cartoon-fr-poster.jpg?v=2",
     defaultDuration: 185.4,
   },
 };
