@@ -82,22 +82,24 @@ export async function dispatchUserWebhooks(
     const results = await Promise.allSettled(
       matching.map(async (wh) => {
         const signingSecret = String(
-          wh.secretKey || wh.secret_key || "whsec_lshorter_default"
-        );
-        const signature = `sha256=${crypto
-          .createHmac("sha256", signingSecret)
-          .update(rawBody)
-          .digest("hex")}`;
+          wh.secretKey || wh.secret_key || ""
+        ).trim();
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          "X-LShorter-Event": eventName,
+          "User-Agent": "LShorter-Webhook-Delivery/1.0",
+        };
+        if (signingSecret) {
+          headers["X-LShorter-Signature"] = `sha256=${crypto
+            .createHmac("sha256", signingSecret)
+            .update(rawBody)
+            .digest("hex")}`;
+        }
 
         await fetch(String(wh.url), {
           method: "POST",
           redirect: "manual",
-          headers: {
-            "Content-Type": "application/json",
-            "X-LShorter-Signature": signature,
-            "X-LShorter-Event": eventName,
-            "User-Agent": "LShorter-Webhook-Delivery/1.0",
-          },
+          headers,
           body: rawBody,
           signal: AbortSignal.timeout(3500),
         });

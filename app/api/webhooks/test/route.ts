@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     const signingSecret =
       typeof secretKey === "string" && secretKey.trim()
         ? secretKey.trim()
-        : "whsec_test_signature";
+        : `whsec_${crypto.randomBytes(16).toString("hex")}`;
     const hmacSignature = `sha256=${crypto
       .createHmac("sha256", signingSecret)
       .update(rawPayload)
@@ -110,10 +110,9 @@ export async function POST(req: NextRequest) {
       });
       status = res.status;
       responseBody = await res.text().catch(() => "");
-    } catch {
-      // If external target fails or is unreachable in local test, return structured simulation status
-      status = 200;
-      responseBody = JSON.stringify({ received: true, simulated: true });
+    } catch (fetchErr: any) {
+      status = 502;
+      responseBody = fetchErr?.message || "Upstream endpoint unreachable";
     }
 
     const durationMs = Date.now() - startTime;

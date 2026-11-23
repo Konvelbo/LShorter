@@ -1,9 +1,12 @@
 import crypto from "crypto";
 
-const SECRET =
-  process.env.AUTH_SECRET ||
-  process.env.NEXTAUTH_SECRET ||
-  (process.env.NODE_ENV === "production" ? "" : "lshorter_dev_stateless_pin_secret_key_2026");
+function getStatelessPinSecret(): string {
+  const secret = (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "").trim();
+  if (!secret) {
+    throw new Error("AUTH_SECRET or NEXTAUTH_SECRET must be configured.");
+  }
+  return secret;
+}
 
 export interface StatelessPinPayload {
   email: string;
@@ -20,7 +23,7 @@ export interface StatelessPinPayload {
  */
 export function hashPin(pin: string, salt: string): string {
   return crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getStatelessPinSecret())
     .update(`${salt}:${pin.trim()}`)
     .digest("hex");
 }
@@ -55,7 +58,7 @@ export function createStatelessPinToken(
 
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getStatelessPinSecret())
     .update(payloadB64)
     .digest("base64url");
 
@@ -84,7 +87,7 @@ export function verifyStatelessPinToken(
 
   // 1. Verify HMAC signature in constant time
   const expectedSignature = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getStatelessPinSecret())
     .update(payloadB64)
     .digest("base64url");
 

@@ -60,11 +60,7 @@ export default function DomainsPage() {
   const planLimits = getPlanLimits(plan);
   const domainsLimit = planLimits.domainsLimit;
   const DEFAULT_DOMAIN = process.env.NEXT_PUBLIC_DEFAULT_DOMAIN || "lsho.cc";
-
-  const isPreview =
-    typeof window !== "undefined" &&
-    window.location.search.includes("playwright_preview=1");
-  const effectiveUserId = userId || (isPreview ? "preview_user" : "");
+  const effectiveUserId = userId || "";
 
   const loadDomains = async (isBackground = false) => {
     if (!effectiveUserId) {
@@ -139,12 +135,11 @@ export default function DomainsPage() {
   };
 
   useEffect(() => {
-    const isPreview = typeof window !== "undefined" && window.location.search.includes("playwright_preview=1");
-    if (status === "unauthenticated" && !isPreview) {
+    if (status === "unauthenticated") {
       router.replace("/login");
       return;
     }
-    if ((status === "authenticated" && userId) || isPreview) {
+    if (status === "authenticated" && userId) {
       loadDomains();
     }
 

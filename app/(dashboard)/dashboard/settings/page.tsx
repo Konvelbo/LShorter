@@ -142,20 +142,11 @@ function SettingsPageContent() {
       ? { userId: rawUserId || userEmail, email: userEmail || undefined }
       : "skip",
   );
-  const isPlaywrightPreview =
-    process.env.NODE_ENV === "development" &&
-    searchParams.get("playwright_preview") === "1";
-
   const userId =
     rawUserId && rawUserId !== "usr_anonymous"
       ? rawUserId
-      : convexUser?.userId || userEmail || (isPlaywrightPreview ? "mock_playwright_user" : "");
-  const previewPlanParam =
-    process.env.NODE_ENV === "development"
-      ? searchParams.get("plan_preview")?.toUpperCase()
-      : null;
+      : convexUser?.userId || userEmail || "";
   const plan = (
-    previewPlanParam ||
     convexUser?.plan ||
     (session?.user as any)?.plan ||
     "FREEMIUM"
@@ -1549,12 +1540,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
   }, [userId, activeTab]);
 
   useEffect(() => {
-    const isPlaywrightPreview =
-      process.env.NODE_ENV === "development" &&
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("playwright_preview") === "1";
-
-    if (status === "unauthenticated" && !isPlaywrightPreview) {
+    if (status === "unauthenticated") {
       router.replace("/login");
       return;
     }
@@ -3195,7 +3181,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               )}
                             </div>
                             <span className="font-mono text-[10px] text-zinc-400 truncate max-w-xs">
-                              Secret: {wh.secretKey || "whsec_live_default"}
+                              Secret: {wh.secretKey || "—"}
                             </span>
                           </div>
                         </div>

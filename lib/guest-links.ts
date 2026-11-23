@@ -62,9 +62,16 @@ const INIT_GUEST_LINKS_IDX2 = `CREATE INDEX IF NOT EXISTS idx_guest_links_ip_has
 let ensureTablePromise: Promise<void> | null = null;
 
 function getSigningKey(): string {
-  return (
-    process.env.AUTH_SECRET || FRONTEND_SECRET || "lsh_guest_signing_fallback"
-  );
+  const key = (
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    FRONTEND_SECRET ||
+    ""
+  ).trim();
+  if (!key) {
+    throw new Error("AUTH_SECRET or FRONTEND_API_SECRET must be configured.");
+  }
+  return key;
 }
 
 export function createGuestId(): string {

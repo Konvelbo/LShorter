@@ -58,34 +58,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const validation = loginCredentialsSchema.safeParse(credentials);
         if (!validation.success) {
-          // Dev fallback shortcut check before failing
-          if (
-            process.env.NODE_ENV === "development" &&
-            (credentials as any)?.email === "dev@lsho.cc" &&
-            (credentials as any)?.password === "dev123456"
-          ) {
-            return {
-              id: "usr_default",
-              name: "Dev User",
-              email: "dev@lsho.cc",
-            };
-          }
           return null;
         }
 
         const { email: cleanEmail, password: cleanPassword, twoFactorCode } = validation.data;
-
-        if (
-          process.env.NODE_ENV === "development" &&
-          cleanEmail === "dev@lsho.cc" &&
-          cleanPassword === "dev123456"
-        ) {
-          return {
-            id: "usr_default",
-            name: "Dev User",
-            email: "dev@lsho.cc",
-          };
-        }
 
         try {
           const user = await convex.query(api.users.getUserByEmail, {
@@ -206,15 +182,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // ─── Embed userId + plan + avatar from Convex into JWT token ───────────────
     async jwt({ token, user, account, trigger, session }) {
-      if (process.env.NODE_ENV === "development" && (token.email === "dev@lsho.cc" || user?.email === "dev@lsho.cc")) {
-        token.userId = "usr_default";
-        token.email = "dev@lsho.cc";
-        token.name = "Dev User";
-        token.plan = "PRO";
-        token.hasCompletedOnboarding = true;
-        return token;
-      }
-
       if (user) {
         token.userId = user.id;
         token.provider = account?.provider;

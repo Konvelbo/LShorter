@@ -11,11 +11,10 @@ async function resolveSessionCanonicalUserIds(opts: {
   sessionEmail: string;
   clientUserId: string;
   isInternal: boolean;
-  isDevPreview: boolean;
 }): Promise<{ effectiveId: string; userIds: string[] }> {
-  const { sessionUserId, sessionEmail, clientUserId, isInternal, isDevPreview } = opts;
+  const { sessionUserId, sessionEmail, clientUserId, isInternal } = opts;
 
-  if (isInternal || isDevPreview) {
+  if (isInternal) {
     const effectiveId = clientUserId || sessionUserId || sessionEmail;
     const userIds = Array.from(
       new Set([clientUserId, sessionUserId, sessionEmail, effectiveId])
@@ -114,9 +113,8 @@ export async function PATCH(
 
     const reqUrl = new URL(req.url);
     const queryUserId = reqUrl.searchParams.get("userId") || body.userId || "";
-    const isDevPreview = process.env.NODE_ENV === "development" && (reqUrl.searchParams.get("playwright_preview") === "1" || queryUserId === "mock_playwright_user");
 
-    if (!sessionUserId && !sessionEmail && !isInternal && !isDevPreview) {
+    if (!sessionUserId && !sessionEmail && !isInternal) {
       return NextResponse.json(
         { success: false, error: "Authentication required." },
         { status: 401 }
@@ -128,7 +126,6 @@ export async function PATCH(
       sessionEmail,
       clientUserId: queryUserId,
       isInternal,
-      isDevPreview,
     });
 
     const ownership = await verifyTargetOwnership(id, effectiveId, userIds, isInternal);
@@ -262,9 +259,8 @@ export async function DELETE(
 
     const reqUrl = new URL(req.url);
     const queryUserId = reqUrl.searchParams.get("userId") || "";
-    const isDevPreview = process.env.NODE_ENV === "development" && (reqUrl.searchParams.get("playwright_preview") === "1" || queryUserId === "mock_playwright_user");
 
-    if (!sessionUserId && !sessionEmail && !isInternal && !isDevPreview) {
+    if (!sessionUserId && !sessionEmail && !isInternal) {
       return NextResponse.json(
         { success: false, error: "Authentication required." },
         { status: 401 }
@@ -276,7 +272,6 @@ export async function DELETE(
       sessionEmail,
       clientUserId: queryUserId,
       isInternal,
-      isDevPreview,
     });
 
     const ownership = await verifyTargetOwnership(id, effectiveId, userIds, isInternal);

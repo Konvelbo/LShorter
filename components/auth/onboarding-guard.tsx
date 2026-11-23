@@ -21,10 +21,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("playwright_preview") === "1") {
-      return;
-    }
-
     if (status === "loading" || status === "unauthenticated") return;
 
     // 1. If Convex query is still resolving (undefined), wait - DO NOT redirect prematurely

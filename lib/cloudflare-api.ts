@@ -261,11 +261,6 @@ async function cfFetch<T>(
     "Content-Type": "application/json",
   };
 
-  // Only attach secret when on server side (never bundled into client JS)
-  if (!isBrowser && process.env.FRONTEND_API_SECRET) {
-    headers["X-Frontend-Secret"] = process.env.FRONTEND_API_SECRET;
-  }
-
   const fetchPromise = (async () => {
     try {
       let res: Response | null = null;

@@ -388,15 +388,11 @@ export default function LinksPage() {
   };
 
   useEffect(() => {
-    const isPreview =
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("playwright_preview") === "1";
-
-    if (status === "unauthenticated" && !isPreview) {
+    if (status === "unauthenticated") {
       setIsLoading(false);
       return;
     }
-    if ((status === "authenticated" || userId || isPreview) && (userId || isPreview)) {
+    if (status === "authenticated" && userId) {
       loadLinks(links.length > 0, false);
     }
   }, [status, userId]);

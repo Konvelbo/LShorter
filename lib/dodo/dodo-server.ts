@@ -73,21 +73,11 @@ export async function verifyDodoWebhook(
   };
 
   const client = getDodoPaymentsClient();
-  if (client) {
-    return client.webhooks.unwrap(rawBody, {
-      headers: normalizedHeaders,
-      key: webhookKey,
-    });
+  if (!client) {
+    throw new Error("DODO_PAYMENTS_API_KEY must be configured.");
   }
 
-  // Fallback client instantiation if only webhookKey is configured
-  const tempClient = new DodoPayments({
-    bearerToken: "dummy_key",
-    environment: "test_mode",
-    webhookKey,
-  });
-
-  return tempClient.webhooks.unwrap(rawBody, {
+  return client.webhooks.unwrap(rawBody, {
     headers: normalizedHeaders,
     key: webhookKey,
   });

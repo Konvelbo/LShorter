@@ -244,10 +244,11 @@ function buildWorkerPixelInterstitialHtml(finalUrl, pixels, title) {
 
 async function signWorkerWebhookPayload(secretKey, rawBody) {
   try {
+    if (!secretKey || !String(secretKey).trim()) return '';
     const enc = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw',
-      enc.encode(secretKey || 'whsec_lshorter_default'),
+      enc.encode(String(secretKey).trim()),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
@@ -1053,10 +1054,11 @@ export default {
     const frontendSecretHeader = request.headers.get('x-frontend-secret') || '';
     const authHeader = request.headers.get('authorization') || '';
     const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const configuredSecret = env.FRONTEND_API_SECRET || env.SECRET || 'lsh_secret_live_prod_2026';
+    const configuredSecret = (env.FRONTEND_API_SECRET || env.SECRET || '').trim();
     const isAuthorized =
-      (Boolean(frontendSecretHeader) && frontendSecretHeader === configuredSecret) ||
-      (Boolean(bearerToken) && bearerToken === configuredSecret);
+      Boolean(configuredSecret) &&
+      ((Boolean(frontendSecretHeader) && frontendSecretHeader === configuredSecret) ||
+        (Boolean(bearerToken) && bearerToken === configuredSecret));
 
     const requireAuth = () => {
       if (!isAuthorized) {
@@ -2809,8 +2811,8 @@ export default {
 
           // Standard plan users have access to global targets, but link alerts require Pro/Business
           if (linkId) {
-            const configuredSecret = env.FRONTEND_API_SECRET || env.FRONTEND_SECRET || env.SECRET || 'lsh_secret_live_prod_2026';
-            const isInternal = Boolean(request.headers.get('x-frontend-secret') === configuredSecret);
+            const configuredSecret = (env.FRONTEND_API_SECRET || env.FRONTEND_SECRET || env.SECRET || '').trim();
+            const isInternal = Boolean(configuredSecret && request.headers.get('x-frontend-secret') === configuredSecret);
             const userPlan = (body.userPlan || body.plan || '').toUpperCase();
             const isProParam = (userPlan === 'PRO' || userPlan === 'BUSINESS' || userPlan === 'ENTERPRISE');
             let hasProPlan = false;

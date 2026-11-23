@@ -533,7 +533,7 @@ export default function LoginPage({
       if (err) {
         if (err === "Configuration") {
           showToast.error(
-            "Incomplete OAuth configuration: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing.",
+            "Incomplete OAuth provider configuration. Please use email and password or contact support.",
           );
         } else if (err === "OAuthCallbackError" || err === "OAuthCallback") {
           showToast.error(

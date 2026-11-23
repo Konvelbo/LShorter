@@ -277,44 +277,8 @@ export function formatClickLimit(limit: number): string {
 }
 
 /**
- * Dodo Payments Product IDs mapping per plan and billing cycle.
- * Live IDs created in real Dodo Payments dashboard; Test IDs for sandbox.
- */
-export const DODO_PRODUCT_IDS_LIVE = {
-  PRO: {
-    monthly: "pdt_0NqfmCjzyD28wD9Oj5eaf",
-    yearly: "pdt_0NqfmJePZG75rUPawewm1",
-  },
-  BUSINESS: {
-    monthly: "pdt_0NqfmJjtWLZnV5FHSKDl9",
-    yearly: "pdt_0NqfmJpY34JxiqjYz6d0E",
-  },
-  ENTERPRISE: {
-    monthly: "pdt_0NqfmJvm6OAncY3xUcdfI",
-    yearly: "pdt_0NqfmK1dUUonckx0okrPO",
-  },
-};
-
-export const DODO_PRODUCT_IDS_TEST = {
-  PRO: {
-    monthly: "pdt_0NqfitAmKzhMFS6QkfyWL",
-    yearly: "pdt_0Nqfj1k4O60QR891LZgii",
-  },
-  BUSINESS: {
-    monthly: "pdt_0Nqfj1q5a89CtXSulP7VT",
-    yearly: "pdt_0Nqfj1wKP6BntQZD4Ozk0",
-  },
-  ENTERPRISE: {
-    monthly: "pdt_0Nqfj21sseKu9CgmzJI83",
-    yearly: "pdt_0Nqfj260DZr9a9VSTEsHO",
-  },
-};
-
-export const DODO_PRODUCT_IDS = DODO_PRODUCT_IDS_TEST;
-
-/**
- * Retrieve Dodo Payments Product ID for a plan and billing cycle.
- * Dynamically resolves live vs test mode based on key prefix and environment variables.
+ * Retrieve Dodo Payments Product ID for a plan and billing cycle from environment variables.
+ * Never hardcode product IDs or API keys in client-imported modules.
  */
 export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): string | null {
   const normalized = planId.toUpperCase() as 'PRO' | 'BUSINESS' | 'ENTERPRISE';
@@ -322,32 +286,7 @@ export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): s
     return null;
   }
 
-  // 1. Check if running in live mode
-  const apiKey = (process.env.DODO_PAYMENTS_API_KEY || "").trim();
-
-  const isLive =
-    apiKey.startsWith("dodo_live_") ||
-    (!apiKey.startsWith("dodo_test_") && (
-      process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ||
-      process.env.DODO_PAYMENTS_ENVIRONMENT === "live"
-    ));
-
-  // 2. Explicit environment variable overrides (only if they match the active mode)
   const envVarName = `DODO_PAYMENTS_PRODUCT_${normalized}_${cycle}`;
-  const envValue = process.env[envVarName];
-  if (envValue) {
-    const isKnownTestId = Object.values(DODO_PRODUCT_IDS_TEST).some(
-      (p) => p.monthly === envValue || p.yearly === envValue
-    );
-    const isKnownLiveId = Object.values(DODO_PRODUCT_IDS_LIVE).some(
-      (p) => p.monthly === envValue || p.yearly === envValue
-    );
-    // Don't use a test ID in live mode, or a live ID in test mode
-    if ((isLive && !isKnownTestId) || (!isLive && !isKnownLiveId)) {
-      return envValue;
-    }
-  }
-
-  const targetMap = isLive ? DODO_PRODUCT_IDS_LIVE : DODO_PRODUCT_IDS_TEST;
-  return cycle === 'YEARLY' ? targetMap[normalized].yearly : targetMap[normalized].monthly;
+  const envValue = (process.env[envVarName] || "").trim();
+  return envValue || null;
 }

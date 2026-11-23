@@ -93,10 +93,7 @@ function LiveClickStreamContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const userId = session?.user?.id || "";
-  const isPreview =
-    typeof window !== "undefined" &&
-    window.location.search.includes("playwright_preview=1");
-  const effectiveUserId = userId || (isPreview ? "preview_user" : "");
+  const effectiveUserId = userId;
 
   // Déclaration de tous les hooks au sommet
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
@@ -271,7 +268,7 @@ function LiveClickStreamContent() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated" && !isPreview) {
+    if (status === "unauthenticated") {
       setIsLoading(false);
       return;
     }

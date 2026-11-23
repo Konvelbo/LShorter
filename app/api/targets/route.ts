@@ -11,11 +11,10 @@ async function resolveSessionCanonicalUserIds(opts: {
   sessionEmail: string;
   clientUserId: string;
   isInternal: boolean;
-  isDevPreview: boolean;
 }): Promise<{ effectiveId: string; candidateUserIds: string[] }> {
-  const { sessionUserId, sessionEmail, clientUserId, isInternal, isDevPreview } = opts;
+  const { sessionUserId, sessionEmail, clientUserId, isInternal } = opts;
 
-  if (isInternal || isDevPreview) {
+  if (isInternal) {
     const effectiveId = clientUserId || sessionUserId || sessionEmail;
     const candidateUserIds = Array.from(
       new Set([clientUserId, sessionUserId, sessionEmail, effectiveId])
@@ -79,9 +78,8 @@ export async function GET(req: NextRequest) {
 
     const reqUrl = new URL(req.url);
     const queryUserId = reqUrl.searchParams.get("userId") || "";
-    const isDevPreview = process.env.NODE_ENV === "development" && (reqUrl.searchParams.get("playwright_preview") === "1" || queryUserId === "mock_playwright_user");
 
-    if (!isInternal && !sessionUserId && !sessionEmail && !isDevPreview) {
+    if (!isInternal && !sessionUserId && !sessionEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to view targets." },
         { status: 401 }
@@ -93,7 +91,6 @@ export async function GET(req: NextRequest) {
       sessionEmail,
       clientUserId: queryUserId,
       isInternal,
-      isDevPreview,
     });
 
     // 1. Direct Cloudflare D1 Query (Primary & Authoritative)
@@ -202,14 +199,7 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = _bodyParsed as any; // Zod validation done above; cast needed for extra fields like `id`
 
-    const reqUrl = new URL(req.url);
-    const isDevPreview = process.env.NODE_ENV === "development" && (
-      reqUrl.searchParams.get("playwright_preview") === "1" ||
-      body.userId === "mock_playwright_user" ||
-      req.headers.get("x-playwright-preview") === "1"
-    );
-
-    if (!isInternal && !sessionUserId && !sessionEmail && !isDevPreview) {
+    if (!isInternal && !sessionUserId && !sessionEmail) {
       return NextResponse.json(
         { success: false, error: "Authentication required to create targets." },
         { status: 401 }
@@ -221,11 +211,10 @@ export async function POST(req: NextRequest) {
       sessionEmail,
       clientUserId: String(body.userId || ""),
       isInternal,
-      isDevPreview,
     });
 
     const sessionPlan = ((session?.user as any)?.plan || "").toUpperCase();
-    const userPlan = (isInternal || isDevPreview)
+    const userPlan = isInternal
       ? ((sessionPlan || body.userPlan || body.plan || "").toUpperCase())
       : sessionPlan;
 

@@ -58,10 +58,7 @@ function RevenueAnalyticsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = session?.user?.id || "";
-  const isPreview =
-    typeof window !== "undefined" &&
-    window.location.search.includes("playwright_preview=1");
-  const effectiveUserId = userId || (isPreview ? "preview_user" : "");
+  const effectiveUserId = userId;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -239,7 +236,7 @@ function RevenueAnalyticsContent() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated" && !isPreview) {
+    if (status === "unauthenticated") {
       setIsLoading(false);
       return;
     }

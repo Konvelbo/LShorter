@@ -8,7 +8,6 @@ import { PopulatedState } from "@/components/dashboard/populated-state";
 import { ShortLink, GlobalAnalytics } from "@/types";
 import { isLinkActive } from "@/lib/utils";
 import { cfGetLinks, cfGetAnalytics, cfInvalidateCache, parseTags, EMPTY_ANALYTICS } from "@/lib/cloudflare-api";
-import { EMPTY_ANALYTICS as _EA } from "@/lib/api-client";
 import { generateTimelineForRange, generateEdgeTopCountries } from "@/lib/analytics-generators";
 
 // Re-export from cloudflare-api for convenience

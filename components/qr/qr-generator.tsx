@@ -246,10 +246,7 @@ export function QRGenerator() {
     convexUser?.plan ||
     (session?.user as { plan?: string } | undefined)?.plan ||
     "FREEMIUM";
-  const isProDev =
-    process.env.NODE_ENV === "development" &&
-    searchParams.get("playwright_preview") === "1";
-  const isProPlan = plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE" || isProDev;
+  const isProPlan = plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE";
   const [contentType, setContentType] = useState<QRContentType>("link");
 
   const [userLinks, setUserLinks] = useState<ShortLink[]>([]);
