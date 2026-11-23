@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { AlertCircle, RefreshCw, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function DashboardError({
   error,
@@ -12,6 +13,7 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { tr } = useI18n();
   useEffect(() => {
     console.error("[Dashboard Error]", error);
   }, [error]);
@@ -24,10 +26,13 @@ export default function DashboardError({
         </div>
 
         <h2 className="text-xl font-bold text-white mb-2">
-          Dashboard Loading Interrupted
+          {tr("Dashboard Loading Interrupted", "Chargement du tableau de bord interrompu")}
         </h2>
         <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
-          A temporary error occurred while synchronizing your workspace data. Click retry to reload the widgets.
+          {tr(
+            "A temporary error occurred while synchronizing your workspace data. Click retry to reload the widgets.",
+            "Une erreur temporaire est survenue lors de la synchronisation de votre espace. Cliquez sur réessayer pour recharger les widgets."
+          )}
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
@@ -37,7 +42,7 @@ export default function DashboardError({
             className="w-full sm:flex-1 h-10 text-xs font-bold gap-2"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
+            <span>{tr("Retry", "Réessayer")}</span>
           </Button>
 
           <Link href="/dashboard" className="w-full sm:flex-1">
@@ -47,7 +52,7 @@ export default function DashboardError({
               className="w-full h-10 text-xs font-semibold gap-2 border-[#27272a] bg-[#1a1a1e] hover:bg-white/10 text-neutral-200"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Reload Page</span>
+              <span>{tr("Reload Page", "Recharger la page")}</span>
             </Button>
           </Link>
         </div>

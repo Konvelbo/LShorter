@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface SdkInstallOption {
   id: string;
@@ -89,6 +90,7 @@ export const SDK_INSTALL_OPTIONS: SdkInstallOption[] = [
 ];
 
 export function SdkInstallBar() {
+  const { tr } = useI18n();
   const [selectedId, setSelectedId] = useState<string>("npm");
   const [copied, setCopied] = useState(false);
 
@@ -114,7 +116,7 @@ export function SdkInstallBar() {
       {/* Package manager & language selector tabs */}
       <div
         role="tablist"
-        aria-label="Official SDK installation commands"
+        aria-label={tr("Official SDK installation commands", "Commandes d'installation des SDK officiels")}
         className="flex items-center gap-1 px-2.5 py-2 border-b border-black/[0.06] dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.02] overflow-x-auto no-scrollbar"
       >
         <Terminal className="w-3.5 h-3.5 text-brand shrink-0 mr-1" />
@@ -168,7 +170,7 @@ export function SdkInstallBar() {
           <button
             type="button"
             onClick={handleCopy}
-            aria-label={`Copy ${active.command}`}
+            aria-label={tr(`Copy ${active.command}`, `Copier ${active.command}`)}
             className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[7px] border text-[11px] font-mono font-medium transition-all cursor-pointer ${
               copied
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
@@ -178,12 +180,12 @@ export function SdkInstallBar() {
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Copied</span>
+                <span>{tr("Copied", "Copié")}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copy</span>
+                <span>{tr("Copy", "Copier")}</span>
               </>
             )}
           </button>

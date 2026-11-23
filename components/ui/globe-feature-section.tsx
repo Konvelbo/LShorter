@@ -6,6 +6,7 @@ import type { COBEOptions } from "cobe";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { cn } from "@/lib/utils";
 
 const GLOBAL_EDGE_MARKERS: COBEOptions["markers"] = [
@@ -41,6 +42,7 @@ export function Globe({
   config?: Partial<COBEOptions>;
 }) {
   const { theme } = useTheme();
+  const { tr } = useI18n();
   const [isDark, setIsDark] = useState(theme === "dark");
   const [shouldInit, setShouldInit] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -190,7 +192,10 @@ export function Globe({
     >
       <canvas
         ref={canvasRef}
-        aria-label="Interactive global edge routing globe"
+        aria-label={tr(
+          "Interactive global edge routing globe",
+          "Globe interactif du routage edge mondial"
+        )}
         className="size-full cursor-grab opacity-0 transition-opacity duration-500 [contain:layout_paint_size]"
         onPointerDown={(e) => updatePointerInteraction(e.clientX)}
         onPointerUp={() => updatePointerInteraction(null)}
@@ -202,6 +207,8 @@ export function Globe({
 }
 
 export function GlobeFeatureSection() {
+  const { tr } = useI18n();
+
   return (
     <section
       id="global-control"
@@ -211,13 +218,16 @@ export function GlobeFeatureSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-12 lg:gap-8">
           <div className="relative z-10 lg:col-span-6 max-w-[620px] text-left">
             <h2 className="text-[30px] sm:text-[38px] lg:text-[44px] font-medium leading-[1.16] tracking-[-0.025em] text-[#09090B] dark:text-white text-balance">
-              Track without limits with{" "}
+              {tr("Track without limits with", "Suivez sans limites avec")}{" "}
               <span className="text-[#0066FF] dark:text-[#60A5FA] font-semibold">
                 LShorter
               </span>
               .{" "}
               <span className="font-normal text-[#52525B] dark:text-zinc-400">
-                Keep full control over every link, click, and redirect — everywhere your audience connects across 310+ global edge PoPs.
+                {tr(
+                  "Keep full control over every link, click, and redirect — everywhere your audience connects across 310+ global edge PoPs.",
+                  "Gardez le contrôle total sur chaque lien, clic et redirection — partout où votre audience se connecte sur plus de 310 PoP edge mondiaux."
+                )}
               </span>
             </h2>
 
@@ -227,7 +237,7 @@ export function GlobeFeatureSection() {
                 className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#09090B] hover:bg-[#0066FF] dark:bg-white dark:hover:bg-[#0066FF] px-6 text-[14.5px] font-semibold text-white dark:text-[#09090B] dark:hover:text-white shadow-none transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow"
               >
                 <Link href="/register">
-                  <span>Start tracking free</span>
+                  <span>{tr("Start tracking free", "Commencer gratuitement")}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

@@ -5,25 +5,15 @@ import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getAllDocFeatures } from "@/lib/docs-data";
+import {
+  getLocalizedDocCategories,
+  getLocalizedDocs,
+} from "@/lib/docs-data";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { CofounderResourceCard } from "@/components/marketing/cofounder-resource-card";
 import { ApiCartoonPanel } from "@/components/marketing/api-cartoon-panel";
 import { SdkInstallBar } from "@/components/marketing/sdk-install-bar";
 import { ReuiCommandModal } from "@/components/search/reui-command-modal";
-
-const CARD_META: Record<string, { tag: string; color: string; date: string }> = {
-  "sdk-quickstart": { tag: "SDK & API", color: "bg-emerald-500", date: "v1.2" },
-  "geo-routing": { tag: "Edge Routing", color: "bg-brand", date: "09/12" },
-  "ab-testing-routing": { tag: "A/B Testing", color: "bg-orange-500", date: "09/10" },
-  "pin-protection": { tag: "Security", color: "bg-amber-500", date: "09/08" },
-  "realtime-analytics": { tag: "Analytics", color: "bg-purple-500", date: "09/04" },
-  "conversion-tracking-amount-count": { tag: "Conversions & EPC", color: "bg-emerald-600", date: "09/01" },
-  "click-limits-and-expiration": { tag: "Limits", color: "bg-rose-500", date: "08/28" },
-  "url-masking": { tag: "Brand Masking", color: "bg-sky-500", date: "08/20" },
-  "dynamic-qr-codes": { tag: "QR Codes", color: "bg-indigo-500", date: "08/14" },
-  "social-sharing-opengraph": { tag: "Open Graph", color: "bg-pink-500", date: "08/08" },
-  "webhooks-and-events": { tag: "Webhooks", color: "bg-emerald-400", date: "08/02" },
-};
 
 const ECOSYSTEM_STACK = [
   { name: "Next.js", icon: "▲" },
@@ -40,7 +30,9 @@ const ECOSYSTEM_STACK = [
 ];
 
 export function DocsHomeContent() {
-  const features = getAllDocFeatures();
+  const { locale, tr } = useI18n();
+  const features = getLocalizedDocs(locale);
+  const cardMeta = getLocalizedDocCategories(locale);
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -132,16 +124,22 @@ export function DocsHomeContent() {
           <div className="lg:col-span-5 flex flex-col justify-center space-y-4 text-left">
             <div className="flex items-center gap-2 text-xs font-mono text-neutral-600 dark:text-neutral-400">
               <span className="w-2 h-2 rounded-full bg-brand" />
-              <span>Announcement &amp; Architecture</span>
+              <span>{tr("Announcement & Architecture", "Annonce & Architecture")}</span>
               <span className="text-neutral-600 dark:text-neutral-400 ml-auto font-mono">09/12</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#101828] dark:text-white leading-[1.18]">
-              Ultra-fast edge redirection infrastructure for developers
+              {tr(
+                "Ultra-fast edge redirection infrastructure for developers",
+                "Infrastructure de redirection edge ultra-rapide pour développeurs"
+              )}
             </h1>
 
             <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Deploy contextual routing rules, protect links with PIN codes, and measure every click with millisecond precision across a global distributed edge network.
+              {tr(
+                "Deploy contextual routing rules, protect links with PIN codes, and measure every click with millisecond precision across a global distributed edge network.",
+                "Déployez des règles de routage contextuel, protégez vos liens par code PIN et mesurez chaque clic à la milliseconde près sur un réseau edge mondial distribué."
+              )}
             </p>
 
             {/* Official Multi-Language SDK Install Commands */}
@@ -154,7 +152,7 @@ export function DocsHomeContent() {
                 href="/docs/sdk-quickstart"
                 className="inline-flex items-center gap-2 text-xs sm:text-sm font-mono font-semibold text-brand hover:underline cursor-pointer group/link"
               >
-                <span>Explore Quickstart Guide</span>
+                <span>{tr("Explore Quickstart Guide", "Explorer le guide de démarrage")}</span>
                 <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1.5 transition-transform duration-200" />
               </Link>
             </div>
@@ -167,7 +165,23 @@ export function DocsHomeContent() {
       <section className="docs-social-proof max-w-6xl mx-auto py-8 sm:py-10 border-b border-[#E4E7EC] dark:border-white/10">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
           <p className="text-xs sm:text-sm font-medium text-neutral-600 dark:text-neutral-400 shrink-0 text-center lg:text-left">
-            Over <strong className="text-[#101828] dark:text-white font-semibold">100,000+ Edge redirections</strong> processed daily with 99.99% uptime.
+            {locale === "fr" ? (
+              <>
+                Plus de{" "}
+                <strong className="text-[#101828] dark:text-white font-semibold">
+                  100 000+ redirections Edge
+                </strong>{" "}
+                traitées chaque jour avec 99,99 % de disponibilité.
+              </>
+            ) : (
+              <>
+                Over{" "}
+                <strong className="text-[#101828] dark:text-white font-semibold">
+                  100,000+ Edge redirections
+                </strong>{" "}
+                processed daily with 99.99% uptime.
+              </>
+            )}
           </p>
 
           {/* Seamless Infinite Auto-Scrolling Marquee with subtle edge fade masks */}
@@ -199,10 +213,13 @@ export function DocsHomeContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#101828] dark:text-white">
-              Guides &amp; API Reference
+              {tr("Guides & API Reference", "Guides & Référence API")}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-              Browse architecture guides, SDK references, and edge telemetry documentation.
+              {tr(
+                "Browse architecture guides, SDK references, and edge telemetry documentation.",
+                "Parcourez nos guides d'architecture, références SDK et documentation de télémétrie edge."
+              )}
             </p>
           </div>
           <button
@@ -211,7 +228,7 @@ export function DocsHomeContent() {
             className="inline-flex items-center gap-2.5 h-10 px-3.5 rounded-[10px] bg-white dark:bg-[#141416] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.1] hover:border-black/[0.18] dark:hover:border-white/[0.2] text-xs font-medium shadow-xs transition-all cursor-pointer shrink-0"
           >
             <Search className="w-3.5 h-3.5 text-[#71717A] dark:text-[#A1A1AA]" />
-            <span>Search all documentation...</span>
+            <span>{tr("Search all documentation...", "Rechercher dans toute la documentation...")}</span>
             <kbd className="ml-2 rounded-[4px] bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.1] px-1.5 py-0.5 text-[10px] font-mono text-[#71717A] dark:text-[#A1A1AA]">
               ⌘K
             </kbd>
@@ -220,8 +237,8 @@ export function DocsHomeContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
           {features.map((feature, idx) => {
-            const meta = CARD_META[feature.slug] || {
-              tag: "Guide",
+            const meta = cardMeta[feature.slug] || {
+              tag: tr("Guide", "Guide"),
               color: "bg-neutral-400",
               date: "09/12",
             };

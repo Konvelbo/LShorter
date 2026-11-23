@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Script from "next/script";
 import { Inter, Bebas_Neue, Poppins, Caveat } from "next/font/google";
 import "./globals.css";
@@ -11,6 +12,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RouteProgressBar } from "@/components/layout/route-progress-bar";
 import { RootStructuredData } from "@/components/seo/json-ld";
 import { getServerLocale } from "@/lib/i18n/server";
+import { auth } from "@/auth";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -209,25 +211,41 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 };
 
+async function getServerTheme(): Promise<"dark" | "light"> {
+  try {
+    const cookieStore = await cookies();
+    const val = cookieStore.get("lsh_theme")?.value;
+    if (val === "dark" || val === "light") return val;
+  } catch {
+    // Ignore outside dynamic request context
+  }
+  return "light";
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const gaId = (process.env.NEXT_PUBLIC_GA_ID || "").trim();
-  const initialLocale = await getServerLocale();
+  const [initialLocale, initialTheme, initialSession] = await Promise.all([
+    getServerLocale(),
+    getServerTheme(),
+    auth().catch(() => null),
+  ]);
 
   return (
     <html
       lang={initialLocale}
-      className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} ${caveat.variable} light antialiased overflow-x-clip max-w-[100vw]`}
+      style={{ colorScheme: initialTheme }}
+      className={`${inter.variable} ${bebasNeue.variable} ${poppins.variable} ${caveat.variable} ${initialTheme} antialiased overflow-x-clip max-w-[100vw]`}
       suppressHydrationWarning
     >
       <head>
         <script
           id="theme-initializer"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='lshorter_theme_v2',s=localStorage.getItem(k)||localStorage.getItem('lshorter_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=s==='light'||s==='dark'?s:d;var cl=document.documentElement.classList;cl.remove('light','dark');cl.add(t);document.documentElement.style.colorScheme=t;}catch(e){}})()`,
+            __html: `(function(){try{var k='lshorter_theme_v2',s=localStorage.getItem(k)||localStorage.getItem('lshorter_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=s==='light'||s==='dark'?s:d;var cl=document.documentElement.classList;if(!cl.contains(t)){cl.remove('light','dark');cl.add(t);}document.documentElement.style.colorScheme=t;document.cookie='lsh_theme='+t+'; path=/; max-age=31536000; SameSite=Lax';}catch(e){}})()`,
           }}
         />
         {/* Studio specialty fonts are lazy-loaded only inside QR Studio to avoid render-blocking site-wide CSS */}
@@ -257,8 +275,8 @@ export default async function RootLayout({
             __html: `if(typeof Node==='function'&&Node.prototype){var p=Node.prototype;if(!p.__lshorterPatched){p.__lshorterPatched=true;var r=p.removeChild;p.removeChild=function(c){if(c&&c.parentNode!==this){return c;}return r.apply(this,arguments);};var i=p.insertBefore;p.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return this.appendChild(n);}return i.apply(this,arguments);};}}`,
           }}
         />
-        <ThemeProvider>
-          <ConvexClientProvider>
+        <ThemeProvider initialTheme={initialTheme}>
+          <ConvexClientProvider initialSession={initialSession}>
             <I18nProvider initialLocale={initialLocale}>
               <ToastProvider>
                 <UndoDeleteProvider>

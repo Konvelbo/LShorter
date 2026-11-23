@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Clock, ArrowRight } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function SubscriptionGraceBanner() {
+  const { tr } = useI18n();
   const { data: session, status, update: updateSession } = useSession();
   const [subData, setSubData] = useState<{
     plan?: string;
@@ -82,10 +84,16 @@ export function SubscriptionGraceBanner() {
         </span>
         <div className="flex flex-wrap items-center gap-1.5 leading-snug">
           <span className="font-bold text-amber-800 dark:text-amber-100">
-            Période de grâce — 1 jour ({hoursLeft}h restantes) :
+            {tr(
+              `Grace period — 1 day (${hoursLeft}h remaining):`,
+              `Période de grâce — 1 jour (${hoursLeft}h restantes) :`
+            )}
           </span>
           <span>
-            Le renouvellement de votre forfait {plan} a échoué. Il vous reste {hoursLeft}h pour renouveler avant le passage au plan Freemium.
+            {tr(
+              `Your ${plan} plan renewal failed. You have ${hoursLeft}h left to renew before your account switches to Freemium.`,
+              `Le renouvellement de votre forfait ${plan} a échoué. Il vous reste ${hoursLeft}h pour renouveler avant le passage au plan Freemium.`
+            )}
           </span>
         </div>
       </div>
@@ -95,7 +103,7 @@ export function SubscriptionGraceBanner() {
           href="/dashboard/pricing"
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
         >
-          <span>Renouveler maintenant</span>
+          <span>{tr("Renew now", "Renouveler maintenant")}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

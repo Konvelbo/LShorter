@@ -30,7 +30,8 @@ import {
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
 import { AnalyticsDevicesSkeleton } from "@/components/ui/skeleton";
-import { formatDateRelative, formatNumber } from "@/lib/utils";
+import { getCountryName } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { detectOSFromEvent } from "@/lib/device-detection";
 import { ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 
@@ -101,7 +102,63 @@ function SourceBrandLogo({
 export default function DevicesAnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { locale, tr, formatNumber, formatDate } = useI18n();
   const userId = session?.user?.id || "";
+
+  const localizeTechLabel = useCallback(
+    (val?: string | null) => {
+      const raw = String(val || "").trim();
+      const low = raw.toLowerCase();
+      if (!raw || low === "unknown" || low === "inconnu") {
+        return tr("Unknown", "Inconnu");
+      }
+      if (low === "desktop") return tr("Desktop", "Ordinateur");
+      if (low === "tablet" || low === "tablette") return tr("Tablet", "Tablette");
+      if (low === "mobile") return "Mobile";
+      return raw;
+    },
+    [tr],
+  );
+
+  const formatRelativeTime = useCallback(
+    (dateString: string): string => {
+      try {
+        const date = new Date(dateString);
+        const diffMs = Date.now() - date.getTime();
+        if (isNaN(diffMs)) return dateString;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHour / 24);
+
+        if (diffDay > 30) {
+          return formatDate(date, { day: "numeric", month: "short" });
+        }
+        if (diffDay > 0) {
+          return tr(
+            `${diffDay} day${diffDay > 1 ? "s" : ""} ago`,
+            `Il y a ${diffDay} jour${diffDay > 1 ? "s" : ""}`,
+          );
+        }
+        if (diffHour > 0) {
+          return tr(
+            `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`,
+            `Il y a ${diffHour} h`,
+          );
+        }
+        if (diffMin > 0) {
+          return tr(
+            `${diffMin} min${diffMin > 1 ? "s" : ""} ago`,
+            `Il y a ${diffMin} min`,
+          );
+        }
+        return tr("just now", "à l'instant");
+      } catch {
+        return dateString;
+      }
+    },
+    [formatDate, tr],
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [links, setLinks] = useState<RawLinkRecord[]>([]);
@@ -578,30 +635,35 @@ export default function DevicesAnalyticsPage() {
               className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Analytics</span>
+              <span>{tr("Back to Analytics", "Retour aux analyses")}</span>
             </Link>
             <span className="text-zinc-400 dark:text-neutral-600">/</span>
             <span className="text-xs text-brand font-semibold flex items-center gap-1">
               <Laptop className="w-3 h-3" />
-              <span>Devices & Formats</span>
+              <span>{tr("Devices & Formats", "Appareils & Formats")}</span>
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex flex-wrap items-center gap-2.5">
-            <span>Technologies, Screens & Browsers</span>
+            <span>
+              {tr("Technologies, Screens & Browsers", "Technologies, écrans & navigateurs")}
+            </span>
             <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
-              Hardware Intelligence
+              {tr("Hardware Intelligence", "Analyse matérielle")}
             </span>
           </h1>
           <p className="text-xs sm:text-sm ds-text-muted mt-1">
-            Visitor hardware intelligence: mobile vs desktop, web browsers, and operating systems.
+            {tr(
+              "Visitor hardware intelligence: mobile vs desktop, web browsers, and operating systems.",
+              "Analyse matérielle des visiteurs : mobile vs ordinateur, navigateurs web et systèmes d'exploitation.",
+            )}
           </p>
         </div>
 
         {/* Global Controls: Period & Link Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
           <select
-            aria-label="Links"
+            aria-label={tr("Links", "Liens")}
             value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
             onChange={(e) => {
               const val = e.target.value;
@@ -611,10 +673,16 @@ export default function DevicesAnalyticsPage() {
             }}
             className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all">All links combined ({links.length})</option>
+            <option value="all">
+              {tr(
+                `All links combined (${links.length})`,
+                `Tous les liens combinés (${links.length})`,
+              )}
+            </option>
             {links.map((l) => (
               <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicks_count || l.clicksCount || l.clicks || 0} clicks)
+                /{l.slug} ({formatNumber(Number(l.clicks_count || l.clicksCount || l.clicks || 0))}{" "}
+                {tr("clicks", "clics")})
               </option>
             ))}
           </select>
@@ -622,10 +690,10 @@ export default function DevicesAnalyticsPage() {
           <div className="flex items-center gap-1 p-1 rounded-[10px] ds-card text-xs shadow-xs">
             {(
               [
-                { id: "day", label: "24h" },
-                { id: "week", label: "7d" },
-                { id: "month", label: "30d" },
-                { id: "year", label: "12m" },
+                { id: "day", label: tr("24h", "24 h") },
+                { id: "week", label: tr("7d", "7 j") },
+                { id: "month", label: tr("30d", "30 j") },
+                { id: "year", label: tr("12m", "12 m") },
               ] as const
             ).map((r) => (
               <button
@@ -647,10 +715,10 @@ export default function DevicesAnalyticsPage() {
           </div>
 
           <button
-            aria-label="Refresh"
+            aria-label={tr("Refresh", "Actualiser")}
             onClick={() => loadData(selectedRange, selectedLinkId, false, true)}
             className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-            title="Refresh data"
+            title={tr("Refresh data", "Actualiser les données")}
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand" : ""}`}
@@ -676,11 +744,13 @@ export default function DevicesAnalyticsPage() {
               {mobileItem.percentage} %
             </span>
             <span className="text-xs text-[#0066FF] font-semibold">
-              smartphones
+              {tr("smartphones", "smartphones")}
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
-            <span className="text-xs ds-text-muted font-mono">{formatNumber(mobileItem.count)} clicks</span>
+            <span className="text-xs ds-text-muted font-mono">
+              {formatNumber(mobileItem.count)} {tr("clicks", "clics")}
+            </span>
             <span className="text-xs font-semibold text-[#0066FF]">Mobile</span>
           </div>
         </div>
@@ -689,7 +759,7 @@ export default function DevicesAnalyticsPage() {
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Desktop
+              {tr("Desktop", "Ordinateur")}
             </span>
             <div className="p-1 rounded-full bg-emerald-500/10 shrink-0">
               <Laptop className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -700,12 +770,16 @@ export default function DevicesAnalyticsPage() {
               {desktopItem.percentage} %
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              PC & Mac
+              PC &amp; Mac
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
-            <span className="text-xs ds-text-muted font-mono">{formatNumber(desktopItem.count)} clicks</span>
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Desktop</span>
+            <span className="text-xs ds-text-muted font-mono">
+              {formatNumber(desktopItem.count)} {tr("clicks", "clics")}
+            </span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              {tr("Desktop", "Ordinateur")}
+            </span>
           </div>
         </div>
 
@@ -713,7 +787,7 @@ export default function DevicesAnalyticsPage() {
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Top Browser
+              {tr("Top Browser", "Navigateur principal")}
             </span>
             <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
               <Cpu className="w-4 h-4 text-[#0066FF]" />
@@ -721,12 +795,15 @@ export default function DevicesAnalyticsPage() {
           </div>
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-bold ds-text-primary text-xl sm:text-2xl truncate">
-              {topBrowser.name}
+              {topBrowser.name === "—" ? "—" : localizeTechLabel(topBrowser.name)}
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs text-[#0066FF] font-semibold">
-              {topBrowser.percentage} % of clicks
+              {tr(
+                `${topBrowser.percentage} % of clicks`,
+                `${topBrowser.percentage} % des clics`,
+              )}
             </span>
             <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
@@ -736,7 +813,7 @@ export default function DevicesAnalyticsPage() {
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Top OS
+              {tr("Top OS", "OS principal")}
             </span>
             <div className="p-1 rounded-full bg-purple-500/10 shrink-0">
               <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -744,12 +821,15 @@ export default function DevicesAnalyticsPage() {
           </div>
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-bold ds-text-primary text-xl sm:text-2xl truncate">
-              {topOS.name}
+              {topOS.name === "—" ? "—" : localizeTechLabel(topOS.name)}
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
-              {topOS.percentage} % of clicks
+              {tr(
+                `${topOS.percentage} % of clicks`,
+                `${topOS.percentage} % des clics`,
+              )}
             </span>
             <span className="text-xs ds-text-muted font-mono">OS #1</span>
           </div>
@@ -764,10 +844,10 @@ export default function DevicesAnalyticsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Monitor className="w-4 h-4 text-[#0066FF]" />
-                <span>Screen Formats</span>
+                <span>{tr("Screen Formats", "Formats d'écran")}</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                3 categories
+                {tr("3 categories", "3 catégories")}
               </span>
             </div>
 
@@ -784,14 +864,14 @@ export default function DevicesAnalyticsPage() {
                 <i
                   style={{ width: `${desktopItem.percentage}%` }}
                   className="block h-full bg-emerald-600 dark:bg-emerald-400 transition-all duration-300"
-                  title={`Desktop: ${desktopItem.percentage}%`}
+                  title={`${tr("Desktop", "Ordinateur")}: ${desktopItem.percentage}%`}
                 />
               )}
               {tabletItem.percentage > 0 && (
                 <i
                   style={{ width: `${tabletItem.percentage}%` }}
                   className="block h-full bg-purple-600 dark:bg-purple-400 transition-all duration-300"
-                  title={`Tablet: ${tabletItem.percentage}%`}
+                  title={`${tr("Tablet", "Tablette")}: ${tabletItem.percentage}%`}
                 />
               )}
             </div>
@@ -814,7 +894,7 @@ export default function DevicesAnalyticsPage() {
               <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
                 <span className="inline-flex items-center ds-text-primary font-medium">
                   <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-emerald-600 dark:bg-emerald-400 no-underline" />
-                  Desktop
+                  {tr("Desktop", "Ordinateur")}
                 </span>
                 <span className="font-bold ds-text-primary">
                   {desktopItem.percentage} %
@@ -827,7 +907,7 @@ export default function DevicesAnalyticsPage() {
               <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
                 <span className="inline-flex items-center ds-text-primary font-medium">
                   <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-purple-600 dark:bg-purple-400 no-underline" />
-                  Tablet
+                  {tr("Tablet", "Tablette")}
                 </span>
                 <span className="font-bold ds-text-primary">
                   {tabletItem.percentage} %
@@ -846,10 +926,10 @@ export default function DevicesAnalyticsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Operating Systems</span>
+                <span>{tr("Operating Systems", "Systèmes d'exploitation")}</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                {osBreakdown.length} OS
+                {formatNumber(osBreakdown.length)} OS
               </span>
             </div>
 
@@ -857,7 +937,7 @@ export default function DevicesAnalyticsPage() {
               {osBreakdown.map((os) => (
                 <div key={os.name}>
                   <div className="flex justify-between text-sm font-semibold ds-text-primary">
-                    <span>{os.name}</span>
+                    <span>{localizeTechLabel(os.name)}</span>
                     <span className="font-medium ds-text-muted">
                       {os.percentage} % · {formatNumber(os.count)}
                     </span>
@@ -872,7 +952,10 @@ export default function DevicesAnalyticsPage() {
               ))}
               {osBreakdown.length === 0 && (
                 <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  No operating systems recorded for this period.
+                  {tr(
+                    "No operating systems recorded for this period.",
+                    "Aucun système d'exploitation enregistré sur cette période.",
+                  )}
                 </p>
               )}
             </div>
@@ -885,10 +968,14 @@ export default function DevicesAnalyticsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Cpu className="w-4 h-4 text-[#0066FF]" />
-                <span>Web Browsers</span>
+                <span>{tr("Web Browsers", "Navigateurs web")}</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                {effectiveBrowsers.length} browsers
+                {formatNumber(effectiveBrowsers.length)}{" "}
+                {tr(
+                  effectiveBrowsers.length === 1 ? "browser" : "browsers",
+                  effectiveBrowsers.length === 1 ? "navigateur" : "navigateurs",
+                )}
               </span>
             </div>
 
@@ -896,7 +983,7 @@ export default function DevicesAnalyticsPage() {
               {effectiveBrowsers.map((br) => (
                 <div key={br.name}>
                   <div className="flex justify-between text-sm font-semibold ds-text-primary">
-                    <span>{br.name}</span>
+                    <span>{localizeTechLabel(br.name)}</span>
                     <span className="font-medium ds-text-muted">
                       {br.percentage} % · {formatNumber(br.count)}
                     </span>
@@ -911,7 +998,10 @@ export default function DevicesAnalyticsPage() {
               ))}
               {effectiveBrowsers.length === 0 && (
                 <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  No web browsers recorded for this period.
+                  {tr(
+                    "No web browsers recorded for this period.",
+                    "Aucun navigateur web enregistré sur cette période.",
+                  )}
                 </p>
               )}
             </div>
@@ -926,10 +1016,13 @@ export default function DevicesAnalyticsPage() {
           <div>
             <h3 className="text-lg font-bold ds-text-primary flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#0066FF]" />
-              <span>Detailed Technology Stream</span>
+              <span>{tr("Detailed Technology Stream", "Flux technologique détaillé")}</span>
             </h3>
             <p className="text-xs ds-text-muted mt-0.5">
-              Event log: timestamps, format, operating system, and browser.
+              {tr(
+                "Event log: timestamps, format, operating system, and browser.",
+                "Journal des événements : horodatage, format, système d'exploitation et navigateur.",
+              )}
             </p>
           </div>
 
@@ -949,16 +1042,20 @@ export default function DevicesAnalyticsPage() {
                       : "ds-text-muted hover:ds-text-primary"
                   }`}
                 >
-                  {d === "ALL" ? "All" : d}
+                  {d === "ALL"
+                    ? tr("All", "Tous")
+                    : d === "Desktop"
+                      ? tr("Desktop", "Ordinateur")
+                      : "Mobile"}
                 </button>
               ))}
             </div>
 
             {/* Filter Input */}
             <input
-              aria-label="Filter"
+              aria-label={tr("Filter", "Filtrer")}
               type="text"
-              placeholder="Filter by browser, OS, link…"
+              placeholder={tr("Filter by browser, OS, link…", "Filtrer par navigateur, OS, lien…")}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -975,50 +1072,57 @@ export default function DevicesAnalyticsPage() {
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 <th className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap">
-                  Timestamp
+                  {tr("Timestamp", "Horodatage")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Device
+                  {tr("Device", "Appareil")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Browser
+                  {tr("Browser", "Navigateur")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Operating System
+                  {tr("Operating System", "Système d'exploitation")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Customer
+                  {tr("Customer", "Client")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Target Link
+                  {tr("Target Link", "Lien cible")}
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">
-                  Location
+                  {tr("Location", "Localisation")}
                 </th>
                 <th className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap text-center">
-                  Referrer Source
+                  {tr("Referrer Source", "Source référente")}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
-              {paginatedEvents.map((ev) => (
+              {paginatedEvents.map((ev) => {
+                const displayCountry =
+                  ev.countryCode && ev.countryCode !== "XX"
+                    ? getCountryName(ev.countryCode, locale) || ev.countryName
+                    : ev.countryName === "World"
+                      ? tr("World", "Monde")
+                      : ev.countryName;
+                return (
                 <tr
                   key={ev.id}
                   className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors h-[52px]"
                 >
                   <td className="py-3.5 pl-5 sm:pl-6 pr-3 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
-                    {formatDateRelative(ev.timestamp)}
+                    {formatRelativeTime(ev.timestamp)}
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap">
                     <span className="px-2 py-0.5 rounded-[10px] bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/25 text-[11px] font-semibold inline-block">
-                      {ev.device}
+                      {localizeTechLabel(ev.device)}
                     </span>
                   </td>
                   <td className="py-3.5 px-3 font-medium whitespace-nowrap text-zinc-800 dark:text-neutral-200">
-                    {ev.browser}
+                    {localizeTechLabel(ev.browser)}
                   </td>
                   <td className="py-3.5 px-3 font-medium whitespace-nowrap text-zinc-800 dark:text-neutral-200">
-                    {ev.os}
+                    {localizeTechLabel(ev.os)}
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap">
                     {ev.customerName || ev.customerEmail ? (
@@ -1050,15 +1154,16 @@ export default function DevicesAnalyticsPage() {
                   </td>
                   <td className="py-3.5 px-3 whitespace-nowrap text-zinc-600 dark:text-neutral-300">
                     {ev.city && ev.city !== "—" && ev.city !== "Unknown" && ev.city !== "Inconnue"
-                      ? `${ev.city}, ${ev.countryName}`
-                      : ev.countryName}
+                      ? `${ev.city}, ${displayCountry}`
+                      : displayCountry}
                   </td>
                   {/* REAL OFFICIAL LOGO IN SOURCE COLUMN */}
                   <td className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap text-center">
                     <SourceBrandLogo referrer={ev.referrer} size={22} />
                   </td>
                 </tr>
-              ))}
+                );
+              })}
 
               {paginatedEvents.length === 0 && (
                 <tr>
@@ -1066,7 +1171,10 @@ export default function DevicesAnalyticsPage() {
                     colSpan={8}
                     className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400"
                   >
-                    No events matching selected criteria.
+                    {tr(
+                      "No events matching selected criteria.",
+                      "Aucun événement ne correspond aux critères sélectionnés.",
+                    )}
                   </td>
                 </tr>
               )}
@@ -1076,7 +1184,14 @@ export default function DevicesAnalyticsPage() {
 
         {/* ─── Mobile Cards Layout (< 768px) ─── */}
         <div className="block md:hidden p-3.5 space-y-3">
-          {paginatedEvents.map((ev) => (
+          {paginatedEvents.map((ev) => {
+            const displayCountry =
+              ev.countryCode && ev.countryCode !== "XX"
+                ? getCountryName(ev.countryCode, locale) || ev.countryName
+                : ev.countryName === "World"
+                  ? tr("World", "Monde")
+                  : ev.countryName;
+            return (
             <div
               key={ev.id}
               className="p-4 rounded-[10px] bg-zinc-50/50 dark:bg-white/[0.02] border border-[#E4E7EC] dark:border-[#222225] text-xs shadow-xs leading-normal"
@@ -1084,16 +1199,16 @@ export default function DevicesAnalyticsPage() {
               {/* Top Row: Device Pill & Time */}
               <div className="flex justify-between items-center">
                 <span className="px-2 py-0.5 rounded-[10px] bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/25 text-[11px] font-semibold">
-                  {ev.device}
+                  {localizeTechLabel(ev.device)}
                 </span>
                 <span className="text-[11px] text-zinc-500 dark:text-neutral-400 font-mono">
-                  {formatDateRelative(ev.timestamp)}
+                  {formatRelativeTime(ev.timestamp)}
                 </span>
               </div>
 
               {/* Title: Browser · OS */}
               <p className="mt-2.5 font-bold text-zinc-900 dark:text-neutral-100 text-sm">
-                {ev.browser} · {ev.os}
+                {localizeTechLabel(ev.browser)} · {localizeTechLabel(ev.os)}
               </p>
 
               {/* Customer / Email */}
@@ -1122,18 +1237,22 @@ export default function DevicesAnalyticsPage() {
                   <span className="text-[11px] text-zinc-500 dark:text-neutral-400">
                     {ev.city && ev.city !== "—" && ev.city !== "Unknown" && ev.city !== "Inconnue"
                       ? ev.city
-                      : ev.countryName}
+                      : displayCountry}
                   </span>
                   {/* Real Official Brand Logo */}
                   <SourceBrandLogo referrer={ev.referrer} size={20} />
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {paginatedEvents.length === 0 && (
             <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400">
-              No events matching selected criteria.
+              {tr(
+                "No events matching selected criteria.",
+                "Aucun événement ne correspond aux critères sélectionnés.",
+              )}
             </div>
           )}
         </div>
@@ -1141,9 +1260,10 @@ export default function DevicesAnalyticsPage() {
         {/* ─── Footer Pagination ─── */}
         <div className="px-5 sm:px-6 py-3.5 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="m-0">
-            Showing {filteredEvents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
-            {filteredEvents.length} events · Page {currentPage} of {totalPages}
+            {tr(
+              `Showing ${filteredEvents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to ${Math.min(currentPage * pageSize, filteredEvents.length)} of ${formatNumber(filteredEvents.length)} events · Page ${currentPage} of ${totalPages}`,
+              `Affichage de ${filteredEvents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} à ${Math.min(currentPage * pageSize, filteredEvents.length)} sur ${formatNumber(filteredEvents.length)} événements · Page ${currentPage} sur ${totalPages}`,
+            )}
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -1151,7 +1271,7 @@ export default function DevicesAnalyticsPage() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Previous page"
+              title={tr("Previous page", "Page précédente")}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -1162,7 +1282,7 @@ export default function DevicesAnalyticsPage() {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Next page"
+              title={tr("Next page", "Page suivante")}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

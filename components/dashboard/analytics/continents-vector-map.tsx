@@ -19,6 +19,23 @@ import {
   preprocessWorldGeographies,
 } from "@/lib/geo-coordinates";
 import { Globe2, ZoomIn, ZoomOut, RotateCcw, MapPin, MousePointerClick, Activity, Maximize2, Minimize2, X } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
+
+const CONTINENT_FR_NAMES: Record<string, string> = {
+  "North America": "Amérique du Nord",
+  "South America": "Amérique du Sud",
+  "Europe": "Europe",
+  "Africa": "Afrique",
+  "Asia": "Asie",
+  "Oceania": "Océanie",
+  "Antarctica": "Antarctique",
+  "Other": "Autre",
+};
+
+function getContinentLabel(cont: Continent, isFr: boolean): string {
+  const raw = CONTINENTS_META[cont]?.name || String(cont);
+  return isFr ? (CONTINENT_FR_NAMES[raw] || raw) : raw;
+}
 
 // Standard high-resolution World Atlas TopoJSON
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -50,6 +67,8 @@ export function ContinentsVectorMap({
   onSelectCountry,
   selectedCountry,
 }: ContinentsVectorMapProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   // Active hovered country state for bottom-left display panel
   const [hoveredCountry, setHoveredCountry] = useState<{
     code: string;
@@ -160,11 +179,11 @@ export function ContinentsVectorMap({
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--brand-primary-text)] px-2 py-0.5 rounded-full bg-[var(--brand-primary-subtle)] border border-[var(--brand-primary-border)] flex items-center gap-1.5">
               <Globe2 className="w-3 h-3" />
-              <span>Interactive Mapping react-simple-maps</span>
+              <span>{isFr ? "Cartographie interactive" : "Interactive Mapping"} react-simple-maps</span>
             </span>
           </div>
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>World Map of Continents & Countries</span>
+            <span>{isFr ? "Carte mondiale des continents et pays" : "World Map of Continents & Countries"}</span>
             {selectedContinent !== "ALL" && (
               <span
                 className="text-xs px-2.5 py-0.5 rounded-full font-semibold border"
@@ -174,17 +193,19 @@ export function ContinentsVectorMap({
                   backgroundColor: `${CONTINENTS_META[selectedContinent].color}15`,
                 }}
               >
-                Filtered: {CONTINENTS_META[selectedContinent].name}
+                {isFr ? "Filtre :" : "Filtered:"} {getContinentLabel(selectedContinent, isFr)}
               </span>
             )}
             {selectedCountry && selectedCountry !== "ALL" && (
               <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] border border-[var(--brand-primary-border)]">
-                Country: {getCountryData(selectedCountry).flag} {getCountryData(selectedCountry).name}
+                {isFr ? "Pays :" : "Country:"} {getCountryData(selectedCountry).flag} {getCountryData(selectedCountry).name}
               </span>
             )}
           </h3>
           <p className="text-xs text-neutral-400">
-            Hover over any country in the world to see its name and data displayed in the bottom-left banner.
+            {isFr
+              ? "Survolez n'importe quel pays du monde pour afficher son nom et ses données dans le bandeau en bas à gauche."
+              : "Hover over any country in the world to see its name and data displayed in the bottom-left banner."}
           </p>
         </div>
 
@@ -199,7 +220,7 @@ export function ContinentsVectorMap({
               }}
               className="px-2.5 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-semibold border border-[#27272a] transition-all cursor-pointer"
             >
-              Reset Filters
+              {isFr ? "Réinitialiser les filtres" : "Reset Filters"}
             </button>
           )}
 
@@ -207,7 +228,7 @@ export function ContinentsVectorMap({
             <button
               type="button"
               onClick={handleZoomIn}
-              title="Zoom in"
+              title={isFr ? "Zoomer" : "Zoom in"}
               className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -215,7 +236,7 @@ export function ContinentsVectorMap({
             <button
               type="button"
               onClick={handleZoomOut}
-              title="Zoom out"
+              title={isFr ? "Dézoomer" : "Zoom out"}
               className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -223,7 +244,7 @@ export function ContinentsVectorMap({
             <button
               type="button"
               onClick={handleResetZoom}
-              title="Reset view"
+              title={isFr ? "Réinitialiser la vue" : "Reset view"}
               className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -235,7 +256,7 @@ export function ContinentsVectorMap({
             type="button"
             onClick={() => setIsExpanded(true)}
             className="p-1.5 rounded-[10px] bg-brand-subtle hover:bg-brand text-brand hover:text-white border border-brand-subtle shadow-sm transition-all cursor-pointer"
-            title="Fullscreen view (Double-click)"
+            title={isFr ? "Mode plein écran (Double-clic)" : "Fullscreen view (Double-click)"}
           >
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -248,7 +269,7 @@ export function ContinentsVectorMap({
         onClick={() => setClickedCountryPopup(null)}
         onDoubleClick={() => setIsExpanded(true)}
         className="relative w-full h-[310px] sm:h-[360px] md:h-auto md:aspect-[2.1/1] max-h-[480px] my-1 flex items-center justify-center bg-[#0d0d10] rounded-[10px] border border-[#1f1f23] overflow-hidden select-none cursor-pointer"
-        title="Click a country to view traffic share, or double-click to expand fullscreen"
+        title={isFr ? "Cliquez sur un pays pour voir sa part de trafic, ou double-cliquez pour passer en plein écran" : "Click a country to view traffic share, or double-click to expand fullscreen"}
       >
         <ComposableMap
           projection="geoMercator"
@@ -433,7 +454,7 @@ export function ContinentsVectorMap({
                   setClickedCountryPopup(null);
                 }}
                 className="p-0.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                aria-label="Close country popup"
+                aria-label={isFr ? "Fermer la fenêtre du pays" : "Close country popup"}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -441,7 +462,7 @@ export function ContinentsVectorMap({
 
             <div className="mt-2 pt-2 border-t border-[#222225] flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium text-neutral-400">
-                Traffic share
+                {isFr ? "Part du trafic" : "Traffic share"}
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/15 text-[#5294FF] font-mono text-xs font-extrabold">
                 {clickedCountryPopup.percentage}%
@@ -456,9 +477,9 @@ export function ContinentsVectorMap({
             </div>
 
             <div className="mt-1.5 flex items-center justify-between text-[10px] text-neutral-400">
-              <span>{CONTINENTS_META[clickedCountryPopup.continent]?.name || clickedCountryPopup.continent}</span>
+              <span>{getContinentLabel(clickedCountryPopup.continent, isFr)}</span>
               <span className="font-mono font-semibold text-neutral-200">
-                {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")}
               </span>
             </div>
           </div>
@@ -483,16 +504,16 @@ export function ContinentsVectorMap({
                     className="font-semibold"
                     style={{ color: CONTINENTS_META[hoveredCountry.continent]?.color }}
                   >
-                    {CONTINENTS_META[hoveredCountry.continent]?.name}
+                    {getContinentLabel(hoveredCountry.continent, isFr)}
                   </span>
                   <span className="text-neutral-600">•</span>
                   <span className="font-mono font-bold">
                     {hoveredCountry.clicks > 0 ? (
                       <span className="text-brand">
-                        {hoveredCountry.clicks} clicks ({hoveredCountry.percentage}%)
+                        {hoveredCountry.clicks} {hoveredCountry.clicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")} ({hoveredCountry.percentage}%)
                       </span>
                     ) : (
-                      <span className="text-neutral-500">0 clicks</span>
+                      <span className="text-neutral-500">{isFr ? "0 clic" : "0 clicks"}</span>
                     )}
                   </span>
                 </div>
@@ -525,7 +546,7 @@ export function ContinentsVectorMap({
               <div className="flex items-center justify-between gap-1 mb-1.5">
                 <span className="text-xs flex items-center gap-1.5">
                   <span>{meta.icon}</span>
-                  <span className="font-bold text-white truncate">{meta.name}</span>
+                  <span className="font-bold text-white truncate">{getContinentLabel(cont, isFr)}</span>
                 </span>
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
@@ -577,11 +598,13 @@ export function ContinentsVectorMap({
             </div>
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
-                <span>Interactive World Map — Fullscreen View</span>
+                <span>{isFr ? "Carte du monde interactive — Mode plein écran" : "Interactive World Map — Fullscreen View"}</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               </h2>
               <p className="text-[11px] sm:text-xs text-neutral-400 truncate">
-                Zoom, pan, and hover over countries • Press Esc or click to exit
+                {isFr
+                  ? "Zoomez, déplacez la carte et survolez les pays • Appuyez sur Échap ou cliquez pour quitter"
+                  : "Zoom, pan, and hover over countries • Press Esc or click to exit"}
               </p>
             </div>
           </div>
@@ -592,7 +615,7 @@ export function ContinentsVectorMap({
               <button
                 type="button"
                 onClick={handleZoomIn}
-                title="Zoom in"
+                title={isFr ? "Zoomer" : "Zoom in"}
                 className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -600,7 +623,7 @@ export function ContinentsVectorMap({
               <button
                 type="button"
                 onClick={handleZoomOut}
-                title="Zoom out"
+                title={isFr ? "Dézoomer" : "Zoom out"}
                 className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -608,7 +631,7 @@ export function ContinentsVectorMap({
               <button
                 type="button"
                 onClick={handleResetZoom}
-                title="Reset view"
+                title={isFr ? "Réinitialiser la vue" : "Reset view"}
                 className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/5 rounded-[10px] transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -619,7 +642,7 @@ export function ContinentsVectorMap({
               type="button"
               onClick={() => setIsExpanded(false)}
               className="p-2 rounded-[10px] bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 cursor-pointer transition-colors"
-              title="Close fullscreen view (Esc)"
+              title={isFr ? "Fermer le plein écran (Échap)" : "Close fullscreen view (Esc)"}
             >
               <X className="w-5 h-5" />
             </button>
@@ -817,7 +840,7 @@ export function ContinentsVectorMap({
                     setClickedCountryPopup(null);
                   }}
                   className="p-0.5 rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                  aria-label="Close country popup"
+                  aria-label={isFr ? "Fermer la fenêtre du pays" : "Close country popup"}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -825,7 +848,7 @@ export function ContinentsVectorMap({
 
               <div className="mt-2 pt-2 border-t border-[#222225] flex items-center justify-between gap-2">
                 <span className="text-[11px] font-medium text-neutral-400">
-                  Traffic share
+                  {isFr ? "Part du trafic" : "Traffic share"}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/15 text-[#5294FF] font-mono text-xs font-extrabold">
                   {clickedCountryPopup.percentage}%
@@ -840,9 +863,9 @@ export function ContinentsVectorMap({
               </div>
 
               <div className="mt-1.5 flex items-center justify-between text-[10px] text-neutral-400">
-                <span>{CONTINENTS_META[clickedCountryPopup.continent]?.name || clickedCountryPopup.continent}</span>
+                <span>{getContinentLabel(clickedCountryPopup.continent, isFr)}</span>
                 <span className="font-mono font-semibold text-neutral-200">
-                  {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                  {clickedCountryPopup.clicks} {clickedCountryPopup.clicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")}
                 </span>
               </div>
             </div>
@@ -856,12 +879,12 @@ export function ContinentsVectorMap({
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white text-xs">{hoveredCountry.name}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-[10px] font-bold uppercase" style={{ color: CONTINENTS_META[hoveredCountry.continent].color, backgroundColor: `${CONTINENTS_META[hoveredCountry.continent].color}15` }}>
-                    {CONTINENTS_META[hoveredCountry.continent].name}
+                    {getContinentLabel(hoveredCountry.continent, isFr)}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-0.5 text-[11px] text-neutral-400">
-                  <span>Clicks: <strong className="text-white">{hoveredCountry.clicks}</strong></span>
-                  <span>Share: <strong className="text-white">{hoveredCountry.percentage}%</strong></span>
+                  <span>{isFr ? "Clics :" : "Clicks:"} <strong className="text-white">{hoveredCountry.clicks}</strong></span>
+                  <span>{isFr ? "Part :" : "Share:"} <strong className="text-white">{hoveredCountry.percentage}%</strong></span>
                 </div>
               </div>
             </div>
@@ -894,7 +917,7 @@ export function ContinentsVectorMap({
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                     <span>{meta.icon}</span>
-                    <span className="truncate">{meta.name}</span>
+                    <span className="truncate">{getContinentLabel(cont, isFr)}</span>
                   </span>
                   <span className="text-[11px] font-mono font-bold" style={{ color: meta.color }}>
                     {data.clicks}

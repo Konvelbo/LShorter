@@ -59,7 +59,8 @@ import {
 } from "@/components/dashboard/analytics/column-mask-toggle";
 import { AnalyticsGeoSkeleton } from "@/components/ui/skeleton";
 import { showToast } from "@/components/ui/toast-provider";
-import { formatNumber, isLinkActive } from "@/lib/utils";
+import { isLinkActive } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 
 const GEO_URL =
@@ -142,8 +143,10 @@ const WORLD_ATLAS_NUMERIC_TO_ALPHA2: Record<string, string> = {
 function formatLiveRelativeTime(
   timestamp: string | number | Date,
   nowMs: number,
+  locale: "en" | "fr",
 ): string {
-  if (!timestamp) return "Just now";
+  const isFr = locale === "fr";
+  if (!timestamp) return isFr ? "À l'instant" : "Just now";
   let timeMs = 0;
   if (typeof timestamp === "number") {
     timeMs = timestamp < 1e11 ? timestamp * 1000 : timestamp;
@@ -158,18 +161,79 @@ function formatLiveRelativeTime(
     timeMs = isNaN(parsed) ? new Date(timestamp).getTime() : parsed;
   }
 
-  if (isNaN(timeMs) || timeMs <= 0) return "Just now";
+  if (isNaN(timeMs) || timeMs <= 0) return isFr ? "À l'instant" : "Just now";
   const diffSec = Math.floor((nowMs - timeMs) / 1000);
-  if (diffSec < 60) return "Just now";
+  if (diffSec < 60) return isFr ? "À l'instant" : "Just now";
   const mins = Math.floor(diffSec / 60);
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} mins ago`;
+  if (mins === 1) return isFr ? "Il y a 1 min" : "1 min ago";
+  if (mins < 60) return isFr ? `Il y a ${mins} min` : `${mins} mins ago`;
   const hours = Math.floor(mins / 60);
-  if (hours === 1) return "1 hour ago";
-  if (hours < 24) return `${hours} hours ago`;
+  if (hours === 1) return isFr ? "Il y a 1 h" : "1 hour ago";
+  if (hours < 24) return isFr ? `Il y a ${hours} h` : `${hours} hours ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  if (days === 1) return isFr ? "Hier" : "Yesterday";
+  return isFr ? `Il y a ${days} jours` : `${days} days ago`;
+}
+
+function getContinentLabel(
+  continent: Continent | string | undefined,
+  locale: "en" | "fr",
+  extendedAsia = false,
+): string {
+  const isFr = locale === "fr";
+  switch (continent) {
+    case "Africa":
+      return isFr ? "Afrique" : "Africa";
+    case "Europe":
+      return "Europe";
+    case "North America":
+      return isFr ? "Amérique du Nord" : "North America";
+    case "South America":
+      return isFr ? "Amérique du Sud" : "South America";
+    case "Asia":
+      return extendedAsia
+        ? isFr
+          ? "Asie & Moyen-Orient"
+          : "Asia & Middle East"
+        : isFr
+          ? "Asie"
+          : "Asia";
+    case "Oceania":
+      return isFr ? "Océanie" : "Oceania";
+    default:
+      return isFr ? "Monde" : "Global";
+  }
+}
+
+function getLocalizedCountryName(
+  code?: string,
+  fallback?: string,
+  locale: "en" | "fr" = "en",
+): string {
+  const upper = (code || "").trim().toUpperCase();
+  if (upper && upper !== "XX") {
+    const w = WORLD_COUNTRIES[upper];
+    if (w) return locale === "fr" ? w.name : w.nameEn || w.name;
+    const fromMeta = getCountryName(upper);
+    if (fromMeta) return fromMeta;
+  }
+  if (!fallback || fallback === "Inconnu" || fallback === "Unknown") {
+    return locale === "fr" ? "Inconnu" : "Unknown";
+  }
+  return fallback;
+}
+
+function localizeGeoValue(val: string | undefined, locale: "en" | "fr"): string {
+  const isFr = locale === "fr";
+  const raw = String(val || "").trim();
+  const low = raw.toLowerCase();
+  if (!raw || low === "unknown" || low === "inconnu") {
+    return isFr ? "Inconnu" : "Unknown";
+  }
+  if (low === "desktop") return isFr ? "Ordinateur" : "Desktop";
+  if (low === "tablet" || low === "tablette") return isFr ? "Tablette" : "Tablet";
+  if (low === "mobile") return "Mobile";
+  return raw;
 }
 
 function resolveCountryFromGeography(geo: any): {
@@ -261,21 +325,36 @@ const CONTINENT_CARDS_ORDER: Array<{
   { key: "Oceania", label: "Oceania", color: "#06b6d4", icon: "🌏" },
 ];
 
-const GEO_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Timestamp", defaultVisible: true },
-  { key: "country", label: "Country & Flag", defaultVisible: true },
-  { key: "city", label: "City", defaultVisible: true },
-  { key: "continent", label: "Continent", defaultVisible: true },
-  { key: "link", label: "Target Link", defaultVisible: true },
-  { key: "referrer", label: "Referrer Source", defaultVisible: true },
-  { key: "device", label: "Device & OS", defaultVisible: true },
-  { key: "browser", label: "Browser", defaultVisible: true },
-];
+const GEO_COLUMN_KEYS = [
+  "timestamp",
+  "country",
+  "city",
+  "continent",
+  "link",
+  "referrer",
+  "device",
+  "browser",
+] as const;
 
 export default function GeoAnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { locale, tr, formatNumber } = useI18n();
   const userId = session?.user?.id || "";
+
+  const geoColumns = useMemo<ColumnDefinition[]>(
+    () => [
+      { key: "timestamp", label: tr("Timestamp", "Horodatage"), defaultVisible: true },
+      { key: "country", label: tr("Country & Flag", "Pays & Drapeau"), defaultVisible: true },
+      { key: "city", label: tr("City", "Ville"), defaultVisible: true },
+      { key: "continent", label: tr("Continent", "Continent"), defaultVisible: true },
+      { key: "link", label: tr("Target Link", "Lien cible"), defaultVisible: true },
+      { key: "referrer", label: tr("Referrer Source", "Source référente"), defaultVisible: true },
+      { key: "device", label: tr("Device & OS", "Appareil & OS"), defaultVisible: true },
+      { key: "browser", label: tr("Browser", "Navigateur"), defaultVisible: true },
+    ],
+    [tr],
+  );
 
   // ─── TOUS LES HOOKS AU SOMMET DU COMPOSANT (AUCUN RETOUR CONDITIONNEL AVANT) ───
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
@@ -425,7 +504,7 @@ export default function GeoAnalyticsPage() {
   }, [isMapExpanded]);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(GEO_COLUMNS.map((c) => c.key)),
+    new Set(GEO_COLUMN_KEYS),
   );
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -456,7 +535,7 @@ export default function GeoAnalyticsPage() {
   };
 
   const resetColumns = () => {
-    setVisibleColumns(new Set(GEO_COLUMNS.map((c) => c.key)));
+    setVisibleColumns(new Set(GEO_COLUMN_KEYS));
   };
 
   const loadData = async (
@@ -948,8 +1027,8 @@ export default function GeoAnalyticsPage() {
 
       return filtered.slice(0, 6).map((c) => ({
         key: c.code,
-        label: c.name,
-        sublabel: c.continent || "Global",
+        label: getLocalizedCountryName(c.code, c.name, locale),
+        sublabel: getContinentLabel(c.continent, locale),
         value: c.count,
         secondaryText: c.code,
       }));
@@ -964,8 +1043,11 @@ export default function GeoAnalyticsPage() {
       }
       return Array.from(continentMap.entries()).map(([continent, value]) => ({
         key: continent,
-        label: continent,
-        sublabel: `${value} clicks`,
+        label: getContinentLabel(continent, locale),
+        sublabel: tr(
+          `${formatNumber(value)} ${value === 1 ? "click" : "clicks"}`,
+          `${formatNumber(value)} ${value === 1 ? "clic" : "clics"}`,
+        ),
         value,
         color: CONTINENTS_META[continent as Continent]?.color || "#0066FF",
       }));
@@ -974,20 +1056,20 @@ export default function GeoAnalyticsPage() {
       if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
         const devMap = new Map<string, number>();
         for (const ev of filteredEvents) {
-          const dev = ev.device || "Inconnu";
+          const dev = localizeGeoValue(ev.device, locale);
           devMap.set(dev, (devMap.get(dev) || 0) + 1);
         }
         return Array.from(devMap.entries()).map(([device, value]) => ({
           key: device,
           label: device.charAt(0).toUpperCase() + device.slice(1),
-          sublabel: "Form factor",
+          sublabel: tr("Form factor", "Format d'appareil"),
           value,
         }));
       }
       return (analytics.topDevices || []).slice(0, 5).map((dv) => ({
         key: dv.label,
-        label: dv.label,
-        sublabel: "Form factor",
+        label: localizeGeoValue(dv.label, locale),
+        sublabel: tr("Form factor", "Format d'appareil"),
         value: dv.count,
       }));
     }
@@ -995,20 +1077,20 @@ export default function GeoAnalyticsPage() {
       if (selectedContinent !== "ALL" && filteredEvents.length > 0) {
         const brMap = new Map<string, number>();
         for (const ev of filteredEvents) {
-          const br = ev.browser || "Inconnu";
+          const br = localizeGeoValue(ev.browser, locale);
           brMap.set(br, (brMap.get(br) || 0) + 1);
         }
         return Array.from(brMap.entries()).map(([browser, value]) => ({
           key: browser,
           label: browser,
-          sublabel: "Browser engine",
+          sublabel: tr("Browser engine", "Navigateur"),
           value,
         }));
       }
       return (analytics.topBrowsers || []).slice(0, 5).map((br) => ({
         key: br.name,
-        label: br.name,
-        sublabel: "Browser engine",
+        label: localizeGeoValue(br.name, locale),
+        sublabel: tr("Browser engine", "Navigateur"),
         value: br.count,
       }));
     }
@@ -1018,24 +1100,24 @@ export default function GeoAnalyticsPage() {
       : (analytics.liveClickEvents || []);
     const osMap = new Map<string, number>();
     for (const ev of eventsSource) {
-      const os = ev.os || "Inconnu";
+      const os = localizeGeoValue(ev.os, locale);
       osMap.set(os, (osMap.get(os) || 0) + 1);
     }
     if (osMap.size === 0 && (analytics.topDevices || []).length > 0) {
       return (analytics.topDevices || []).map((dv) => ({
         key: dv.label,
-        label: dv.label,
-        sublabel: "Device",
+        label: localizeGeoValue(dv.label, locale),
+        sublabel: tr("Device", "Appareil"),
         value: dv.count,
       }));
     }
     return Array.from(osMap.entries()).map(([os, value]) => ({
       key: os,
       label: os,
-      sublabel: "Operating System",
+      sublabel: tr("Operating System", "Système d'exploitation"),
       value,
     }));
-  }, [geoDonutDimension, selectedContinent, filteredEvents, analytics.totalClicks, analytics.topCountries, analytics.topDevices, analytics.topBrowsers, analytics.liveClickEvents]);
+  }, [geoDonutDimension, selectedContinent, filteredEvents, analytics.totalClicks, analytics.topCountries, analytics.topDevices, analytics.topBrowsers, analytics.liveClickEvents, locale, tr, formatNumber]);
 
   const topCountry = useMemo(() => {
     const candidateCountries = (analytics.topCountries || []).filter((c) => {
@@ -1046,7 +1128,11 @@ export default function GeoAnalyticsPage() {
     });
 
     if (candidateCountries.length > 0) {
-      return candidateCountries[0];
+      const c = candidateCountries[0];
+      return {
+        ...c,
+        name: getLocalizedCountryName(c.code, c.name, locale),
+      };
     }
 
     if (filteredEvents && filteredEvents.length > 0) {
@@ -1060,7 +1146,7 @@ export default function GeoAnalyticsPage() {
       const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       if (sorted.length > 0) {
         const [code, count] = sorted[0];
-        const name = getCountryName(code) || code;
+        const name = getLocalizedCountryName(code, code, locale);
         const total = filteredEvents.length;
         return {
           code,
@@ -1071,7 +1157,7 @@ export default function GeoAnalyticsPage() {
       }
     }
     return null;
-  }, [analytics.topCountries, filteredEvents, selectedContinent]);
+  }, [analytics.topCountries, filteredEvents, selectedContinent, locale]);
   const activeContinentsCount = useMemo(() => {
     return Object.values(continentsData).filter((c) => c.clicks > 0).length;
   }, [continentsData]);
@@ -1084,28 +1170,44 @@ export default function GeoAnalyticsPage() {
     try {
       exportToExcelWorkbook({
         filename: `lshorter_geo_analytics_${selectedRange}_${new Date().toISOString().split("T")[0]}.xls`,
-        reportTitle: `LShorter — Geographic Analytics Report (${selectedRange.toUpperCase()})`,
-        reportSubtitle: `Global visitor distribution, edge PoPs, devices, and browser breakdowns`,
+        reportTitle: tr(
+          `LShorter — Geographic Analytics Report (${selectedRange.toUpperCase()})`,
+          `LShorter — Rapport d'analyses géographiques (${selectedRange.toUpperCase()})`,
+        ),
+        reportSubtitle: tr(
+          "Global visitor distribution, edge PoPs, devices, and browser breakdowns",
+          "Répartition mondiale des visiteurs, nœuds edge, appareils et navigateurs",
+        ),
         columns: [
-          { header: "Timestamp", width: 190, align: "left" },
-          { header: "Country", width: 220, align: "left" },
-          { header: "Code", width: 100, align: "center" },
-          { header: "Link / Slug", width: 240, align: "left" },
-          { header: "Device", width: 140, align: "center" },
-          { header: "Browser", width: 140, align: "center" },
+          { header: tr("Timestamp", "Horodatage"), width: 190, align: "left" },
+          { header: tr("Country", "Pays"), width: 220, align: "left" },
+          { header: tr("Code", "Code"), width: 100, align: "center" },
+          { header: tr("Link / Slug", "Lien / Slug"), width: 240, align: "left" },
+          { header: tr("Device", "Appareil"), width: 140, align: "center" },
+          { header: tr("Browser", "Navigateur"), width: 140, align: "center" },
         ],
         rows: filteredEvents.map((ev) => [
           ev.timestamp,
-          ev.countryName,
+          getLocalizedCountryName(ev.countryCode, ev.countryName, locale),
           ev.countryCode,
           `/${ev.slug}`,
-          ev.device,
-          ev.browser,
+          localizeGeoValue(ev.device, locale),
+          localizeGeoValue(ev.browser, locale),
         ]),
       });
-      showToast.success("Geographic analytics exported to Excel with formatted columns!");
+      showToast.success(
+        tr(
+          "Geographic analytics exported to Excel with formatted columns!",
+          "Analyses géographiques exportées vers Excel avec colonnes formatées !",
+        ),
+      );
     } catch {
-      showToast.error("Error exporting Excel file.");
+      showToast.error(
+        tr(
+          "Error exporting Excel file.",
+          "Erreur lors de l'exportation du fichier Excel.",
+        ),
+      );
     }
   };
 
@@ -1113,6 +1215,17 @@ export default function GeoAnalyticsPage() {
   if (status === "loading" || isLoading) {
     return <AnalyticsGeoSkeleton />;
   }
+
+  const geoDonutDimensionLabel =
+    geoDonutDimension === "device"
+      ? tr("Devices", "Appareils")
+      : geoDonutDimension === "browser"
+        ? tr("Browsers", "Navigateurs")
+        : geoDonutDimension === "country"
+          ? tr("Countries", "Pays")
+          : geoDonutDimension === "continent"
+            ? tr("Continents", "Continents")
+            : "OS";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in">
@@ -1125,21 +1238,23 @@ export default function GeoAnalyticsPage() {
               className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Analytics</span>
+              <span>{tr("Back to Analytics", "Retour aux analyses")}</span>
             </Link>
             <span className="ds-text-muted">/</span>
             <span className="text-xs text-[#0066FF] font-semibold flex items-center gap-1">
               <Globe2 className="w-3 h-3" />
-              <span>Geographic Breakdown</span>
+              <span>{tr("Geographic Breakdown", "Répartition géographique")}</span>
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex items-center gap-2.5">
-            <span>Advanced Geographic Analytics</span>
+            <span>{tr("Advanced Geographic Analytics", "Analyses géographiques avancées")}</span>
           </h1>
           <p className="text-xs sm:text-sm ds-text-muted mt-1">
-            Continental visualization, ISO 3166-1 country-level routing
-            evaluation, and real-time country telemetry.
+            {tr(
+              "Continental visualization, ISO 3166-1 country-level routing evaluation, and real-time country telemetry.",
+              "Visualisation continentale, évaluation du routage pays ISO 3166-1 et télémétrie géographique en temps réel.",
+            )}
           </p>
         </div>
 
@@ -1153,10 +1268,11 @@ export default function GeoAnalyticsPage() {
             }}
             className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all">All links combined</option>
+            <option value="all">{tr("All links combined", "Tous les liens combinés")}</option>
             {links.map((l) => (
               <option key={l.id} value={l.id}>
-                /{l.slug} ({l.clicksCount || 0} clicks)
+                /{l.slug} ({formatNumber(Number(l.clicksCount || 0))}{" "}
+                {tr("clicks", "clics")})
               </option>
             ))}
           </select>
@@ -1177,12 +1293,12 @@ export default function GeoAnalyticsPage() {
                 }`}
               >
                 {r === "day"
-                  ? "24h"
+                  ? tr("24h", "24 h")
                   : r === "week"
-                    ? "7d"
+                    ? tr("7d", "7 j")
                     : r === "month"
-                      ? "30d"
-                      : "12m"}
+                      ? tr("30d", "30 j")
+                      : tr("12m", "12 m")}
               </button>
             ))}
           </div>
@@ -1192,10 +1308,15 @@ export default function GeoAnalyticsPage() {
               setIsRefreshing(true);
               cfInvalidateCache();
               await loadData(selectedRange, selectedLinkId, true);
-              showToast.success("Geographic analytics refreshed");
+              showToast.success(
+                tr(
+                  "Geographic analytics refreshed",
+                  "Analyses géographiques actualisées",
+                ),
+              );
             }}
             className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-            title="Refresh data"
+            title={tr("Refresh data", "Actualiser les données")}
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : ""}`}
@@ -1208,7 +1329,7 @@ export default function GeoAnalyticsPage() {
             className="ml-auto sm:ml-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] text-xs font-semibold !text-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 !text-white" />
-            <span className="!text-white">Export Excel</span>
+            <span className="!text-white">{tr("Export Excel", "Exporter en Excel")}</span>
           </button>
         </div>
       </div>
@@ -1218,7 +1339,7 @@ export default function GeoAnalyticsPage() {
         <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Geo Clicks
+              {tr("Geo Clicks", "Clics géolocalisés")}
             </span>
             <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse shrink-0" />
           </div>
@@ -1233,7 +1354,7 @@ export default function GeoAnalyticsPage() {
           <div className="flex items-center justify-between pt-2 border-t ds-border">
             <span className="text-xs ds-text-muted font-mono">IP Edge</span>
             <span className="text-xs font-semibold text-[#0066FF]">
-              Resolved
+              {tr("Resolved", "Résolus")}
             </span>
           </div>
         </div>
@@ -1241,18 +1362,20 @@ export default function GeoAnalyticsPage() {
         <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Top Continent
+              {tr("Top Continent", "Continent principal")}
             </span>
             <span className="text-lg shrink-0">{topContinent ? (CONTINENTS_META[topContinent.continent]?.icon || "🌍") : "🌍"}</span>
           </div>
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-bold ds-text-primary text-lg sm:text-xl truncate">
-              {topContinent ? topContinent.continent : "—"}
+              {topContinent ? getContinentLabel(topContinent.continent, locale) : "—"}
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border">
             <span className="text-xs text-[#0066FF] font-semibold">
-              {topContinent ? `${topContinent.percentage}% traffic` : "No traffic yet"}
+              {topContinent
+                ? tr(`${topContinent.percentage}% traffic`, `${topContinent.percentage} % du trafic`)
+                : tr("No traffic yet", "Aucun trafic")}
             </span>
             <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
@@ -1261,7 +1384,7 @@ export default function GeoAnalyticsPage() {
         <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Top Country
+              {tr("Top Country", "Pays principal")}
             </span>
             {topCountry ? (
               <CountryFlagBadge code={topCountry.code} className="w-6 h-4" />
@@ -1276,7 +1399,9 @@ export default function GeoAnalyticsPage() {
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border">
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              {topCountry ? `${topCountry.percentage}% visits` : "No visits yet"}
+              {topCountry
+                ? tr(`${topCountry.percentage}% visits`, `${topCountry.percentage} % des visites`)
+                : tr("No visits yet", "Aucune visite")}
             </span>
             <span className="text-xs ds-text-muted font-mono">#1</span>
           </div>
@@ -1285,7 +1410,7 @@ export default function GeoAnalyticsPage() {
         <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Active Continents
+              {tr("Active Continents", "Continents actifs")}
             </span>
             <Globe2 className="w-4 h-4 text-[#0066FF]" />
           </div>
@@ -1293,31 +1418,44 @@ export default function GeoAnalyticsPage() {
             <span className="text-2xl sm:text-3xl font-bold ds-text-primary leading-none">
               {activeContinentsCount}
             </span>
-            <span className="text-xs ds-text-muted">/ 6 continents</span>
+            <span className="text-xs ds-text-muted">
+              {tr("/ 6 continents", "/ 6 continents")}
+            </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border">
-            <span className="text-xs ds-text-muted">Continental telemetry</span>
-            <span className="text-xs font-semibold text-[#0066FF]">{activeContinentsCount > 0 ? "Active" : "Idle"}</span>
+            <span className="text-xs ds-text-muted">
+              {tr("Continental telemetry", "Télémétrie continentale")}
+            </span>
+            <span className="text-xs font-semibold text-[#0066FF]">
+              {activeContinentsCount > 0 ? tr("Active", "Actif") : tr("Idle", "Inactif")}
+            </span>
           </div>
         </div>
 
         <div className="p-4 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Coverage
+              {tr("Coverage", "Couverture")}
             </span>
             <span className={`w-2 h-2 rounded-full ${analytics.topCountries.length > 0 ? "bg-emerald-500" : "bg-zinc-400"} shrink-0`} />
           </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">
-              {analytics.topCountries.length}
+              {formatNumber(analytics.topCountries.length)}
             </span>
-            <span className="text-xs ds-text-muted">{analytics.topCountries.length <= 1 ? "country" : "countries"}</span>
+            <span className="text-xs ds-text-muted">
+              {tr(
+                analytics.topCountries.length <= 1 ? "country" : "countries",
+                "pays",
+              )}
+            </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border">
             <span className="text-xs ds-text-muted font-mono">Global Edge</span>
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[150px]">
-              {topCountry ? `${topCountry.code} (${topCountry.name})` : "No active nodes"}
+              {topCountry
+                ? `${topCountry.code} (${topCountry.name})`
+                : tr("No active nodes", "Aucun nœud actif")}
             </span>
           </div>
         </div>
@@ -1330,14 +1468,24 @@ export default function GeoAnalyticsPage() {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#0066FF] px-2 py-0.5 rounded-full bg-[#0066FF]/10 border border-[#0066FF]/25 flex items-center gap-1.5 w-fit">
                 <Globe2 className="w-3 h-3" />
-                <span>Calibrated ISO 3166-1 Projection</span>
+                <span>
+                  {tr("Calibrated ISO 3166-1 Projection", "Projection ISO 3166-1 calibrée")}
+                </span>
               </span>
             </div>
             <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex flex-wrap items-center gap-2">
-              <span>World Map of Continents &amp; Countries</span>
+              <span>
+                {tr(
+                  "World Map of Continents & Countries",
+                  "Carte mondiale des continents et pays",
+                )}
+              </span>
               {selectedContinent !== "ALL" && (
                 <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
-                  <span>Filtered: {CONTINENTS_META[selectedContinent]?.name || selectedContinent}</span>
+                  <span>
+                    {tr("Filtered:", "Filtré :")}{" "}
+                    {getContinentLabel(selectedContinent, locale)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => {
@@ -1345,7 +1493,7 @@ export default function GeoAnalyticsPage() {
                       setMapPosition(CONTINENT_VIEWPORTS["ALL"]);
                     }}
                     className="hover:text-red-500 cursor-pointer ml-0.5 transition-colors"
-                    title="Clear filter"
+                    title={tr("Clear filter", "Effacer le filtre")}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -1353,8 +1501,10 @@ export default function GeoAnalyticsPage() {
               )}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              Only countries with recorded clicks are highlighted in active
-              color.
+              {tr(
+                "Only countries with recorded clicks are highlighted in active color.",
+                "Seuls les pays ayant enregistré des clics sont mis en surbrillance.",
+              )}
             </p>
           </div>
 
@@ -1368,7 +1518,7 @@ export default function GeoAnalyticsPage() {
                     zoom: Math.min(4, pos.zoom * 1.5),
                   }))
                 }
-                title="Zoom in"
+                title={tr("Zoom in", "Zoom avant")}
                 className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -1381,7 +1531,7 @@ export default function GeoAnalyticsPage() {
                     zoom: Math.max(1, pos.zoom / 1.5),
                   }))
                 }
-                title="Zoom out"
+                title={tr("Zoom out", "Zoom arrière")}
                 className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -1391,7 +1541,7 @@ export default function GeoAnalyticsPage() {
                 onClick={() =>
                   setMapPosition(CONTINENT_VIEWPORTS[selectedContinent] || CONTINENT_VIEWPORTS["ALL"])
                 }
-                title="Reset view"
+                title={tr("Reset view", "Réinitialiser la vue")}
                 className="p-1.5 text-zinc-600 dark:text-neutral-400 hover:text-black dark:hover:text-white rounded-[8px] transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -1402,7 +1552,7 @@ export default function GeoAnalyticsPage() {
               type="button"
               onClick={() => setIsMapExpanded(true)}
               className="p-1.5 rounded-[10px] bg-[#0066FF]/10 hover:bg-[#0066FF] text-[#0066FF] hover:text-white border border-[#0066FF]/25 shadow-xs transition-all cursor-pointer"
-              title="Fullscreen view"
+              title={tr("Fullscreen view", "Vue plein écran")}
             >
               <Maximize2 className="w-4 h-4" />
             </button>
@@ -1414,7 +1564,10 @@ export default function GeoAnalyticsPage() {
           onClick={() => setClickedCountryPopup(null)}
           onDoubleClick={() => setIsMapExpanded(true)}
           className="relative w-full h-[310px] sm:h-[360px] md:h-auto md:aspect-[2.1/1] max-h-[480px] my-1 flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090b] rounded-[10px] border border-slate-200/90 dark:border-[#222225] overflow-hidden select-none cursor-pointer transition-colors duration-200"
-          title="Click a country to view traffic share, or double-click to expand fullscreen"
+          title={tr(
+            "Click a country to view traffic share, or double-click to expand fullscreen",
+            "Cliquez sur un pays pour voir sa part de trafic, ou double-cliquez pour passer en plein écran",
+          )}
         >
           <ComposableMap
             width={800}
@@ -1603,7 +1756,11 @@ export default function GeoAnalyticsPage() {
                     className="w-5 h-3.5 shrink-0"
                   />
                   <span className="font-bold text-[#09090B] dark:text-white text-xs truncate">
-                    {clickedCountryPopup.name}
+                    {getLocalizedCountryName(
+                      clickedCountryPopup.code,
+                      clickedCountryPopup.name,
+                      locale,
+                    )}
                   </span>
                 </div>
                 <button
@@ -1613,7 +1770,7 @@ export default function GeoAnalyticsPage() {
                     setClickedCountryPopup(null);
                   }}
                   className="p-0.5 rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                  aria-label="Close country popup"
+                  aria-label={tr("Close country popup", "Fermer l'infobulle du pays")}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1621,7 +1778,7 @@ export default function GeoAnalyticsPage() {
 
               <div className="mt-2 pt-2 border-t border-[#E4E7EC] dark:border-[#222225] flex items-center justify-between gap-2">
                 <span className="text-[11px] font-medium text-zinc-500 dark:text-neutral-400">
-                  Traffic share
+                  {tr("Traffic share", "Part du trafic")}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-mono text-xs font-extrabold">
                   {clickedCountryPopup.percentage}%
@@ -1636,9 +1793,13 @@ export default function GeoAnalyticsPage() {
               </div>
 
               <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500 dark:text-neutral-400">
-                <span>{clickedCountryPopup.continent}</span>
+                <span>{getContinentLabel(clickedCountryPopup.continent, locale)}</span>
                 <span className="font-mono font-semibold text-[#09090B] dark:text-zinc-200">
-                  {formatNumber(clickedCountryPopup.clicks)} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                  {formatNumber(clickedCountryPopup.clicks)}{" "}
+                  {tr(
+                    clickedCountryPopup.clicks === 1 ? "click" : "clicks",
+                    clickedCountryPopup.clicks === 1 ? "clic" : "clics",
+                  )}
                 </span>
               </div>
             </div>
@@ -1654,7 +1815,11 @@ export default function GeoAnalyticsPage() {
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-[#09090B] dark:text-white text-xs whitespace-nowrap">
-                      {hoveredCountry.name}
+                      {getLocalizedCountryName(
+                        hoveredCountry.code,
+                        hoveredCountry.name,
+                        locale,
+                      )}
                     </span>
                     <span className="text-[10px] text-zinc-500 dark:text-neutral-400 font-mono">
                       ({hoveredCountry.code})
@@ -1662,14 +1827,18 @@ export default function GeoAnalyticsPage() {
                   </div>
                   <div className="flex items-center gap-2 text-[10px] mt-0.5 whitespace-nowrap">
                     <span className="font-semibold text-[#0066FF]">
-                      {hoveredCountry.continent}
+                      {getContinentLabel(hoveredCountry.continent, locale)}
                     </span>
                     <span className="text-zinc-400 dark:text-neutral-600">
                       •
                     </span>
                     <span className="font-mono font-bold text-[#0066FF]">
-                      {hoveredCountry.clicks} clicks (
-                      {hoveredCountry.percentage}%)
+                      {formatNumber(hoveredCountry.clicks)}{" "}
+                      {tr(
+                        hoveredCountry.clicks === 1 ? "click" : "clicks",
+                        hoveredCountry.clicks === 1 ? "clic" : "clics",
+                      )}{" "}
+                      ({hoveredCountry.percentage}%)
                     </span>
                   </div>
                 </div>
@@ -1691,6 +1860,7 @@ export default function GeoAnalyticsPage() {
             const percentage = data.percentage;
             const hasClicks = clicks > 0;
             const isSelected = selectedContinent === item.key;
+            const cardLabel = getContinentLabel(item.key, locale, true);
 
             return (
               <button
@@ -1708,13 +1878,16 @@ export default function GeoAnalyticsPage() {
                     ? "bg-[#0066FF]/10 dark:bg-[#0066FF]/15 border-[#0066FF] shadow-xs ring-1 ring-[#0066FF]/50 scale-[1.02]"
                     : "bg-white dark:bg-[#111113] border-[#E4E7EC] dark:border-[#222225] hover:border-[#0066FF]/40 hover:bg-slate-50 dark:hover:bg-white/[0.02]"
                 }`}
-                title={`Filter by ${item.label} (${clicks} clicks, ${percentage}%)`}
+                title={tr(
+                  `Filter by ${cardLabel} (${formatNumber(clicks)} clicks, ${percentage}%)`,
+                  `Filtrer par ${cardLabel} (${formatNumber(clicks)} clics, ${percentage} %)`,
+                )}
               >
                 <div className="flex items-center justify-between gap-1.5 mb-2 w-full">
                   <span className="text-xs flex items-center gap-1.5 min-w-0">
                     <span className="shrink-0">{item.icon}</span>
                     <span className="font-bold text-[#09090B] dark:text-white truncate">
-                      {item.label}
+                      {cardLabel}
                     </span>
                   </span>
                   <span
@@ -1757,21 +1930,24 @@ export default function GeoAnalyticsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-[#09090B] dark:text-white">
-              Active Telemetry Breakdown — {geoDonutDimension.toUpperCase()}
+              {tr("Active Telemetry Breakdown", "Répartition de la télémétrie active")} —{" "}
+              {geoDonutDimensionLabel.toUpperCase()}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-              Resolution breakdown based on verified visitor edge network
-              traffic.
+              {tr(
+                "Resolution breakdown based on verified visitor edge network traffic.",
+                "Répartition détaillée issue du trafic edge vérifié des visiteurs.",
+              )}
             </p>
           </div>
 
           <div className="inline-flex flex-wrap rounded-[10px] bg-zinc-100 dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225] p-1 gap-1">
             {(
               [
-                { id: "device", label: "Devices" },
-                { id: "browser", label: "Browsers" },
-                { id: "country", label: "Countries" },
-                { id: "continent", label: "Continents" },
+                { id: "device", label: tr("Devices", "Appareils") },
+                { id: "browser", label: tr("Browsers", "Navigateurs") },
+                { id: "country", label: tr("Countries", "Pays") },
+                { id: "continent", label: tr("Continents", "Continents") },
                 { id: "os", label: "OS" },
               ] as const
             ).map((tab) => (
@@ -1793,9 +1969,9 @@ export default function GeoAnalyticsPage() {
 
         <ReuiDonutChart22
           items={geoDonutItems}
-          centerLabel={geoDonutDimension.toUpperCase()}
+          centerLabel={geoDonutDimensionLabel.toUpperCase()}
           centerValueFormatter={(val) => formatNumber(val)}
-          emptyMessage="Awaiting traffic..."
+          emptyMessage={tr("Awaiting traffic...", "En attente de trafic...")}
         />
       </div>
 
@@ -1809,11 +1985,13 @@ export default function GeoAnalyticsPage() {
             type="button"
             onClick={() => setIsMapExpanded(false)}
             className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 sm:p-3 rounded-[10px] bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-zinc-200 hover:text-red-500 hover:bg-white dark:hover:bg-[#1a1a1e] hover:border-red-300 dark:hover:border-red-500/30 shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2 group"
-            title="Exit fullscreen (Esc)"
-            aria-label="Exit fullscreen"
+            title={tr("Exit fullscreen (Esc)", "Quitter le plein écran (Échap)")}
+            aria-label={tr("Exit fullscreen", "Quitter le plein écran")}
           >
             <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
-            <span className="hidden sm:inline text-xs font-semibold pr-1">Exit (Esc)</span>
+            <span className="hidden sm:inline text-xs font-semibold pr-1">
+              {tr("Exit (Esc)", "Quitter (Échap)")}
+            </span>
           </button>
 
           {/* Floating Zoom Controls at Bottom Right */}
@@ -1826,7 +2004,7 @@ export default function GeoAnalyticsPage() {
                   zoom: Math.min(8, pos.zoom * 1.5),
                 }))
               }
-              title="Zoom in (+)"
+              title={tr("Zoom in (+)", "Zoom avant (+)")}
               className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <ZoomIn className="w-4 h-4" />
@@ -1839,7 +2017,7 @@ export default function GeoAnalyticsPage() {
                   zoom: Math.max(1, pos.zoom / 1.5),
                 }))
               }
-              title="Zoom out (-)"
+              title={tr("Zoom out (-)", "Zoom arrière (-)")}
               className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <ZoomOut className="w-4 h-4" />
@@ -1849,7 +2027,7 @@ export default function GeoAnalyticsPage() {
               onClick={() =>
                 setMapPosition(CONTINENT_VIEWPORTS[selectedContinent] || CONTINENT_VIEWPORTS["ALL"])
               }
-              title="Reset view"
+              title={tr("Reset view", "Réinitialiser la vue")}
               className="p-2 text-zinc-700 dark:text-zinc-300 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:bg-zinc-100 dark:hover:bg-white/5 rounded-[8px] transition-colors cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
@@ -1861,7 +2039,8 @@ export default function GeoAnalyticsPage() {
             <div className="absolute bottom-6 left-6 z-40 hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-[10px] bg-white/90 dark:bg-[#141416]/90 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 shadow-xl pointer-events-none">
               <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF] animate-pulse" />
               <span className="text-xs font-semibold text-zinc-900 dark:text-white">
-                Active node: <strong>{topCountry.name}</strong> ({topCountry.percentage}% of traffic)
+                {tr("Active node:", "Nœud actif :")} <strong>{topCountry.name}</strong> (
+                {tr(`${topCountry.percentage}% of traffic`, `${topCountry.percentage} % du trafic`)})
               </span>
             </div>
           )}
@@ -2053,7 +2232,11 @@ export default function GeoAnalyticsPage() {
                       className="w-5 h-3.5 shrink-0"
                     />
                     <span className="font-bold text-[#09090B] dark:text-white text-xs truncate">
-                      {clickedCountryPopup.name}
+                      {getLocalizedCountryName(
+                        clickedCountryPopup.code,
+                        clickedCountryPopup.name,
+                        locale,
+                      )}
                     </span>
                   </div>
                   <button
@@ -2063,7 +2246,7 @@ export default function GeoAnalyticsPage() {
                       setClickedCountryPopup(null);
                     }}
                     className="p-0.5 rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                    aria-label="Close country popup"
+                    aria-label={tr("Close country popup", "Fermer l'infobulle du pays")}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -2071,7 +2254,7 @@ export default function GeoAnalyticsPage() {
 
                 <div className="mt-2 pt-2 border-t border-[#E4E7EC] dark:border-[#222225] flex items-center justify-between gap-2">
                   <span className="text-[11px] font-medium text-zinc-500 dark:text-neutral-400">
-                    Traffic share
+                    {tr("Traffic share", "Part du trafic")}
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] font-mono text-xs font-extrabold">
                     {clickedCountryPopup.percentage}%
@@ -2086,9 +2269,13 @@ export default function GeoAnalyticsPage() {
                 </div>
 
                 <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500 dark:text-neutral-400">
-                  <span>{clickedCountryPopup.continent}</span>
+                  <span>{getContinentLabel(clickedCountryPopup.continent, locale)}</span>
                   <span className="font-mono font-semibold text-[#09090B] dark:text-zinc-200">
-                    {formatNumber(clickedCountryPopup.clicks)} {clickedCountryPopup.clicks === 1 ? "click" : "clicks"}
+                    {formatNumber(clickedCountryPopup.clicks)}{" "}
+                    {tr(
+                      clickedCountryPopup.clicks === 1 ? "click" : "clicks",
+                      clickedCountryPopup.clicks === 1 ? "clic" : "clics",
+                    )}
                   </span>
                 </div>
               </div>
@@ -2103,11 +2290,15 @@ export default function GeoAnalyticsPage() {
           <div>
             <h3 className="text-lg font-bold text-[#09090B] dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#0066FF]" />
-              <span>Live Detailed Geographic Stream</span>
+              <span>
+                {tr("Live Detailed Geographic Stream", "Flux géographique détaillé en direct")}
+              </span>
             </h3>
             <p className="text-xs text-zinc-500 dark:text-neutral-400">
-              Timestamped visitor stream with verified ISO 3166-1 country
-              resolution.
+              {tr(
+                "Timestamped visitor stream with verified ISO 3166-1 country resolution.",
+                "Flux horodaté des visiteurs avec résolution géographique ISO 3166-1 vérifiée.",
+              )}
             </p>
           </div>
 
@@ -2116,7 +2307,7 @@ export default function GeoAnalyticsPage() {
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Filter by country, link..."
+                placeholder={tr("Filter by country, link...", "Filtrer par pays, lien...")}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -2127,7 +2318,7 @@ export default function GeoAnalyticsPage() {
             </div>
 
             <ColumnMaskToggle
-              columns={GEO_COLUMNS}
+              columns={geoColumns}
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onResetColumns={resetColumns}
@@ -2140,30 +2331,30 @@ export default function GeoAnalyticsPage() {
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-3.5 pl-5 sm:pl-6 pr-4">Timestamp</th>
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-4">{tr("Timestamp", "Horodatage")}</th>
                 )}
                 {visibleColumns.has("country") && (
-                  <th className="py-3.5 px-4">Country</th>
+                  <th className="py-3.5 px-4">{tr("Country", "Pays")}</th>
                 )}
                 {visibleColumns.has("city") && (
-                  <th className="py-3.5 px-4">City</th>
+                  <th className="py-3.5 px-4">{tr("City", "Ville")}</th>
                 )}
                 {visibleColumns.has("continent") && (
-                  <th className="py-3.5 px-4">Continent</th>
+                  <th className="py-3.5 px-4">{tr("Continent", "Continent")}</th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-3.5 px-4">Link</th>
+                  <th className="py-3.5 px-4">{tr("Link", "Lien")}</th>
                 )}
                 {visibleColumns.has("referrer") && (
-                  <th className="py-3.5 px-4 text-center">Referrer Source</th>
+                  <th className="py-3.5 px-4 text-center">{tr("Referrer Source", "Source référente")}</th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-3.5 px-4">Device</th>
+                  <th className="py-3.5 px-4">{tr("Device", "Appareil")}</th>
                 )}
                 {visibleColumns.has("browser") && (
-                  <th className="py-3.5 px-4">Browser</th>
+                  <th className="py-3.5 px-4">{tr("Browser", "Navigateur")}</th>
                 )}
-                <th className="py-3.5 pl-4 pr-5 sm:pr-6 text-right">Action</th>
+                <th className="py-3.5 pl-4 pr-5 sm:pr-6 text-right">{tr("Action", "Action")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
@@ -2173,13 +2364,21 @@ export default function GeoAnalyticsPage() {
                     colSpan={visibleColumns.size + 1}
                     className="py-20 px-5 text-center text-zinc-500 dark:text-neutral-400"
                   >
-                    No geographic click events recorded for this period yet.
+                    {tr(
+                      "No geographic click events recorded for this period yet.",
+                      "Aucun événement de clic géolocalisé enregistré sur cette période pour le moment.",
+                    )}
                   </td>
                 </tr>
               ) : (
                 paginatedEvents.map((ev) => {
                   const cleanSlug = String(ev.slug || "").replace(/^\//, "");
                   const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
+                  const displayCountry = getLocalizedCountryName(
+                    ev.countryCode,
+                    ev.countryName,
+                    locale,
+                  );
 
                 return (
                   <tr
@@ -2188,15 +2387,14 @@ export default function GeoAnalyticsPage() {
                   >
                     {visibleColumns.has("timestamp") && (
                       <td className="py-3.5 pl-5 sm:pl-6 pr-4 font-mono text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
-                        {/* S'actualise en direct : Just now -> 1 min ago -> 2 mins ago */}
-                        {formatLiveRelativeTime(ev.timestamp, currentTimeTick)}
+                        {formatLiveRelativeTime(ev.timestamp, currentTimeTick, locale)}
                       </td>
                     )}
                     {visibleColumns.has("country") && (
                       <td className="py-3.5 px-4 font-semibold text-[#09090B] dark:text-white whitespace-nowrap text-xs">
                         <div className="inline-flex items-center gap-2.5">
                           <CountryFlagBadge code={ev.countryCode} className="w-5 h-3.5" />
-                          <span>{ev.countryName}</span>
+                          <span>{displayCountry}</span>
                           <span className="text-[10px] text-zinc-500 font-mono">
                             ({ev.countryCode})
                           </span>
@@ -2221,7 +2419,7 @@ export default function GeoAnalyticsPage() {
                               backgroundColor: `${meta?.color || "#0066FF"}15`,
                             }}
                           >
-                            {meta?.name || cont || "Global"}
+                            {getContinentLabel(cont, locale)}
                           </span>
                         </td>
                       );
@@ -2239,20 +2437,24 @@ export default function GeoAnalyticsPage() {
                       </td>
                     )}
                     {visibleColumns.has("device") && (
-                      <td className="py-3.5 px-4 capitalize text-xs">{ev.device}</td>
+                      <td className="py-3.5 px-4 capitalize text-xs">
+                        {localizeGeoValue(ev.device, locale)}
+                      </td>
                     )}
                     {visibleColumns.has("browser") && (
-                      <td className="py-3.5 px-4 text-xs">{ev.browser}</td>
+                      <td className="py-3.5 px-4 text-xs">
+                        {localizeGeoValue(ev.browser, locale)}
+                      </td>
                     )}
                     <td className="py-3.5 pl-4 pr-5 sm:pr-6 text-right">
                       <button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(shortLinkUrl);
-                          showToast.success("Short link copied!");
+                          showToast.success(tr("Short link copied!", "Lien court copié !"));
                         }}
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                        title="Copy link"
+                        title={tr("Copy link", "Copier le lien")}
                       >
                         <Copy className="w-4 h-4" />
                       </button>
@@ -2268,13 +2470,21 @@ export default function GeoAnalyticsPage() {
           <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedEvents.length === 0 ? (
               <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                No geographic click events recorded for this period yet.
+                {tr(
+                  "No geographic click events recorded for this period yet.",
+                  "Aucun événement de clic géolocalisé enregistré sur cette période pour le moment.",
+                )}
               </div>
             ) : (
               paginatedEvents.map((ev) => {
                 const cleanSlug = String(ev.slug || "").replace(/^\//, "");
                 const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
-                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick);
+                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick, locale);
+                const displayCountry = getLocalizedCountryName(
+                  ev.countryCode,
+                  ev.countryName,
+                  locale,
+                );
 
                 return (
                   <div
@@ -2286,7 +2496,7 @@ export default function GeoAnalyticsPage() {
                       <div className="flex items-center gap-2 min-w-0">
                         <CountryFlagBadge code={ev.countryCode} className="w-5 h-3.5" />
                         <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
-                          {ev.countryName} {ev.city ? `• ${ev.city}` : ""}
+                          {displayCountry} {ev.city ? `• ${ev.city}` : ""}
                         </span>
                         <span className="text-[10px] font-mono text-zinc-500">({ev.countryCode})</span>
                       </div>
@@ -2310,16 +2520,19 @@ export default function GeoAnalyticsPage() {
 
                     {/* Bottom Row: Device & Browser */}
                     <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400">
-                      <span>{ev.device || "Desktop"} • {ev.browser || "Browser"}</span>
+                      <span>
+                        {localizeGeoValue(ev.device || "Desktop", locale)} •{" "}
+                        {localizeGeoValue(ev.browser || tr("Browser", "Navigateur"), locale)}
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(shortLinkUrl);
-                          showToast.success("Link copied!");
+                          showToast.success(tr("Link copied!", "Lien copié !"));
                         }}
                         className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
                       >
-                        Copy Link
+                        {tr("Copy Link", "Copier le lien")}
                       </button>
                     </div>
                   </div>
@@ -2333,13 +2546,14 @@ export default function GeoAnalyticsPage() {
         <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#141416] mt-auto">
           <div className="flex flex-wrap items-center gap-3">
             <span>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
-              {filteredEvents.length} events
+              {tr(
+                `Showing ${filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredEvents.length)} of ${formatNumber(filteredEvents.length)} events`,
+                `Affichage de ${filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} à ${Math.min(currentPage * pageSize, filteredEvents.length)} sur ${formatNumber(filteredEvents.length)} événements`,
+              )}
             </span>
 
             <div className="flex items-center gap-1.5 ml-1">
-              <span className="text-[11px] text-zinc-400">Show:</span>
+              <span className="text-[11px] text-zinc-400">{tr("Show:", "Afficher :")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -2366,7 +2580,7 @@ export default function GeoAnalyticsPage() {
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <span className="px-3 py-1 font-mono text-[#09090B] dark:text-white text-xs bg-zinc-100 dark:bg-[#18181c] border border-[#E4E7EC] dark:border-[#222225] rounded-[10px]">
-              Page {currentPage} / {totalPages}
+              {tr("Page", "Page")} {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}

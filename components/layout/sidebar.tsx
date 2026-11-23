@@ -28,6 +28,7 @@ import {
 } from "@/lib/cloudflare-api";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
 import { getPlanDefinition } from "@/src/config/pricing";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SubNavItem {
   id: string;
@@ -37,6 +38,7 @@ interface SubNavItem {
 }
 
 interface NavItem {
+  id: string;
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -44,97 +46,147 @@ interface NavItem {
   subItems?: SubNavItem[];
 }
 
-const navMenu: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Short Links", href: "/dashboard/links", icon: Link2 },
-  {
-    name: "Analytics",
-    href: "/dashboard/analytics",
-    icon: BarChart2,
-    subItems: [
-      { id: "traffic", name: "Traffic Overview", href: "/dashboard/analytics" },
-      {
-        id: "geo-map",
-        name: "Geography & Continents",
-        href: "/dashboard/analytics/geo",
-      },
-      {
-        id: "conversions",
-        name: "Customers & Revenue",
-        href: "/dashboard/analytics/revenue",
-      },
-      {
-        id: "devices",
-        name: "Devices & Formats",
-        href: "/dashboard/analytics/devices",
-      },
-      {
-        id: "sources",
-        name: "Traffic Sources",
-        href: "/dashboard/analytics/sources",
-      },
-      {
-        id: "live",
-        name: "Live Click Stream",
-        href: "/dashboard/analytics/live",
-      },
-    ],
-  },
-  { name: "QR Studio", href: "/dashboard/qr-code", icon: QrCode },
-  { name: "Custom Domains", href: "/dashboard/domains", icon: Globe2 },
-];
-
-const navOthers: NavItem[] = [
-  {
-    name: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-    subItems: [
-      {
-        id: "profile",
-        name: "Profile & Account",
-        href: "/dashboard/settings?tab=profile",
-      },
-      {
-        id: "billing",
-        name: "Billing & Invoices",
-        href: "/dashboard/settings?tab=billing",
-      },
-      { id: "api", name: "API Keys", href: "/dashboard/settings?tab=api" },
-      {
-        id: "domains",
-        name: "Domain Routing",
-        href: "/dashboard/settings?tab=domains",
-      },
-      {
-        id: "webhooks",
-        name: "Webhooks",
-        href: "/dashboard/settings?tab=webhooks",
-      },
-      {
-        id: "pixels",
-        name: "Retargeting Pixels",
-        href: "/dashboard/settings?tab=pixels",
-      },
-      {
-        id: "security",
-        name: "Security & 2FA",
-        href: "/dashboard/settings?tab=security",
-      },
-      {
-        id: "notifications",
-        name: "Notifications",
-        href: "/dashboard/settings?tab=notifications",
-      },
-      { id: "data", name: "Data & GDPR", href: "/dashboard/settings?tab=data" },
-      { id: "about", name: "About", href: "/dashboard/settings?tab=about" },
-    ],
-  },
-  { name: "Documentation", href: "/docs", icon: FileText },
-];
-
 export const Sidebar = React.memo(function Sidebar() {
   const pathname = usePathname();
+  const { tr, formatNumber } = useI18n();
+
+  const navMenu: NavItem[] = React.useMemo(
+    () => [
+      {
+        id: "Dashboard",
+        name: tr("Dashboard", "Tableau de bord"),
+        href: "/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        id: "Short Links",
+        name: tr("Short Links", "Liens courts"),
+        href: "/dashboard/links",
+        icon: Link2,
+      },
+      {
+        id: "Analytics",
+        name: tr("Analytics", "Analytiques"),
+        href: "/dashboard/analytics",
+        icon: BarChart2,
+        subItems: [
+          {
+            id: "traffic",
+            name: tr("Traffic Overview", "Vue du trafic"),
+            href: "/dashboard/analytics",
+          },
+          {
+            id: "geo-map",
+            name: tr("Geography & Continents", "Géographie & Continents"),
+            href: "/dashboard/analytics/geo",
+          },
+          {
+            id: "conversions",
+            name: tr("Customers & Revenue", "Clients & Revenus"),
+            href: "/dashboard/analytics/revenue",
+          },
+          {
+            id: "devices",
+            name: tr("Devices & Formats", "Appareils & Formats"),
+            href: "/dashboard/analytics/devices",
+          },
+          {
+            id: "sources",
+            name: tr("Traffic Sources", "Sources de trafic"),
+            href: "/dashboard/analytics/sources",
+          },
+          {
+            id: "live",
+            name: tr("Live Click Stream", "Flux de clics en direct"),
+            href: "/dashboard/analytics/live",
+          },
+        ],
+      },
+      {
+        id: "QR Studio",
+        name: tr("QR Studio", "Studio QR"),
+        href: "/dashboard/qr-code",
+        icon: QrCode,
+      },
+      {
+        id: "Custom Domains",
+        name: tr("Custom Domains", "Domaines personnalisés"),
+        href: "/dashboard/domains",
+        icon: Globe2,
+      },
+    ],
+    [tr],
+  );
+
+  const navOthers: NavItem[] = React.useMemo(
+    () => [
+      {
+        id: "Settings",
+        name: tr("Settings", "Paramètres"),
+        href: "/dashboard/settings",
+        icon: Settings,
+        subItems: [
+          {
+            id: "profile",
+            name: tr("Profile & Account", "Profil & Compte"),
+            href: "/dashboard/settings?tab=profile",
+          },
+          {
+            id: "billing",
+            name: tr("Billing & Invoices", "Facturation & Factures"),
+            href: "/dashboard/settings?tab=billing",
+          },
+          {
+            id: "api",
+            name: tr("API Keys", "Clés API"),
+            href: "/dashboard/settings?tab=api",
+          },
+          {
+            id: "domains",
+            name: tr("Domain Routing", "Routage de domaine"),
+            href: "/dashboard/settings?tab=domains",
+          },
+          {
+            id: "webhooks",
+            name: tr("Webhooks", "Webhooks"),
+            href: "/dashboard/settings?tab=webhooks",
+          },
+          {
+            id: "pixels",
+            name: tr("Retargeting Pixels", "Pixels de reciblage"),
+            href: "/dashboard/settings?tab=pixels",
+          },
+          {
+            id: "security",
+            name: tr("Security & 2FA", "Sécurité & 2FA"),
+            href: "/dashboard/settings?tab=security",
+          },
+          {
+            id: "notifications",
+            name: tr("Notifications", "Notifications"),
+            href: "/dashboard/settings?tab=notifications",
+          },
+          {
+            id: "data",
+            name: tr("Data & GDPR", "Données & RGPD"),
+            href: "/dashboard/settings?tab=data",
+          },
+          {
+            id: "about",
+            name: tr("About", "À propos"),
+            href: "/dashboard/settings?tab=about",
+          },
+        ],
+      },
+      {
+        id: "Documentation",
+        name: tr("Documentation", "Documentation"),
+        href: "/docs",
+        icon: FileText,
+      },
+    ],
+    [tr],
+  );
   const { data: session } = useSession();
   const userId = session?.user?.id || "";
   const convexUser = useQuery(
@@ -411,7 +463,7 @@ export const Sidebar = React.memo(function Sidebar() {
   const rawClicksRatio =
     clicksLimit > 0 ? (clicksThisMonth / clicksLimit) * 100 : 0;
   const formatSidebarPercentage = (used: number, limit: number): string => {
-    if (limit === -1) return "Unlimited";
+    if (limit === -1) return tr("Unlimited", "Illimité");
     if (used <= 0) return "0%";
     const ratio = (used / limit) * 100;
     if (ratio < 0.01) {
@@ -444,9 +496,9 @@ export const Sidebar = React.memo(function Sidebar() {
         ? 0
         : Math.min(100, Math.max(2, rawClicksRatio));
 
-  const toggleSubmenu = (name: string) => {
+  const toggleSubmenu = (id: string) => {
     if (isCollapsed) setIsCollapsed(false);
-    setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }));
+    setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const isSubItemActive = (sub: SubNavItem) => {
@@ -466,19 +518,19 @@ export const Sidebar = React.memo(function Sidebar() {
       {items.map((item) => {
         const hasSub = Array.isArray(item.subItems) && item.subItems.length > 0;
         const isParentActive =
-          item.name === "Dashboard"
+          item.id === "Dashboard"
             ? pathname === "/dashboard"
             : item.href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
-        const isOpen = Boolean(openMenus[item.name]);
+        const isOpen = Boolean(openMenus[item.id]);
 
         return (
-          <li key={item.name}>
+          <li key={item.id}>
             {hasSub ? (
               <button
                 type="button"
-                onClick={() => toggleSubmenu(item.name)}
+                onClick={() => toggleSubmenu(item.id)}
                 className={cn(
                   "group relative flex w-full items-center gap-2.5 rounded-[8px] px-[18px] py-2 text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap overflow-hidden",
                   isParentActive
@@ -644,7 +696,7 @@ export const Sidebar = React.memo(function Sidebar() {
                 isCollapsed ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100",
               )}
             >
-              MENU
+              {tr("MENU", "MENU")}
             </h3>
             {renderGroup(navMenu)}
           </div>
@@ -657,7 +709,7 @@ export const Sidebar = React.memo(function Sidebar() {
                 isCollapsed ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100",
               )}
             >
-              OTHERS
+              {tr("OTHERS", "AUTRES")}
             </h3>
             {renderGroup(navOthers)}
           </div>
@@ -678,7 +730,7 @@ export const Sidebar = React.memo(function Sidebar() {
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#0066FF]" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#0066FF] dark:text-[#5294FF]">
-                    {planNormalized}
+                    {planNormalized === "FREE" ? tr("FREE", "GRATUIT") : planNormalized}
                   </span>
                 </div>
                 <span className="font-mono text-[10.5px] font-semibold text-[#667085] dark:text-[#98A2B3]">
@@ -690,19 +742,19 @@ export const Sidebar = React.memo(function Sidebar() {
               <div className="flex items-baseline justify-between">
                 <div className="flex items-baseline gap-1">
                   <span className="font-mono text-sm font-bold text-[#101828] dark:text-white">
-                    {clicksThisMonth.toLocaleString("en-US")}
+                    {formatNumber(clicksThisMonth)}
                   </span>
                   <span className="text-[10.5px] text-[#667085] dark:text-[#98A2B3] font-medium">
                     /{" "}
                     {clicksLimit === -1
-                      ? "Unlimited"
+                      ? tr("Unlimited", "Illimité")
                       : clicksLimit >= 1_000_000
-                        ? `${(clicksLimit / 1_000_000).toLocaleString("en-US")}M+`
-                        : clicksLimit.toLocaleString("en-US")}
+                        ? `${formatNumber(clicksLimit / 1_000_000)}M+`
+                        : formatNumber(clicksLimit)}
                   </span>
                 </div>
                 <span className="text-[10px] font-medium text-[#98A2B3] dark:text-[#71717a]">
-                  clicks
+                  {tr("clicks", "clics")}
                 </span>
               </div>
 
@@ -711,7 +763,7 @@ export const Sidebar = React.memo(function Sidebar() {
                 {clicksLimit === -1 ? (
                   <div
                     className="h-full w-full rounded-full unlimited-progress-bar transition-all"
-                    title="Capacité de clics illimitée"
+                    title={tr("Unlimited click capacity", "Capacité de clics illimitée")}
                   />
                 ) : (
                   <div
@@ -725,10 +777,10 @@ export const Sidebar = React.memo(function Sidebar() {
               <div className="flex items-center justify-between text-[10px] text-[#667085] dark:text-[#98A2B3]">
                 <span className="truncate">
                   {plan === "ENTERPRISE"
-                    ? "Unlimited clicks"
+                    ? tr("Unlimited clicks", "Clics illimités")
                     : isOverage
-                      ? "Quota exceeded"
-                      : "Monthly quota"}
+                      ? tr("Quota exceeded", "Quota dépassé")
+                      : tr("Monthly quota", "Quota mensuel")}
                 </span>
                 {planNormalized === "FREE" ? (
                   <Link
@@ -736,11 +788,11 @@ export const Sidebar = React.memo(function Sidebar() {
                     prefetch={true}
                     className="text-[#0066FF] dark:text-[#5294FF] font-semibold hover:underline shrink-0 ml-1"
                   >
-                    Upgrade →
+                    {tr("Upgrade →", "Passer au supérieur →")}
                   </Link>
                 ) : (
                   <span className="text-[#0066FF] dark:text-[#5294FF] font-medium shrink-0 ml-1">
-                    Active
+                    {tr("Active", "Actif")}
                   </span>
                 )}
               </div>
@@ -755,12 +807,15 @@ export const Sidebar = React.memo(function Sidebar() {
                   }
                 }}
                 className="mt-0.5 w-full flex items-center justify-between gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] py-1.5 px-2 text-[11.5px] font-semibold !text-white transition-colors cursor-pointer shadow-2xs group"
-                title="Create Short Link (Raccourci: Ctrl + Flèche droite)"
+                title={tr(
+                  "Create Short Link (Shortcut: Ctrl + Right Arrow)",
+                  "Créer un lien court (Raccourci : Ctrl + Flèche droite)",
+                )}
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <Plus className="h-3.5 w-3.5 !text-white shrink-0" />
                   <span className="!text-white truncate">
-                    Create Short Link
+                    {tr("Create Short Link", "Créer un lien court")}
                   </span>
                 </div>
                 <kbd className="hidden xl:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-medium bg-white/20 text-white rounded border border-white/25 shrink-0 leading-none">
@@ -772,7 +827,7 @@ export const Sidebar = React.memo(function Sidebar() {
             </div>
           ) : (
             <div
-              title={`${planDef.name} Plan : ${clicksThisMonth.toLocaleString("en-US")} / ${clicksLimit === -1 ? "Unlimited" : clicksLimit.toLocaleString("en-US")} clicks (${clicksPercentLabel}) — Ouvrir le drawer (Ctrl + Flèche droite)`}
+              title={`${tr(`${planDef.name} Plan`, `Forfait ${planDef.name}`)}: ${formatNumber(clicksThisMonth)} / ${clicksLimit === -1 ? tr("Unlimited", "Illimité") : formatNumber(clicksLimit)} ${tr("clicks", "clics")} (${clicksPercentLabel}) — ${tr("Open drawer (Ctrl + Right Arrow)", "Ouvrir le panneau (Ctrl + Flèche droite)")}`}
               className="w-9 h-9 rounded-[8px] ds-card mx-auto flex items-center justify-center cursor-pointer hover:border-[#0066FF] transition-colors"
               onClick={() => {
                 if (typeof window !== "undefined") {
@@ -791,7 +846,7 @@ export const Sidebar = React.memo(function Sidebar() {
             <button
               type="button"
               onClick={() => setIsFeedbackOpen(true)}
-              title={isCollapsed ? "Feedback & Help" : undefined}
+              title={isCollapsed ? tr("Feedback & Help", "Aide & Retours") : undefined}
               className={cn(
                 "group relative flex w-full items-center rounded-[8px] text-[12px] font-medium transition-colors duration-150 cursor-pointer ds-text-secondary hover:bg-[#0066FF]/10 hover:text-[#0066FF] dark:hover:text-[#5294FF] whitespace-nowrap overflow-hidden",
                 isCollapsed ? "justify-center p-1.5" : "gap-2 px-2.5 py-1.5",
@@ -802,7 +857,7 @@ export const Sidebar = React.memo(function Sidebar() {
               </span>
               {!isCollapsed && (
                 <span className="flex-1 text-left truncate font-semibold text-[11.5px]">
-                  Feedback &amp; Help
+                  {tr("Feedback & Help", "Aide & Retours")}
                 </span>
               )}
             </button>

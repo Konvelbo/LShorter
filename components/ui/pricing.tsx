@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export type PaidPlanId = "PRO" | "BUSINESS" | "ENTERPRISE";
 export type BillingCycle = "MONTHLY" | "YEARLY";
@@ -69,12 +70,21 @@ export interface PricingProps {
 export function Pricing({
   plans,
   enterprise,
-  title = "Simple, Transparent Pricing",
-  description = "Choose the plan that works for you.\nAll plans run on Cloudflare's 310+ global edge PoPs with instant PDF invoices.",
-  annualSaveLabel = "Save up to 50%",
+  title,
+  description,
+  annualSaveLabel,
   onSelectPlan,
   loadingPlan,
 }: PricingProps) {
+  const { locale, tr } = useI18n();
+  const resolvedTitle = title ?? tr("Simple, Transparent Pricing", "Tarifs simples et transparents");
+  const resolvedDescription =
+    description ??
+    tr(
+      "Choose the plan that works for you.\nAll plans run on Cloudflare's 310+ global edge PoPs with instant PDF invoices.",
+      "Choisissez le forfait adapté à vos besoins.\nTous les forfaits tournent sur les 310+ PoPs Cloudflare avec factures PDF instantanées."
+    );
+  const resolvedAnnualSaveLabel = annualSaveLabel ?? tr("Save up to 50%", "Économisez jusqu'à 50 %");
   const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const switchRef = useRef<HTMLButtonElement>(null);
@@ -107,10 +117,10 @@ export function Pricing({
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-28">
       <div className="text-center space-y-4 mb-12">
         <h2 className="text-[32px] sm:text-[44px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-          {title}
+          {resolvedTitle}
         </h2>
         <p className="text-[#52525B] dark:text-zinc-400 text-[15.5px] sm:text-[17px] leading-[1.6] whitespace-pre-line max-w-[620px] mx-auto">
-          {description}
+          {resolvedDescription}
         </p>
       </div>
 
@@ -124,9 +134,9 @@ export function Pricing({
               : "text-[#71717A] dark:text-zinc-400"
           )}
         >
-          Monthly{" "}
+          {tr("Monthly", "Mensuel")}{" "}
           <span className="text-emerald-600 dark:text-emerald-400 text-[12.5px] font-medium">
-            (-75% first 2 mo)
+            {tr("(-75% first 2 mo)", "(-75 % les 2 premiers mois)")}
           </span>
         </span>
         <div className="relative inline-flex items-center">
@@ -135,11 +145,11 @@ export function Pricing({
             ref={switchRef}
             checked={!isMonthly}
             onCheckedChange={handleToggle}
-            aria-label="Toggle annual billing"
+            aria-label={tr("Toggle annual billing", "Activer la facturation annuelle")}
             className="relative cursor-pointer"
           />
           <Label htmlFor="pricing-billing-switch" className="sr-only">
-            Toggle annual billing
+            {tr("Toggle annual billing", "Activer la facturation annuelle")}
           </Label>
         </div>
         <span
@@ -150,9 +160,9 @@ export function Pricing({
               : "text-[#52525B] dark:text-zinc-300"
           )}
         >
-          Annual billing{" "}
+          {tr("Annual billing", "Facturation annuelle")}{" "}
           <span className="text-[#0066FF] dark:text-[#6CA8FF]">
-            ({annualSaveLabel})
+            ({resolvedAnnualSaveLabel})
           </span>
         </span>
       </div>
@@ -168,8 +178,8 @@ export function Pricing({
             ? plan.period
             : plan.yearlyPeriod || plan.period;
           const activeNote = isMonthly
-            ? plan.monthlyBillingNote || "billed monthly"
-            : plan.yearlyBillingNote || "billed annually";
+            ? plan.monthlyBillingNote || tr("billed monthly", "facturé mensuellement")
+            : plan.yearlyBillingNote || tr("billed annually", "facturé annuellement");
           const activeSavings = isMonthly
             ? plan.monthlySavings
             : plan.yearlySavings;
@@ -217,7 +227,7 @@ export function Pricing({
                 <div className="absolute top-0 right-0 bg-[#0066FF] py-1 px-2.5 rounded-bl-[8px] rounded-tr-[8px] flex items-center">
                   <Star className="text-white h-3.5 w-3.5 fill-current" />
                   <span className="text-white ml-1 text-[12px] font-semibold">
-                    Popular
+                    {tr("Popular", "Populaire")}
                   </span>
                 </div>
               )}
@@ -323,7 +333,7 @@ export function Pricing({
                       className="w-full text-[14.5px]"
                     >
                       {loadingPlan === plan.planId
-                        ? "Redirecting..."
+                        ? tr("Redirecting...", "Redirection...")
                         : plan.buttonText}
                     </WaveRevealButton>
                   ) : (
@@ -346,7 +356,7 @@ export function Pricing({
                       {loadingPlan === plan.planId ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Redirecting...</span>
+                          <span>{tr("Redirecting...", "Redirection...")}</span>
                         </>
                       ) : (
                         plan.buttonText
@@ -394,7 +404,7 @@ export function Pricing({
                 {enterprise.name}
               </h3>
               <span className="text-[13px] leading-[16px] text-[#15803D] dark:text-[#4ADE80]">
-                {isMonthly ? "−50% promo" : "−30% annual"}
+                {isMonthly ? tr("−50% promo", "−50 % promo") : tr("−30% annual", "−30 % annuel")}
               </span>
             </div>
 
@@ -405,7 +415,7 @@ export function Pricing({
             <div className="mt-7 flex flex-wrap items-baseline gap-2">
               <span className="font-medium text-[44px] sm:text-[48px] leading-[56px] tracking-[-0.02em] tabular-nums text-[#101828] dark:text-[#FAFAFA]">
                 <NumberFlow
-                  locales="en-US"
+                  locales={locale === "fr" ? "fr-FR" : "en-US"}
                   value={isMonthly ? enterprise.monthlyPrice : enterprise.yearlyPrice}
                   format={{
                     style: "currency",
@@ -418,10 +428,10 @@ export function Pricing({
                 />
               </span>
               <span className="text-[16px] text-[#667085] dark:text-[#A1A1AA]">
-                / {isMonthly ? "2 mo" : "yr"}
+                / {isMonthly ? tr("2 mo", "2 mois") : tr("yr", "an")}
               </span>
               <span className="text-[16px] line-through tabular-nums text-[#667085] dark:text-[#A1A1AA]">
-                ${(isMonthly ? enterprise.monthlyOriginalPrice : enterprise.yearlyOriginalPrice).toLocaleString("en-US")}
+                ${(isMonthly ? enterprise.monthlyOriginalPrice : enterprise.yearlyOriginalPrice).toLocaleString(locale === "fr" ? "fr-FR" : "en-US")}
               </span>
             </div>
 
@@ -444,7 +454,7 @@ export function Pricing({
                 {loadingPlan === (enterprise.planId || "ENTERPRISE") ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Redirecting...</span>
+                    <span>{tr("Redirecting...", "Redirection...")}</span>
                   </>
                 ) : (
                   enterprise.buttonText

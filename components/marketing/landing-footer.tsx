@@ -7,56 +7,10 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LayoutDashboard, Sparkles } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
-
-const FOOTER_COLUMNS = [
-  {
-    title: "Platform",
-    links: [
-      { label: "Country & Device Routing", href: "/docs/geo-routing" },
-      { label: "Weighted A/B Testing", href: "/docs/ab-testing-routing" },
-      {
-        label: "Revenue Attribution (EPC)",
-        href: "/docs/conversion-tracking-amount-count",
-      },
-      { label: "Dynamic QR Studio", href: "/docs/dynamic-qr-codes" },
-    ],
-  },
-  {
-    title: "Security & Access",
-    links: [
-      { label: "PathLock™ Password Protection", href: "/docs/pin-protection" },
-      { label: "Branded URL Masking", href: "/docs/url-masking" },
-      {
-        label: "Click Limits & Expiration",
-        href: "/docs/click-limits-and-expiration",
-      },
-      {
-        label: "Custom OpenGraph Cards",
-        href: "/docs/social-sharing-opengraph",
-      },
-    ],
-  },
-  {
-    title: "Developers",
-    links: [
-      { label: "REST API & SDK Quickstart", href: "/docs/sdk-quickstart" },
-      { label: "Real-Time Click Telemetry", href: "/docs/realtime-analytics" },
-      { label: "Signed Webhooks & Events", href: "/docs/webhooks-and-events" },
-      { label: "Full Documentation Hub", href: "/docs" },
-    ],
-  },
-  {
-    title: "Legal & Trust",
-    links: [
-      { label: "Privacy Policy (GDPR)", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
-      { label: "No-Refund Policy", href: "/refund" },
-      { label: "Dashboard Overview", href: "/dashboard" },
-    ],
-  },
-];
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export const LandingFooter = React.memo(function LandingFooter() {
+  const { isFr, tr } = useI18n();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const footerRef = useRef<HTMLElement>(null);
@@ -65,6 +19,96 @@ export const LandingFooter = React.memo(function LandingFooter() {
     status === "authenticated" &&
     Boolean(session?.user) &&
     !(session?.user as any)?.userNotFound;
+
+  const footerColumns = [
+    {
+      title: tr("Platform", "Plateforme"),
+      links: [
+        {
+          label: tr("Country & Device Routing", "Routage par pays et appareil"),
+          href: "/docs/geo-routing",
+        },
+        {
+          label: tr("Weighted A/B Testing", "Tests A/B pondérés"),
+          href: "/docs/ab-testing-routing",
+        },
+        {
+          label: tr("Revenue Attribution (EPC)", "Attribution des revenus (EPC)"),
+          href: "/docs/conversion-tracking-amount-count",
+        },
+        {
+          label: tr("Dynamic QR Studio", "QR Studio dynamique"),
+          href: "/docs/dynamic-qr-codes",
+        },
+      ],
+    },
+    {
+      title: tr("Security & Access", "Sécurité & accès"),
+      links: [
+        {
+          label: tr(
+            "PathLock™ Password Protection",
+            "Protection par mot de passe PathLock™"
+          ),
+          href: "/docs/pin-protection",
+        },
+        {
+          label: tr("Branded URL Masking", "Masquage d'URL de marque"),
+          href: "/docs/url-masking",
+        },
+        {
+          label: tr("Click Limits & Expiration", "Limites de clics et expiration"),
+          href: "/docs/click-limits-and-expiration",
+        },
+        {
+          label: tr("Custom OpenGraph Cards", "Cartes OpenGraph personnalisées"),
+          href: "/docs/social-sharing-opengraph",
+        },
+      ],
+    },
+    {
+      title: tr("Developers", "Développeurs"),
+      links: [
+        {
+          label: tr("REST API & SDK Quickstart", "Démarrage rapide API REST & SDK"),
+          href: "/docs/sdk-quickstart",
+        },
+        {
+          label: tr("Real-Time Click Telemetry", "Télémétrie des clics en temps réel"),
+          href: "/docs/realtime-analytics",
+        },
+        {
+          label: tr("Signed Webhooks & Events", "Webhooks signés et événements"),
+          href: "/docs/webhooks-and-events",
+        },
+        {
+          label: tr("Full Documentation Hub", "Centre de documentation complet"),
+          href: "/docs",
+        },
+      ],
+    },
+    {
+      title: tr("Legal & Trust", "Légal & confiance"),
+      links: [
+        {
+          label: tr("Privacy Policy (GDPR)", "Politique de confidentialité (RGPD)"),
+          href: "/privacy",
+        },
+        {
+          label: tr("Terms of Service", "Conditions d'utilisation"),
+          href: "/terms",
+        },
+        {
+          label: tr("No-Refund Policy", "Politique de non-remboursement"),
+          href: "/refund",
+        },
+        {
+          label: tr("Dashboard Overview", "Aperçu du tableau de bord"),
+          href: "/dashboard",
+        },
+      ],
+    },
+  ];
 
   const githubUrl =
     process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/lshorter";
@@ -111,19 +155,23 @@ export const LandingFooter = React.memo(function LandingFooter() {
         }`}
       >
         <span className="inline-block text-[11px] font-mono uppercase tracking-[0.18em] text-[#465FFF] mb-5">
-          NEXT-GEN LINK INFRASTRUCTURE
+          {tr(
+            "NEXT-GEN LINK INFRASTRUCTURE",
+            "INFRASTRUCTURE DE LIENS NOUVELLE GÉNÉRATION"
+          )}
         </span>
         <h2 className="text-[36px] sm:text-[54px] md:text-[64px] font-normal tracking-[-0.035em] leading-[1.04] text-[#101828] dark:text-[#FFFFFF] max-w-[760px] mx-auto">
-          Stop guessing.
+          {tr("Stop guessing.", "Cessez de deviner.")}
           <br />
           <span className="text-[#667085] dark:text-[#8E8E8E]">
-            Start improving.
+            {tr("Start improving.", "Commencez à optimiser.")}
           </span>
         </h2>
         <p className="mt-6 text-[15px] sm:text-[15.5px] text-[#475467] dark:text-[#9A9A9A] max-w-[520px] mx-auto leading-[1.6]">
-          Deploy custom domains, ISO country routing, A/B split testing,
-          PathLock™ password protection, and deterministic revenue attribution in under
-          two minutes.
+          {tr(
+            "Deploy custom domains, ISO country routing, A/B split testing, PathLock™ password protection, and deterministic revenue attribution in under two minutes.",
+            "Déployez vos domaines personnalisés, le routage par pays ISO, les tests A/B, la protection PathLock™ et l'attribution déterministe des revenus en moins de deux minutes."
+          )}
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
@@ -140,14 +188,16 @@ export const LandingFooter = React.memo(function LandingFooter() {
               )
             }
           >
-            {isAuthenticated ? "Dashboard" : "Get started"}
+            {isAuthenticated
+              ? tr("Dashboard", "Tableau de bord")
+              : tr("Get started", "Commencer")}
           </WaveRevealButton>
           <WaveRevealButton
             href="/pricing"
             variant="outline"
             size="md"
           >
-            Access our plans
+            {tr("Access our plans", "Voir nos tarifs")}
           </WaveRevealButton>
         </div>
       </div>
@@ -156,9 +206,9 @@ export const LandingFooter = React.memo(function LandingFooter() {
       <div className="footer-reveal-item border-t border-[#E4E7EC] dark:border-[#1E1E1E]">
         <div className="max-w-[1320px] mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E4E7EC] dark:divide-[#1E1E1E]">
-            {FOOTER_COLUMNS.map((col) => (
+            {footerColumns.map((col, colIdx) => (
               <div
-                key={col.title}
+                key={colIdx}
                 className="py-8 md:py-10 md:px-6 first:md:pl-0 last:md:pr-0"
               >
                 <div className="text-[12px] font-mono uppercase tracking-[0.14em] text-[#667085] dark:text-[#777777] mb-4 sm:mb-5">
@@ -166,7 +216,7 @@ export const LandingFooter = React.memo(function LandingFooter() {
                 </div>
                 <ul className="space-y-3">
                   {col.links.map((lnk) => (
-                    <li key={lnk.label}>
+                    <li key={lnk.href}>
                       <Link
                         href={lnk.href}
                         className="text-[13.5px] text-[#475467] dark:text-[#C8C8C8] hover:text-[#465FFF] dark:hover:text-[#FFFFFF] transition-colors"
@@ -222,11 +272,22 @@ export const LandingFooter = React.memo(function LandingFooter() {
                 />
               </svg>
               <span>
-                Built on{" "}
-                <strong className="text-[#101828] dark:text-white font-semibold">
-                  Cloudflare
-                </strong>{" "}
-                Edge Network
+                {isFr ? (
+                  <>
+                    Propulsé par le réseau Edge{" "}
+                    <strong className="text-[#101828] dark:text-white font-semibold">
+                      Cloudflare
+                    </strong>
+                  </>
+                ) : (
+                  <>
+                    Built on{" "}
+                    <strong className="text-[#101828] dark:text-white font-semibold">
+                      Cloudflare
+                    </strong>{" "}
+                    Edge Network
+                  </>
+                )}
               </span>
             </div>
           </div>
@@ -234,7 +295,12 @@ export const LandingFooter = React.memo(function LandingFooter() {
           {/* Center: Operational Status */}
           <div className="inline-flex items-center gap-2 text-[#475467] dark:text-[#A0A0A0]">
             <span className="w-2 h-2 rounded-full bg-[#12B76A] animate-pulse" />
-            <span>All 310+ Cloudflare Edge PoPs Operational</span>
+            <span>
+              {tr(
+                "All 310+ Cloudflare Edge PoPs Operational",
+                "310+ PoP Cloudflare Edge opérationnels"
+              )}
+            </span>
           </div>
 
           {/* Right: Legal Links + Social Icons */}
@@ -244,21 +310,21 @@ export const LandingFooter = React.memo(function LandingFooter() {
                 href="/privacy"
                 className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
               >
-                Privacy
+                {tr("Privacy", "Confidentialité")}
               </Link>
               <span className="text-[#D0D5DD] dark:text-[#2E2E2E]">•</span>
               <Link
                 href="/terms"
                 className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
               >
-                Terms
+                {tr("Terms", "Conditions")}
               </Link>
               <span className="text-[#D0D5DD] dark:text-[#2E2E2E]">•</span>
               <Link
                 href="/refund"
                 className="text-[#667085] dark:text-[#888888] hover:text-[#465FFF] dark:hover:text-white transition-colors"
               >
-                Refunds
+                {tr("Refunds", "Remboursements")}
               </Link>
             </div>
 

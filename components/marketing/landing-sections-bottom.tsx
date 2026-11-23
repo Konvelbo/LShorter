@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "motion/react";
@@ -44,58 +44,125 @@ import {
   SectionRailFrame,
   scrollToHeroShortener,
 } from "@/components/marketing/swiss-frame";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 // ============================================================================
 // 5. THE LSHORTER DIFFERENCE (#difference — Clean Borderless Editorial Table)
 // ============================================================================
-const COMPARISON_ROWS = [
-  {
-    feature: "Post-click perimeter control (PathLock™)",
-    others:
-      "Stops working after the redirect — visitors can explore your entire site",
-    lshorter:
-      "Locks visitors strictly inside your authorized URL prefix (e.g. /app/dashboard/*)",
-  },
-  {
-    feature: "Self-destructing click caps + fallback",
-    others:
-      "Not included or locked behind custom enterprise contracts",
-    lshorter:
-      "Deactivate at an exact click count or redirect to a fallback URL",
-  },
-  {
-    feature: "Multi-condition Edge routing (< 12ms)",
-    others: "1 static URL per link, centralized redirects (80–150ms)",
-    lshorter:
-      "Route 1 link by country, OS, device, browser, or weighted A/B split on 310+ PoPs",
-  },
-  {
-    feature: "White-label masking & password protection",
-    others: "Exposes the raw destination URL immediately in the address bar",
-    lshorter:
-      "Masked viewer with custom OpenGraph cards and password challenge",
-  },
-  {
-    feature: "Editable Vector QR Studio (15 styles)",
-    others: "Basic bitmap QR or paid $35+/mo add-on",
-    lshorter:
-      "15 pixel styles, brand gradients, SVG/PNG/GIF export — editable after print",
-  },
-  {
-    feature: "Cookie-free revenue attribution",
-    others: "Raw click counts only — no visibility into which link produced sales",
-    lshorter:
-      "Attributes signups and revenue conversions directly back to each short slug",
-  },
-  {
-    feature: "Free Starter plan (verified limits)",
-    others: "Bitly Free: 5 links/month, 0 custom domains, basic stats",
-    lshorter:
-      "50 permanent links, 10,000 clicks/month, 3 custom domains, real-time analytics",
-  },
-];
-
 export function DifferenceSection() {
+  const { tr } = useI18n();
+
+  const comparisonRows = useMemo(
+    () => [
+      {
+        id: "pathlock",
+        feature: tr(
+          "Post-click perimeter control (PathLock™)",
+          "Contrôle périmétrique post-clic (PathLock™)"
+        ),
+        others: tr(
+          "Stops working after the redirect — visitors can explore your entire site",
+          "S'arrête après la redirection — les visiteurs peuvent explorer tout votre site"
+        ),
+        lshorter: tr(
+          "Locks visitors strictly inside your authorized URL prefix (e.g. /app/dashboard/*)",
+          "Verrouille strictement les visiteurs dans le préfixe d'URL autorisé (ex. /app/dashboard/*)"
+        ),
+      },
+      {
+        id: "caps",
+        feature: tr(
+          "Self-destructing click caps + fallback",
+          "Quotas de clics auto-expirants + secours"
+        ),
+        others: tr(
+          "Not included or locked behind custom enterprise contracts",
+          "Non inclus ou réservé aux contrats entreprise sur mesure"
+        ),
+        lshorter: tr(
+          "Deactivate at an exact click count or redirect to a fallback URL",
+          "Désactivation à un nombre exact de clics ou redirection vers une URL de secours"
+        ),
+      },
+      {
+        id: "edge-routing",
+        feature: tr(
+          "Multi-condition Edge routing (< 12ms)",
+          "Routage Edge multi-conditions (< 12 ms)"
+        ),
+        others: tr(
+          "1 static URL per link, centralized redirects (80–150ms)",
+          "1 URL statique par lien, redirections centralisées (80–150 ms)"
+        ),
+        lshorter: tr(
+          "Route 1 link by country, OS, device, browser, or weighted A/B split on 310+ PoPs",
+          "Routez 1 lien par pays, OS, appareil, navigateur ou test A/B pondéré sur 310+ PoP"
+        ),
+      },
+      {
+        id: "masking",
+        feature: tr(
+          "White-label masking & password protection",
+          "Masquage marque blanche et mot de passe"
+        ),
+        others: tr(
+          "Exposes the raw destination URL immediately in the address bar",
+          "Expose immédiatement l'URL de destination brute dans la barre d'adresse"
+        ),
+        lshorter: tr(
+          "Masked viewer with custom OpenGraph cards and password challenge",
+          "Visionneuse masquée avec cartes OpenGraph personnalisées et protection par mot de passe"
+        ),
+      },
+      {
+        id: "qr",
+        feature: tr(
+          "Editable Vector QR Studio (15 styles)",
+          "QR Studio vectoriel modifiable (15 styles)"
+        ),
+        others: tr(
+          "Basic bitmap QR or paid $35+/mo add-on",
+          "QR bitmap basique ou option payante à 35 $+/mois"
+        ),
+        lshorter: tr(
+          "15 pixel styles, brand gradients, SVG/PNG/GIF export — editable after print",
+          "15 styles de pixels, dégradés de marque, export SVG/PNG/GIF — modifiable après impression"
+        ),
+      },
+      {
+        id: "attribution",
+        feature: tr(
+          "Cookie-free revenue attribution",
+          "Attribution des revenus sans cookies"
+        ),
+        others: tr(
+          "Raw click counts only — no visibility into which link produced sales",
+          "Simple compteur de clics — aucune visibilité sur le lien qui génère des ventes"
+        ),
+        lshorter: tr(
+          "Attributes signups and revenue conversions directly back to each short slug",
+          "Attribue les inscriptions et revenus convertis directement à chaque lien court"
+        ),
+      },
+      {
+        id: "starter",
+        feature: tr(
+          "Free Starter plan (verified limits)",
+          "Forfait Starter gratuit (limites vérifiées)"
+        ),
+        others: tr(
+          "Bitly Free: 5 links/month, 0 custom domains, basic stats",
+          "Bitly Gratuit : 5 liens/mois, 0 domaine personnalisé, stats basiques"
+        ),
+        lshorter: tr(
+          "50 permanent links, 10,000 clicks/month, 3 custom domains, real-time analytics",
+          "50 liens permanents, 10 000 clics/mois, 3 domaines personnalisés, analyses en temps réel"
+        ),
+      },
+    ],
+    [tr]
+  );
+
   return (
     <section
       id="difference"
@@ -105,14 +172,18 @@ export function DifferenceSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-12">
           <div className="lg:col-span-7">
             <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              Why teams move off legacy redirectors
+              {tr(
+                "Why teams move off legacy redirectors",
+                "Pourquoi les équipes quittent les raccourcisseurs classiques"
+              )}
             </h2>
           </div>
           <div className="lg:col-span-5">
             <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty">
-              Traditional shorteners stop helping the millisecond a 302 fires.
-              LShorter keeps routing, isolating perimeters, and attributing
-              revenue end to end.
+              {tr(
+                "Traditional shorteners stop helping the millisecond a 302 fires. LShorter keeps routing, isolating perimeters, and attributing revenue end to end.",
+                "Les raccourcisseurs traditionnels s'arrêtent dès qu'une redirection 302 part. LShorter continue de router, d'isoler vos périmètres et d'attribuer vos revenus de bout en bout."
+              )}
             </p>
           </div>
         </div>
@@ -122,15 +193,18 @@ export function DifferenceSection() {
         <div className="sm:hidden w-full">
           <div className="grid grid-cols-2 gap-4 pb-3 border-b border-[#D4D4D8] dark:border-white/15 text-[12px] font-medium">
             <span className="text-[#71717A] dark:text-zinc-400 leading-snug">
-              Traditional shorteners (Bitly, TinyURL)
+              {tr(
+                "Traditional shorteners (Bitly, TinyURL)",
+                "Raccourcisseurs classiques (Bitly, TinyURL)"
+              )}
             </span>
             <span className="text-[#0066FF] dark:text-[#6CA8FF] leading-snug">
               LShorter
             </span>
           </div>
           <div className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08]">
-            {COMPARISON_ROWS.map((row) => (
-              <div key={row.feature} className="py-4">
+            {comparisonRows.map((row) => (
+              <div key={row.id} className="py-4">
                 <div className="text-[13.5px] font-medium text-[#09090B] dark:text-white leading-snug mb-2.5">
                   {row.feature}
                 </div>
@@ -159,10 +233,13 @@ export function DifferenceSection() {
             <thead>
               <tr className="border-b border-[#D4D4D8] dark:border-white/15 text-[12.5px] md:text-[13px] font-medium">
                 <th className="py-3.5 pr-3 md:pr-6 text-[#71717A] dark:text-zinc-400 w-[28%]">
-                  Capability
+                  {tr("Capability", "Capacité")}
                 </th>
                 <th className="py-3.5 px-3 md:px-6 text-[#71717A] dark:text-zinc-400 w-[34%]">
-                  Traditional shorteners (Bitly, TinyURL)
+                  {tr(
+                    "Traditional shorteners (Bitly, TinyURL)",
+                    "Raccourcisseurs classiques (Bitly, TinyURL)"
+                  )}
                 </th>
                 <th className="py-3.5 pl-3 md:pl-6 text-[#0066FF] dark:text-[#6CA8FF] w-[38%]">
                   LShorter
@@ -170,9 +247,9 @@ export function DifferenceSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/[0.08] text-[13px] md:text-[14px]">
-              {COMPARISON_ROWS.map((row) => (
+              {comparisonRows.map((row) => (
                 <tr
-                  key={row.feature}
+                  key={row.id}
                   className="hover:bg-[#F8F9FB] dark:hover:bg-white/[0.02] transition-colors"
                 >
                   <td className="py-4 pr-3 md:pr-6 font-medium text-[#09090B] dark:text-white align-top break-words">
@@ -202,7 +279,10 @@ export function DifferenceSection() {
 
         <div className="mt-10 pt-6 border-t border-[#E4E7EC] dark:border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <span className="text-[14px] text-[#71717A] dark:text-zinc-400">
-            50 permanent links and 3 custom domains free forever.
+            {tr(
+              "50 permanent links and 3 custom domains free forever.",
+              "50 liens permanents et 3 domaines personnalisés gratuits à vie."
+            )}
           </span>
           <WaveRevealButton
             href="/#hero-shortener"
@@ -211,7 +291,7 @@ export function DifferenceSection() {
             size="md"
             icon={<Link2 className="w-4 h-4" />}
           >
-            Shorten a link now
+            {tr("Shorten a link now", "Raccourcir un lien maintenant")}
           </WaveRevealButton>
         </div>
       </SectionRailFrame>
@@ -253,157 +333,274 @@ interface UseCaseItem {
   bars: UseCaseBarRow[];
 }
 
-const USE_CASES: UseCaseItem[] = [
-  {
-    id: "founders",
-    label: "SaaS founders & devs",
-    icon: Code2,
-    eyebrow: "For SaaS teams shipping staging demos & private betas",
-    headline:
-      "Lock beta testers inside /app/dashboard/* and auto-close invites after 25 clicks",
-    bullets: [
-      "Prevent beta testers from exploring unfinished routes with PathLock™",
-      "Cap private invite batches with exact click limits and waitlist fallback",
-      "Automate link provisioning directly from CI/CD via REST API",
-    ],
-    shortUrl: "go.acmesaas.io/beta-v2",
-    destination: "staging.acmesaas.io/app/dashboard/overview",
-    status: "Live",
-    rules: [
-      {
-        icon: ShieldCheck,
-        label: "PathLock™ prefix",
-        value: "/app/dashboard/*",
-        verifiedDot: true,
-      },
-      { icon: Gauge, label: "Click cap", value: "19 / 25 clicks" },
-      { icon: Terminal, label: "Provisioning", value: "REST API · CI/CD" },
-    ],
-    chartTitle: "Route activity",
-    chartSub: "Last 7 days",
-    actionLabel: "Export CSV",
-    actionDoneLabel: "Exported",
-    bars: [
-      { label: "/dashboard", percent: 100, count: "142" },
-      { label: "/metrics", percent: 64, count: "91" },
-      { label: "/admin", percent: 18, count: "26" },
-      { label: "/billing", percent: 11, count: "15" },
-    ],
-  },
-  {
-    id: "marketers",
-    label: "Affiliates & marketers",
-    icon: Megaphone,
-    eyebrow: "For growth teams running paid campaigns across regions",
-    headline:
-      "Route every region to its local offer, fire ad pixels and track attributed revenue",
-    bullets: [
-      "Split-test two landing pages with weighted A/B routing on one link",
-      "Fire Meta Ads, Google Ads, and TikTok retargeting pixels automatically",
-      "Connect conversion webhooks to see exact revenue per short link",
-    ],
-    shortUrl: "deals.brand.co/spring",
-    destination: "brand.co/offers/spring-campaign",
-    status: "Live",
-    rules: [
-      {
-        icon: Globe,
-        label: "Geo & A/B split",
-        value: "FR → /fr · 50/50",
-        verifiedDot: true,
-      },
-      { icon: Activity, label: "Retargeting pixels", value: "Meta · TikTok" },
-      { icon: DollarSign, label: "Attributed revenue", value: "$4,820" },
-    ],
-    chartTitle: "Clicks by country",
-    chartSub: "Last 7 days",
-    actionLabel: "Export CSV",
-    actionDoneLabel: "Exported",
-    bars: [
-      { label: "France", percent: 100, count: "2,140" },
-      { label: "United States", percent: 72, count: "1,538" },
-      { label: "United Kingdom", percent: 44, count: "942" },
-      { label: "Canada", percent: 29, count: "618" },
-    ],
-  },
-  {
-    id: "creators",
-    label: "Creators",
-    icon: Users,
-    eyebrow: "For creators sharing drops across Instagram, YouTube & TikTok",
-    headline:
-      "Send iOS followers to the App Store, Android to Google Play and track live clicks",
-    bullets: [
-      "Smart OS detection routes iOS, Android, and desktop visitors automatically",
-      "Custom OpenGraph cards so links look sharp on X, LinkedIn, and Discord",
-      "Branded vector QR codes for merch, slides, and live events",
-    ],
-    shortUrl: "lsho.cc/creator-kit",
-    destination: "apps.apple.com/app/creator-kit",
-    status: "Live",
-    rules: [
-      {
-        icon: Smartphone,
-        label: "Smart OS routing",
-        value: "iOS · Android · Web",
-        verifiedDot: true,
-      },
-      { icon: QrCode, label: "Dynamic QR code", value: "SVG · Branded" },
-      { icon: Share2, label: "OpenGraph card", value: "Custom preview" },
-    ],
-    chartTitle: "Clicks by device",
-    chartSub: "Last 7 days",
-    actionLabel: "Export CSV",
-    actionDoneLabel: "Exported",
-    bars: [
-      { label: "iOS", percent: 100, count: "3,412" },
-      { label: "Android", percent: 58, count: "1,978" },
-      { label: "Desktop", percent: 27, count: "924" },
-      { label: "QR Scans", percent: 19, count: "648" },
-    ],
-  },
-  {
-    id: "agencies",
-    label: "Agencies",
-    icon: Building2,
-    eyebrow: "For agencies running campaigns for multiple clients",
-    headline:
-      "Give every client a verified short domain, live geo reports and password-protected previews",
-    bullets: [
-      "Connect up to 15 custom client domains with automated DNS and SSL",
-      "Export clean CSV/Excel reports for every client campaign in one click",
-      "Protect confidential pitch decks and client previews behind a password",
-    ],
-    shortUrl: "go.clientbrand.com/q4",
-    destination: "clientbrand.com/campaigns/q4-launch",
-    status: "Live",
-    rules: [
-      {
-        icon: Globe,
-        label: "Custom domain",
-        value: "Verified",
-        verifiedDot: true,
-      },
-      { icon: ShieldCheck, label: "SSL certificate", value: "Active" },
-      { icon: Lock, label: "Password", value: "Required" },
-    ],
-    chartTitle: "Clicks by country",
-    chartSub: "Last 7 days",
-    actionLabel: "Export CSV",
-    actionDoneLabel: "Exported",
-    bars: [
-      { label: "United States", percent: 100, count: "1,284" },
-      { label: "Germany", percent: 50, count: "642" },
-      { label: "France", percent: 33, count: "418" },
-      { label: "Brazil", percent: 23, count: "291" },
-    ],
-  },
-];
-
 export function UseCasesSection() {
+  const { isFr, tr, formatNumber } = useI18n();
   const [activeId, setActiveId] = useState("agencies");
   const [exportedId, setExportedId] = useState<string | null>(null);
-  const current = USE_CASES.find((u) => u.id === activeId) || USE_CASES[3];
+
+  const useCases = useMemo<UseCaseItem[]>(
+    () => [
+      {
+        id: "founders",
+        label: tr("SaaS founders & devs", "Fondateurs SaaS & devs"),
+        icon: Code2,
+        eyebrow: tr(
+          "For SaaS teams shipping staging demos & private betas",
+          "Pour les équipes SaaS livrant des démos de staging et bêtas privées"
+        ),
+        headline: tr(
+          "Lock beta testers inside /app/dashboard/* and auto-close invites after 25 clicks",
+          "Verrouillez vos bêta-testeurs dans /app/dashboard/* et fermez les invitations après 25 clics"
+        ),
+        bullets: [
+          tr(
+            "Prevent beta testers from exploring unfinished routes with PathLock™",
+            "Empêchez les testeurs d'explorer des routes non finalisées avec PathLock™"
+          ),
+          tr(
+            "Cap private invite batches with exact click limits and waitlist fallback",
+            "Plafonnez vos lots d'invitations avec des quotas précis et une liste d'attente"
+          ),
+          tr(
+            "Automate link provisioning directly from CI/CD via REST API",
+            "Automatisez la création de liens depuis votre CI/CD via l'API REST"
+          ),
+        ],
+        shortUrl: "go.acmesaas.io/beta-v2",
+        destination: "staging.acmesaas.io/app/dashboard/overview",
+        status: tr("Live", "Actif"),
+        rules: [
+          {
+            icon: ShieldCheck,
+            label: tr("PathLock™ prefix", "Préfixe PathLock™"),
+            value: "/app/dashboard/*",
+            verifiedDot: true,
+          },
+          {
+            icon: Gauge,
+            label: tr("Click cap", "Quota de clics"),
+            value: tr("19 / 25 clicks", "19 / 25 clics"),
+          },
+          {
+            icon: Terminal,
+            label: tr("Provisioning", "Provisionnement"),
+            value: "REST API · CI/CD",
+          },
+        ],
+        chartTitle: tr("Route activity", "Activité par route"),
+        chartSub: tr("Last 7 days", "7 derniers jours"),
+        actionLabel: tr("Export CSV", "Exporter CSV"),
+        actionDoneLabel: tr("Exported", "Exporté"),
+        bars: [
+          { label: "/dashboard", percent: 100, count: formatNumber(142) },
+          { label: "/metrics", percent: 64, count: formatNumber(91) },
+          { label: "/admin", percent: 18, count: formatNumber(26) },
+          { label: "/billing", percent: 11, count: formatNumber(15) },
+        ],
+      },
+      {
+        id: "marketers",
+        label: tr("Affiliates & marketers", "Affiliés & marketeurs"),
+        icon: Megaphone,
+        eyebrow: tr(
+          "For growth teams running paid campaigns across regions",
+          "Pour les équipes growth pilotant des campagnes payantes internationales"
+        ),
+        headline: tr(
+          "Route every region to its local offer, fire ad pixels and track attributed revenue",
+          "Routez chaque région vers son offre locale, déclenchez vos pixels et suivez vos revenus attribués"
+        ),
+        bullets: [
+          tr(
+            "Split-test two landing pages with weighted A/B routing on one link",
+            "Testez deux pages de destination grâce au routage A/B pondéré sur un seul lien"
+          ),
+          tr(
+            "Fire Meta Ads, Google Ads, and TikTok retargeting pixels automatically",
+            "Déclenchez automatiquement les pixels Meta Ads, Google Ads et TikTok"
+          ),
+          tr(
+            "Connect conversion webhooks to see exact revenue per short link",
+            "Connectez vos webhooks de conversion pour connaître le revenu exact par lien"
+          ),
+        ],
+        shortUrl: "deals.brand.co/spring",
+        destination: "brand.co/offers/spring-campaign",
+        status: tr("Live", "Actif"),
+        rules: [
+          {
+            icon: Globe,
+            label: tr("Geo & A/B split", "Géo & test A/B"),
+            value: "FR → /fr · 50/50",
+            verifiedDot: true,
+          },
+          {
+            icon: Activity,
+            label: tr("Retargeting pixels", "Pixels retargeting"),
+            value: "Meta · TikTok",
+          },
+          {
+            icon: DollarSign,
+            label: tr("Attributed revenue", "Revenu attribué"),
+            value: isFr ? "4 820 $" : "$4,820",
+          },
+        ],
+        chartTitle: tr("Clicks by country", "Clics par pays"),
+        chartSub: tr("Last 7 days", "7 derniers jours"),
+        actionLabel: tr("Export CSV", "Exporter CSV"),
+        actionDoneLabel: tr("Exported", "Exporté"),
+        bars: [
+          { label: tr("France", "France"), percent: 100, count: formatNumber(2140) },
+          {
+            label: tr("United States", "États-Unis"),
+            percent: 72,
+            count: formatNumber(1538),
+          },
+          {
+            label: tr("United Kingdom", "Royaume-Uni"),
+            percent: 44,
+            count: formatNumber(942),
+          },
+          { label: tr("Canada", "Canada"), percent: 29, count: formatNumber(618) },
+        ],
+      },
+      {
+        id: "creators",
+        label: tr("Creators", "Créateurs"),
+        icon: Users,
+        eyebrow: tr(
+          "For creators sharing drops across Instagram, YouTube & TikTok",
+          "Pour les créateurs partageant leurs sorties sur Instagram, YouTube et TikTok"
+        ),
+        headline: tr(
+          "Send iOS followers to the App Store, Android to Google Play and track live clicks",
+          "Envoyez vos abonnés iOS sur l'App Store, Android sur Google Play et suivez vos clics en direct"
+        ),
+        bullets: [
+          tr(
+            "Smart OS detection routes iOS, Android, and desktop visitors automatically",
+            "La détection d'OS route automatiquement vos visiteurs iOS, Android et ordinateur"
+          ),
+          tr(
+            "Custom OpenGraph cards so links look sharp on X, LinkedIn, and Discord",
+            "Cartes OpenGraph sur mesure pour des aperçus soignés sur X, LinkedIn et Discord"
+          ),
+          tr(
+            "Branded vector QR codes for merch, slides, and live events",
+            "QR codes vectoriels à votre image pour vos produits, slides et événements"
+          ),
+        ],
+        shortUrl: "lsho.cc/creator-kit",
+        destination: "apps.apple.com/app/creator-kit",
+        status: tr("Live", "Actif"),
+        rules: [
+          {
+            icon: Smartphone,
+            label: tr("Smart OS routing", "Routage OS intelligent"),
+            value: "iOS · Android · Web",
+            verifiedDot: true,
+          },
+          {
+            icon: QrCode,
+            label: tr("Dynamic QR code", "QR code dynamique"),
+            value: tr("SVG · Branded", "SVG · Personnalisé"),
+          },
+          {
+            icon: Share2,
+            label: tr("OpenGraph card", "Carte OpenGraph"),
+            value: tr("Custom preview", "Aperçu sur mesure"),
+          },
+        ],
+        chartTitle: tr("Clicks by device", "Clics par appareil"),
+        chartSub: tr("Last 7 days", "7 derniers jours"),
+        actionLabel: tr("Export CSV", "Exporter CSV"),
+        actionDoneLabel: tr("Exported", "Exporté"),
+        bars: [
+          { label: "iOS", percent: 100, count: formatNumber(3412) },
+          { label: "Android", percent: 58, count: formatNumber(1978) },
+          {
+            label: tr("Desktop", "Ordinateur"),
+            percent: 27,
+            count: formatNumber(924),
+          },
+          {
+            label: tr("QR Scans", "Scans QR"),
+            percent: 19,
+            count: formatNumber(648),
+          },
+        ],
+      },
+      {
+        id: "agencies",
+        label: tr("Agencies", "Agences"),
+        icon: Building2,
+        eyebrow: tr(
+          "For agencies running campaigns for multiple clients",
+          "Pour les agences pilotant des campagnes pour plusieurs clients"
+        ),
+        headline: tr(
+          "Give every client a verified short domain, live geo reports and password-protected previews",
+          "Offrez à chaque client un domaine court vérifié, des rapports géo en direct et des aperçus protégés"
+        ),
+        bullets: [
+          tr(
+            "Connect up to 15 custom client domains with automated DNS and SSL",
+            "Connectez jusqu'à 15 domaines clients avec DNS et SSL automatisés"
+          ),
+          tr(
+            "Export clean CSV/Excel reports for every client campaign in one click",
+            "Exportez des rapports CSV/Excel propres pour chaque campagne client en un clic"
+          ),
+          tr(
+            "Protect confidential pitch decks and client previews behind a password",
+            "Protégez vos présentations confidentielles et aperçus clients par mot de passe"
+          ),
+        ],
+        shortUrl: "go.clientbrand.com/q4",
+        destination: "clientbrand.com/campaigns/q4-launch",
+        status: tr("Live", "Actif"),
+        rules: [
+          {
+            icon: Globe,
+            label: tr("Custom domain", "Domaine personnalisé"),
+            value: tr("Verified", "Vérifié"),
+            verifiedDot: true,
+          },
+          {
+            icon: ShieldCheck,
+            label: tr("SSL certificate", "Certificat SSL"),
+            value: tr("Active", "Actif"),
+          },
+          {
+            icon: Lock,
+            label: tr("Password", "Mot de passe"),
+            value: tr("Required", "Requis"),
+          },
+        ],
+        chartTitle: tr("Clicks by country", "Clics par pays"),
+        chartSub: tr("Last 7 days", "7 derniers jours"),
+        actionLabel: tr("Export CSV", "Exporter CSV"),
+        actionDoneLabel: tr("Exported", "Exporté"),
+        bars: [
+          {
+            label: tr("United States", "États-Unis"),
+            percent: 100,
+            count: formatNumber(1284),
+          },
+          {
+            label: tr("Germany", "Allemagne"),
+            percent: 50,
+            count: formatNumber(642),
+          },
+          { label: tr("France", "France"), percent: 33, count: formatNumber(418) },
+          { label: tr("Brazil", "Brésil"), percent: 23, count: formatNumber(291) },
+        ],
+      },
+    ],
+    [isFr, tr, formatNumber]
+  );
+
+  const current = useCases.find((u) => u.id === activeId) || useCases[3];
 
   const handlePreviewExport = (id: string) => {
     setExportedId(id);
@@ -417,16 +614,19 @@ export function UseCasesSection() {
       <SectionRailFrame>
         <div className="flex flex-col gap-8">
           <h2 className="m-0 text-[32px] sm:text-[44px] leading-[1.16] font-semibold tracking-[-0.03em] text-[#0f1217] dark:text-white text-balance">
-            Tailored to how your team ships
+            {tr(
+              "Tailored to how your team ships",
+              "Adapté à la façon dont votre équipe livre"
+            )}
           </h2>
 
           {/* Segmented Tab Bar */}
           <div
             role="tablist"
-            aria-label="Audience"
+            aria-label={tr("Audience", "Public")}
             className="self-start inline-flex flex-wrap sm:flex-nowrap items-center gap-1 p-1 bg-white dark:bg-[#14151B] border border-[#0f1217]/[0.09] dark:border-white/[0.10] rounded-[10px] max-w-full"
           >
-            {USE_CASES.map((tab) => {
+            {useCases.map((tab) => {
               const Icon = tab.icon;
               const isSelected = tab.id === activeId;
               return (
@@ -488,9 +688,9 @@ export function UseCasesSection() {
                     </div>
 
                     <ul className="flex flex-col gap-3">
-                      {current.bullets.map((b) => (
+                      {current.bullets.map((b, bIdx) => (
                         <li
-                          key={b}
+                          key={bIdx}
                           className="flex items-start gap-3 text-[15px] leading-6 text-[#4a5160] dark:text-zinc-300"
                         >
                           <Check className="w-4 h-4 shrink-0 mt-1 stroke-[1.6] text-[#4a5160] dark:text-zinc-400" />
@@ -505,7 +705,12 @@ export function UseCasesSection() {
                     onClick={scrollToHeroShortener}
                     className="self-start h-11 px-5 inline-flex items-center gap-2.5 bg-[#1f5fe0] hover:bg-[#1a52c4] text-white rounded-[8px] text-[15px] font-medium transition-[background-color,border-color,color] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] btn-hover-slow focus-visible:outline-2 focus-visible:outline-[#1f5fe0] focus-visible:outline-offset-2"
                   >
-                    <span>Try this workflow without signup</span>
+                    <span>
+                      {tr(
+                        "Try this workflow without signup",
+                        "Tester ce flux sans inscription"
+                      )}
+                    </span>
                     <ArrowRight className="w-4 h-4 stroke-[1.75]" />
                   </a>
                 </div>
@@ -535,7 +740,7 @@ export function UseCasesSection() {
                         const RuleIcon = rule.icon;
                         return (
                           <div
-                            key={rule.label}
+                            key={idx}
                             className={`h-11 px-5 flex items-center gap-3 text-[14px] ${
                               idx > 0
                                 ? "border-t border-[#0f1217]/[0.08] dark:border-white/[0.08]"
@@ -591,8 +796,8 @@ export function UseCasesSection() {
                       <div className="flex flex-col gap-3 text-[13px] text-[#4a5160] dark:text-zinc-400">
                         {current.bars.map((bar, idx) => (
                           <div
-                            key={bar.label}
-                            className="grid grid-cols-[112px_1fr_48px] items-center gap-3"
+                            key={idx}
+                            className="grid grid-cols-[112px_1fr_56px] items-center gap-3"
                           >
                             <span className="truncate">{bar.label}</span>
                             <span className="h-1 rounded-[2px] bg-[#e6e9ee] dark:bg-white/[0.08] overflow-hidden">
@@ -612,7 +817,7 @@ export function UseCasesSection() {
                                 }`}
                               />
                             </span>
-                            <span className="text-right font-mono tabular-nums text-[#0f1217] dark:text-zinc-200">
+                            <span className="text-right font-mono tabular-nums text-[#0f1217] dark:text-zinc-200 whitespace-nowrap">
                               {bar.count}
                             </span>
                           </div>
@@ -769,38 +974,67 @@ const DEVELOPER_INSTALL_COMMANDS = [
   { label: "Rust", command: "cargo add lshorter-api" },
 ];
 
-const DEVELOPER_API_HIGHLIGHTS = [
-  {
-    title: "Scoped SHA-256 API keys",
-    desc: "Granular read and read_write Bearer tokens with rate limits.",
-  },
-  {
-    title: "Global edge KV sync",
-    desc: "Every POST or PATCH propagates across 310+ PoPs right away.",
-  },
-  {
-    title: "Signed webhooks",
-    desc: "Stream click geo, device metadata, and live revenue events.",
-  },
-];
-
 export function DeveloperApiSection() {
+  const { tr } = useI18n();
+
+  const highlights = useMemo(
+    () => [
+      {
+        title: tr("Scoped SHA-256 API keys", "Clés API SHA-256 cloisonnées"),
+        desc: tr(
+          "Granular read and read_write Bearer tokens with rate limits.",
+          "Jetons Bearer read et read_write granulaires avec limites de débit."
+        ),
+      },
+      {
+        title: tr("Global edge KV sync", "Synchronisation Edge KV mondiale"),
+        desc: tr(
+          "Every POST or PATCH propagates across 310+ PoPs right away.",
+          "Chaque requête POST ou PATCH se propage instantanément sur 310+ PoP."
+        ),
+      },
+      {
+        title: tr("Signed webhooks", "Webhooks signés"),
+        desc: tr(
+          "Stream click geo, device metadata, and live revenue events.",
+          "Recevez la géolocalisation, les métadonnées appareil et vos revenus en direct."
+        ),
+      },
+    ],
+    [tr]
+  );
+
   return (
     <SplitDeveloperHero
       id="api"
-      badge="REST API v1 · Edge KV synced"
-      title="Provision links and rules from your codebase"
+      badge={tr("REST API v1 · Edge KV synced", "API REST v1 · Sync Edge KV")}
+      title={tr(
+        "Provision links and rules from your codebase",
+        "Provisionnez liens et règles depuis votre code"
+      )}
       installCommands={DEVELOPER_INSTALL_COMMANDS}
-      description="Create links programmatically, enforce PathLock™ prefixes, set click caps, and receive signed conversion webhooks in real time."
-      highlights={DEVELOPER_API_HIGHLIGHTS}
-      primaryAction={{ label: "Explore API documentation", href: "/docs" }}
+      description={tr(
+        "Create links programmatically, enforce PathLock™ prefixes, set click caps, and receive signed conversion webhooks in real time.",
+        "Créez des liens par programme, imposez des préfixes PathLock™, définissez des quotas de clics et recevez des webhooks de conversion signés en temps réel."
+      )}
+      highlights={highlights}
+      primaryAction={{
+        label: tr(
+          "Explore API documentation",
+          "Explorer la documentation API"
+        ),
+        href: "/docs",
+      }}
       secondaryAction={{
-        label: "Quickstart guide",
+        label: tr("Quickstart guide", "Guide de démarrage rapide"),
         href: "/docs/sdk-quickstart",
       }}
       codeTabs={DEVELOPER_API_TABS}
       terminalFooter={{
-        status: "201 Created — Edge KV synced",
+        status: tr(
+          "201 Created — Edge KV synced",
+          "201 Created — Edge KV synchronisé"
+        ),
         endpoint: "POST /api/v1/links",
       }}
     />
@@ -810,127 +1044,239 @@ export function DeveloperApiSection() {
 // ============================================================================
 // 8. REAL PRICING SECTION (#pricing-preview — Animated NumberFlow + Switch + Confetti)
 // ============================================================================
-const LSHORTER_PRICING_PLANS: PricingPlan[] = [
-  {
-    planId: "FREE",
-    name: PRICING_PLANS.FREE.name,
-    price: PRICING_PLANS.FREE.monthlyPrice,
-    yearlyPrice: PRICING_PLANS.FREE.yearlyPrice,
-    period: "forever",
-    yearlyPeriod: "forever",
-    monthlyBillingNote: "Free forever, no credit card",
-    yearlyBillingNote: "Free forever, no credit card",
-    badgeMonthly: "Free",
-    badgeYearly: "Free",
-    features: [
-      "10,000 clicks / month",
-      "3 domains and 50 active links",
-      "Global Workspace Target (clicks & revenue)",
-      "QR Code Studio (basic styles)",
-      "30-day analytics · API 60 req/min",
-      "Community support",
-    ],
-    notIncludedNote:
-      "Not included: Smart Routing, password protection, individual link alerts, webhooks, and pixels.",
-    description: "To explore our Edge infrastructure, no credit card required.",
-    buttonText: "Get Started Free",
-    href: "/register",
-    yearlyHref: "/register",
-    isPopular: false,
-  },
-  {
-    planId: "PRO",
-    name: PRICING_PLANS.PRO.name,
-    price: PRICING_PLANS.PRO.promoMonthly.firstMonthPrice,
-    yearlyPrice: PRICING_PLANS.PRO.yearlyPrice,
-    monthlyOriginalPrice: PRICING_PLANS.PRO.monthlyPrice,
-    yearlyOriginalPrice: PRICING_PLANS.PRO.promoYearly.fullPriceBeforeDiscount,
-    period: "2 mo",
-    yearlyPeriod: "yr",
-    monthlySavings: "Save $22.50 over 2 months",
-    yearlySavings: "Save $90 / yr",
-    monthlyBillingNote: `then $${PRICING_PLANS.PRO.monthlyPrice} / month`,
-    yearlyBillingNote: `or $${PRICING_PLANS.PRO.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
-    badgeMonthly: "-75% promo",
-    badgeYearly: "-50% annual",
-    features: [
-      "150,000 clicks / month (+$3 / 50k)",
-      "6 domains and 1,000 active links",
-      "Individual link alerts (clicks, revenue, expiry)",
-      "Dynamic Smart Routing (country + OS/device)",
-      "Password protection and destination masking",
-      "5 webhooks and 5 retargeting pixels",
-      "365-day analytics · API 200 req/min",
-      "Priority email support",
-    ],
-    description: "Grow your brand and maximize your conversion rates.",
-    buttonText: "Choose Pro",
-    href: "/pricing",
-    yearlyHref: "/pricing",
-    isPopular: true,
-  },
-  {
-    planId: "BUSINESS",
-    name: PRICING_PLANS.BUSINESS.name,
-    price: PRICING_PLANS.BUSINESS.promoMonthly.firstMonthPrice,
-    yearlyPrice: PRICING_PLANS.BUSINESS.yearlyPrice,
-    monthlyOriginalPrice: PRICING_PLANS.BUSINESS.monthlyPrice,
-    yearlyOriginalPrice:
-      PRICING_PLANS.BUSINESS.promoYearly.fullPriceBeforeDiscount,
-    period: "2 mo",
-    yearlyPeriod: "yr",
-    monthlySavings: "Save $58.80 over 2 months",
-    yearlySavings: "Save $238 / yr",
-    monthlyBillingNote: `then $${PRICING_PLANS.BUSINESS.monthlyPrice} / month`,
-    yearlyBillingNote: `or $${PRICING_PLANS.BUSINESS.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
-    badgeMonthly: "-60% promo",
-    badgeYearly: "-40% annual",
-    features: [
-      "500,000 clicks / month (+$8 / 125k)",
-      "15 domains and unlimited active links",
-      "Unlimited individual link alerts",
-      "Multi-condition rule engine",
-      "Advanced protection and destination masking",
-      "Vector QR Code Studio (SVG / PDF)",
-      "Unlimited webhooks and pixels",
-      "Unlimited analytics · API 600 req/min",
-      "5 team seats · 24/7 support",
-    ],
-    description: "For multi-channel campaigns and growing teams.",
-    buttonText: "Choose Business",
-    href: "/pricing",
-    yearlyHref: "/pricing",
-    isPopular: false,
-  },
-];
-
-const LSHORTER_ENTERPRISE_PLAN: EnterpriseBannerPlan = {
-  planId: "ENTERPRISE",
-  name: PRICING_PLANS.ENTERPRISE.name,
-  monthlyPrice: PRICING_PLANS.ENTERPRISE.promoMonthly.firstMonthPrice,
-  yearlyPrice: PRICING_PLANS.ENTERPRISE.yearlyPrice,
-  monthlyOriginalPrice: PRICING_PLANS.ENTERPRISE.monthlyPrice,
-  yearlyOriginalPrice:
-    PRICING_PLANS.ENTERPRISE.promoYearly.fullPriceBeforeDiscount,
-  monthlyBillingNote: `then $${PRICING_PLANS.ENTERPRISE.monthlyPrice} / month`,
-  yearlyBillingNote: `or $${PRICING_PLANS.ENTERPRISE.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
-  description: "Unlimited clicks and dedicated high-throughput Edge SLA.",
-  features: [
-    "Unlimited clicks, domains, and links",
-    "Hyper-targeted routing (ISP / ASN / city)",
-    "Unlimited analytics & raw CSV export",
-    "API 1,400 req/min · 15 team seats",
-    "99.99% Edge SLA & direct VIP support",
-    "Global alerts with VIP routing",
-  ],
-  buttonText: "Choose Enterprise",
-  monthlyHref: "/pricing",
-  yearlyHref: "/pricing",
-};
-
 export function PricingPreviewSection() {
+  const { tr } = useI18n();
   const { data: session } = useSession();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const pricingPlans = useMemo<PricingPlan[]>(
+    () => [
+      {
+        planId: "FREE",
+        name: PRICING_PLANS.FREE.name,
+        price: PRICING_PLANS.FREE.monthlyPrice,
+        yearlyPrice: PRICING_PLANS.FREE.yearlyPrice,
+        period: tr("forever", "à vie"),
+        yearlyPeriod: tr("forever", "à vie"),
+        monthlyBillingNote: tr(
+          "Free forever, no credit card",
+          "Gratuit à vie, sans carte bancaire"
+        ),
+        yearlyBillingNote: tr(
+          "Free forever, no credit card",
+          "Gratuit à vie, sans carte bancaire"
+        ),
+        badgeMonthly: tr("Free", "Gratuit"),
+        badgeYearly: tr("Free", "Gratuit"),
+        features: [
+          tr("10,000 clicks / month", "10 000 clics / mois"),
+          tr("3 domains and 50 active links", "3 domaines et 50 liens actifs"),
+          tr(
+            "Global Workspace Target (clicks & revenue)",
+            "Objectif global d'espace (clics et revenus)"
+          ),
+          tr("QR Code Studio (basic styles)", "QR Studio (styles de base)"),
+          tr(
+            "30-day analytics · API 60 req/min",
+            "Analyses 30 jours · API 60 req/min"
+          ),
+          tr("Community support", "Support communautaire"),
+        ],
+        notIncludedNote: tr(
+          "Not included: Smart Routing, password protection, individual link alerts, webhooks, and pixels.",
+          "Non inclus : routage intelligent, protection par mot de passe, alertes par lien, webhooks et pixels."
+        ),
+        description: tr(
+          "To explore our Edge infrastructure, no credit card required.",
+          "Pour découvrir notre infrastructure Edge, sans carte bancaire."
+        ),
+        buttonText: tr("Get Started Free", "Commencer gratuitement"),
+        href: "/register",
+        yearlyHref: "/register",
+        isPopular: false,
+      },
+      {
+        planId: "PRO",
+        name: PRICING_PLANS.PRO.name,
+        price: PRICING_PLANS.PRO.promoMonthly.firstMonthPrice,
+        yearlyPrice: PRICING_PLANS.PRO.yearlyPrice,
+        monthlyOriginalPrice: PRICING_PLANS.PRO.monthlyPrice,
+        yearlyOriginalPrice:
+          PRICING_PLANS.PRO.promoYearly.fullPriceBeforeDiscount,
+        period: tr("2 mo", "2 mois"),
+        yearlyPeriod: tr("yr", "an"),
+        monthlySavings: tr(
+          "Save $22.50 over 2 months",
+          "Économisez 22,50 $ sur 2 mois"
+        ),
+        yearlySavings: tr("Save $90 / yr", "Économisez 90 $ / an"),
+        monthlyBillingNote: tr(
+          `then $${PRICING_PLANS.PRO.monthlyPrice} / month`,
+          `puis ${PRICING_PLANS.PRO.monthlyPrice} $ / mois`
+        ),
+        yearlyBillingNote: tr(
+          `or $${PRICING_PLANS.PRO.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+          `soit ${PRICING_PLANS.PRO.promoYearly.equivalentMonthlyPrice.toFixed(2).replace(".", ",")} $ / mois`
+        ),
+        badgeMonthly: tr("-75% promo", "-75 % promo"),
+        badgeYearly: tr("-50% annual", "-50 % annuel"),
+        features: [
+          tr(
+            "150,000 clicks / month (+$3 / 50k)",
+            "150 000 clics / mois (+3 $ / 50k)"
+          ),
+          tr(
+            "6 domains and 1,000 active links",
+            "6 domaines et 1 000 liens actifs"
+          ),
+          tr(
+            "Individual link alerts (clicks, revenue, expiry)",
+            "Alertes individuelles par lien (clics, revenus, expiration)"
+          ),
+          tr(
+            "Dynamic Smart Routing (country + OS/device)",
+            "Routage intelligent dynamique (pays + OS/appareil)"
+          ),
+          tr(
+            "Password protection and destination masking",
+            "Protection par mot de passe et masquage d'URL"
+          ),
+          tr(
+            "5 webhooks and 5 retargeting pixels",
+            "5 webhooks et 5 pixels de retargeting"
+          ),
+          tr(
+            "365-day analytics · API 200 req/min",
+            "Analyses 365 jours · API 200 req/min"
+          ),
+          tr("Priority email support", "Support prioritaire par e-mail"),
+        ],
+        description: tr(
+          "Grow your brand and maximize your conversion rates.",
+          "Développez votre marque et maximisez vos conversions."
+        ),
+        buttonText: tr("Choose Pro", "Choisir Pro"),
+        href: "/pricing",
+        yearlyHref: "/pricing",
+        isPopular: true,
+      },
+      {
+        planId: "BUSINESS",
+        name: PRICING_PLANS.BUSINESS.name,
+        price: PRICING_PLANS.BUSINESS.promoMonthly.firstMonthPrice,
+        yearlyPrice: PRICING_PLANS.BUSINESS.yearlyPrice,
+        monthlyOriginalPrice: PRICING_PLANS.BUSINESS.monthlyPrice,
+        yearlyOriginalPrice:
+          PRICING_PLANS.BUSINESS.promoYearly.fullPriceBeforeDiscount,
+        period: tr("2 mo", "2 mois"),
+        yearlyPeriod: tr("yr", "an"),
+        monthlySavings: tr(
+          "Save $58.80 over 2 months",
+          "Économisez 58,80 $ sur 2 mois"
+        ),
+        yearlySavings: tr("Save $238 / yr", "Économisez 238 $ / an"),
+        monthlyBillingNote: tr(
+          `then $${PRICING_PLANS.BUSINESS.monthlyPrice} / month`,
+          `puis ${PRICING_PLANS.BUSINESS.monthlyPrice} $ / mois`
+        ),
+        yearlyBillingNote: tr(
+          `or $${PRICING_PLANS.BUSINESS.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+          `soit ${PRICING_PLANS.BUSINESS.promoYearly.equivalentMonthlyPrice.toFixed(2).replace(".", ",")} $ / mois`
+        ),
+        badgeMonthly: tr("-60% promo", "-60 % promo"),
+        badgeYearly: tr("-40% annual", "-40 % annuel"),
+        features: [
+          tr(
+            "500,000 clicks / month (+$8 / 125k)",
+            "500 000 clics / mois (+8 $ / 125k)"
+          ),
+          tr(
+            "15 domains and unlimited active links",
+            "15 domaines et liens actifs illimités"
+          ),
+          tr(
+            "Unlimited individual link alerts",
+            "Alertes individuelles illimitées"
+          ),
+          tr("Multi-condition rule engine", "Moteur de règles multi-conditions"),
+          tr(
+            "Advanced protection and destination masking",
+            "Protection avancée et masquage de destination"
+          ),
+          tr("Vector QR Code Studio (SVG / PDF)", "QR Studio vectoriel (SVG / PDF)"),
+          tr("Unlimited webhooks and pixels", "Webhooks et pixels illimités"),
+          tr(
+            "Unlimited analytics · API 600 req/min",
+            "Analyses illimitées · API 600 req/min"
+          ),
+          tr("5 team seats · 24/7 support", "5 membres d'équipe · support 24/7"),
+        ],
+        description: tr(
+          "For multi-channel campaigns and growing teams.",
+          "Pour les campagnes multicanales et les équipes en croissance."
+        ),
+        buttonText: tr("Choose Business", "Choisir Business"),
+        href: "/pricing",
+        yearlyHref: "/pricing",
+        isPopular: false,
+      },
+    ],
+    [tr]
+  );
+
+  const enterprisePlan = useMemo<EnterpriseBannerPlan>(
+    () => ({
+      planId: "ENTERPRISE",
+      name: PRICING_PLANS.ENTERPRISE.name,
+      monthlyPrice: PRICING_PLANS.ENTERPRISE.promoMonthly.firstMonthPrice,
+      yearlyPrice: PRICING_PLANS.ENTERPRISE.yearlyPrice,
+      monthlyOriginalPrice: PRICING_PLANS.ENTERPRISE.monthlyPrice,
+      yearlyOriginalPrice:
+        PRICING_PLANS.ENTERPRISE.promoYearly.fullPriceBeforeDiscount,
+      monthlyBillingNote: tr(
+        `then $${PRICING_PLANS.ENTERPRISE.monthlyPrice} / month`,
+        `puis ${PRICING_PLANS.ENTERPRISE.monthlyPrice} $ / mois`
+      ),
+      yearlyBillingNote: tr(
+        `or $${PRICING_PLANS.ENTERPRISE.promoYearly.equivalentMonthlyPrice.toFixed(2)} / month`,
+        `soit ${PRICING_PLANS.ENTERPRISE.promoYearly.equivalentMonthlyPrice.toFixed(2).replace(".", ",")} $ / mois`
+      ),
+      description: tr(
+        "Unlimited clicks and dedicated high-throughput Edge SLA.",
+        "Clics illimités et SLA Edge haute performance dédié."
+      ),
+      features: [
+        tr(
+          "Unlimited clicks, domains, and links",
+          "Clics, domaines et liens illimités"
+        ),
+        tr(
+          "Hyper-targeted routing (ISP / ASN / city)",
+          "Routage hyper-ciblé (FAI / ASN / ville)"
+        ),
+        tr(
+          "Unlimited analytics & raw CSV export",
+          "Analyses illimitées et export CSV brut"
+        ),
+        tr(
+          "API 1,400 req/min · 15 team seats",
+          "API 1 400 req/min · 15 membres d'équipe"
+        ),
+        tr(
+          "99.99% Edge SLA & direct VIP support",
+          "SLA Edge 99,99 % et support VIP direct"
+        ),
+        tr(
+          "Global alerts with VIP routing",
+          "Alertes globales avec routage VIP"
+        ),
+      ],
+      buttonText: tr("Choose Enterprise", "Choisir Enterprise"),
+      monthlyHref: "/pricing",
+      yearlyHref: "/pricing",
+    }),
+    [tr]
+  );
 
   const handleDirectCheckout = async (
     planId: PaidPlanId,
@@ -959,11 +1305,18 @@ export function PricingPreviewSection() {
       }
 
       showToast.error(
-        data.error || "Unable to initiate Dodo Payments checkout session."
+        data.error ||
+          tr(
+            "Unable to initiate Dodo Payments checkout session.",
+            "Impossible de lancer la session de paiement Dodo Payments."
+          )
       );
     } catch {
       showToast.error(
-        "Unable to reach Dodo Payments checkout. Please try again."
+        tr(
+          "Unable to reach Dodo Payments checkout. Please try again.",
+          "Impossible de joindre le paiement Dodo Payments. Veuillez réessayer."
+        )
       );
     } finally {
       setLoadingPlan(null);
@@ -976,11 +1329,14 @@ export function PricingPreviewSection() {
       className="w-full bg-[#F8F9FB] dark:bg-[#0D0E12] border-t border-[#E4E7EC] dark:border-white/[0.08] scroll-mt-20 overflow-x-clip transition-colors duration-300"
     >
       <Pricing
-        plans={LSHORTER_PRICING_PLANS}
-        enterprise={LSHORTER_ENTERPRISE_PLAN}
-        title="Simple, transparent pricing"
-        description={"Zero downtime guaranteed across 310+ Cloudflare Edge PoPs.\nCertified PDF invoices generated instantly in one click."}
-        annualSaveLabel="Save up to 50%"
+        plans={pricingPlans}
+        enterprise={enterprisePlan}
+        title={tr("Simple, transparent pricing", "Des tarifs simples et transparents")}
+        description={tr(
+          "Zero downtime guaranteed across 310+ Cloudflare Edge PoPs.\nCertified PDF invoices generated instantly in one click.",
+          "Zéro interruption garantie sur plus de 310 PoP Cloudflare Edge.\nFactures PDF certifiées générées instantanément en un clic."
+        )}
+        annualSaveLabel={tr("Save up to 50%", "Jusqu'à -50 %")}
         onSelectPlan={handleDirectCheckout}
         loadingPlan={loadingPlan}
       />
@@ -990,7 +1346,12 @@ export function PricingPreviewSection() {
           href="/pricing"
           className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#0066FF] dark:text-[#6CA8FF] hover:underline"
         >
-          <span>View full feature comparison matrix</span>
+          <span>
+            {tr(
+              "View full feature comparison matrix",
+              "Voir le tableau comparatif complet"
+            )}
+          </span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

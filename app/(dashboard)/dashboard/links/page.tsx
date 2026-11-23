@@ -68,8 +68,11 @@ import {
   LinksReuiDataGrid,
   getDicebearGlassUrl,
 } from "@/components/dashboard/reui-data-grids";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function LinksPage() {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const { data: session, status } = useSession();
   const router = useRouter();
   const [links, setLinks] = useState<ShortLink[]>([]);
@@ -612,13 +615,21 @@ export default function LinksPage() {
         is_active: nextActive ? 1 : 0,
         status: nextActive ? "Active" : "Paused",
       });
-      showToast.success(nextActive ? `/${link.slug} reactivated` : `/${link.slug} paused`);
+      showToast.success(
+        nextActive
+          ? (isFr ? `/${link.slug} réactivé` : `/${link.slug} reactivated`)
+          : (isFr ? `/${link.slug} mis en pause` : `/${link.slug} paused`),
+      );
       cfInvalidateCache();
       loadLinks(true, true);
       window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
       window.dispatchEvent(new Event("lshorter_data_change"));
     } catch {
-      showToast.error("Failed to update link status");
+      showToast.error(
+        isFr
+          ? "Échec de la mise à jour du statut du lien"
+          : "Failed to update link status",
+      );
     }
   };
 
@@ -767,7 +778,7 @@ export default function LinksPage() {
     triggerUndoDelete({
       id: targetId,
       itemType: "link",
-      title: "Lien supprimé",
+      title: isFr ? "Lien supprimé" : "Link deleted",
       description: `/${targetSlug}`,
       confirmText: targetSlug,
       onExecute: async () => {
@@ -799,7 +810,11 @@ export default function LinksPage() {
           }
         } catch (err) {
           console.error("Cloudflare delete error:", err);
-          showToast.error("Erreur lors de la suppression définitive du lien.");
+          showToast.error(
+            isFr
+              ? "Erreur lors de la suppression définitive du lien."
+              : "Error permanently deleting the link.",
+          );
           permanentlyDeletedIdsRef.current.delete(targetId);
           if (targetSlug) permanentlyDeletedIdsRef.current.delete(targetSlug);
           if ((savedLink as any)._id) permanentlyDeletedIdsRef.current.delete(String((savedLink as any)._id));
@@ -834,8 +849,14 @@ export default function LinksPage() {
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
-      title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-      description: count > 1 ? `${count} liens sélectionnés` : (savedLinks[0]?.slug ? `/${savedLinks[0].slug}` : undefined),
+      title:
+        count > 1
+          ? (isFr ? `${count} liens supprimés` : `${count} links deleted`)
+          : (isFr ? "Lien supprimé" : "Link deleted"),
+      description:
+        count > 1
+          ? (isFr ? `${count} liens sélectionnés` : `${count} selected links`)
+          : (savedLinks[0]?.slug ? `/${savedLinks[0].slug}` : undefined),
       confirmText: count === 1 && savedLinks[0]?.slug ? savedLinks[0].slug : "DELETE",
       onExecute: async () => {
         targetIds.forEach((id) => {
@@ -881,7 +902,11 @@ export default function LinksPage() {
           }
         } catch (err) {
           console.error("Bulk delete error:", err);
-          showToast.error("Erreur lors de la suppression des liens.");
+          showToast.error(
+            isFr
+              ? "Erreur lors de la suppression des liens."
+              : "Error deleting links.",
+          );
           targetIds.forEach((id) => permanentlyDeletedIdsRef.current.delete(id));
           savedLinks.forEach((l: any) => {
             if (l.slug) permanentlyDeletedIdsRef.current.delete(String(l.slug));
@@ -1071,20 +1096,24 @@ export default function LinksPage() {
     try {
       exportToExcelWorkbook({
         filename: `lshorter_short_links_${new Date().toISOString().split("T")[0]}.xls`,
-        reportTitle: `LShorter — Short Links Workspace Export`,
-        reportSubtitle: `All active and paused links, click counts, conversions, and target URLs`,
+        reportTitle: isFr
+          ? "LShorter — Export des liens courts"
+          : "LShorter — Short Links Workspace Export",
+        reportSubtitle: isFr
+          ? "Tous les liens actifs et en pause, clics, conversions et URL de destination"
+          : "All active and paused links, click counts, conversions, and target URLs",
         columns: [
           { header: "ID", width: 140, align: "left" },
           { header: "Slug", width: 160, align: "left" },
-          { header: "Short URL", width: 240, align: "left" },
-          { header: "Target Destination URL", width: 340, align: "left" },
-          { header: "Clicks", width: 110, align: "right" },
-          { header: "Unique Clicks", width: 120, align: "right" },
+          { header: isFr ? "URL courte" : "Short URL", width: 240, align: "left" },
+          { header: isFr ? "URL de destination" : "Target Destination URL", width: 340, align: "left" },
+          { header: isFr ? "Clics" : "Clicks", width: 110, align: "right" },
+          { header: isFr ? "Clics uniques" : "Unique Clicks", width: 120, align: "right" },
           { header: "Conversions", width: 110, align: "right" },
-          { header: "Revenue (€)", width: 120, align: "right" },
-          { header: "Status", width: 100, align: "center" },
-          { header: "Password Protected", width: 150, align: "center" },
-          { header: "Created At", width: 190, align: "left" },
+          { header: isFr ? "Revenus (€)" : "Revenue (€)", width: 120, align: "right" },
+          { header: isFr ? "Statut" : "Status", width: 100, align: "center" },
+          { header: isFr ? "Protégé par mot de passe" : "Password Protected", width: 150, align: "center" },
+          { header: isFr ? "Créé le" : "Created At", width: 190, align: "left" },
         ],
         rows: filteredLinks.map((l) => [
           l.id,
@@ -1095,14 +1124,22 @@ export default function LinksPage() {
           l.uniqueClicks || 0,
           l.conversionsCount || 0,
           Number(l.revenue || 0).toFixed(2),
-          l.isActive ? "Active" : "Paused",
-          l.isPasswordProtected ? "Yes" : "No",
+          l.isActive ? (isFr ? "Actif" : "Active") : (isFr ? "En pause" : "Paused"),
+          l.isPasswordProtected ? (isFr ? "Oui" : "Yes") : (isFr ? "Non" : "No"),
           l.created_at || new Date().toISOString(),
         ]),
       });
-      showToast.success("Short links exported to Excel with formatted columns!");
+      showToast.success(
+        isFr
+          ? "Liens courts exportés vers Excel avec colonnes formatées !"
+          : "Short links exported to Excel with formatted columns!",
+      );
     } catch {
-      showToast.error("Error exporting Excel file.");
+      showToast.error(
+        isFr
+          ? "Erreur lors de l'exportation du fichier Excel."
+          : "Error exporting Excel file.",
+      );
     }
   };
 
@@ -1145,10 +1182,12 @@ export default function LinksPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold ds-text-primary">
-            Short Links Data Table
+            {isFr ? "Gestion des liens courts" : "Short Links Data Table"}
           </h1>
           <p className="text-sm ds-text-muted mt-0.5">
-            Home &gt; Short Links ({links.length} active links)
+            {isFr
+              ? `Accueil > Liens courts (${links.length} ${links.length > 1 ? "liens actifs" : "lien actif"})`
+              : `Home > Short Links (${links.length} active links)`}
           </p>
         </div>
 
@@ -1159,7 +1198,7 @@ export default function LinksPage() {
             className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
             <Download className="h-3.5 w-3.5 text-[#0066FF]" />
-            <span>Export Excel</span>
+            <span>{isFr ? "Exporter Excel" : "Export Excel"}</span>
           </button>
 
           <button
@@ -1169,13 +1208,13 @@ export default function LinksPage() {
               cfInvalidateCache("/api/links");
               await loadLinks();
               setIsRefreshing(false);
-              showToast.success("Links list refreshed!");
+              showToast.success(isFr ? "Liste des liens actualisée !" : "Links list refreshed!");
             }}
             disabled={isRefreshing}
             className="inline-flex items-center gap-1.5 rounded-lg ds-card px-2.5 py-1.5 text-xs font-medium ds-text-secondary hover:ds-text-primary h-8 cursor-pointer transition-colors"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#0066FF]" : ""}`} />
-            <span>Refresh</span>
+            <span>{isFr ? "Actualiser" : "Refresh"}</span>
           </button>
 
           <button
@@ -1184,7 +1223,7 @@ export default function LinksPage() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] px-3 py-1.5 text-xs font-semibold !text-white h-8 shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5 !text-white" />
-            <span className="!text-white">Create Short Link</span>
+            <span className="!text-white">{isFr ? "Créer un lien court" : "Create Short Link"}</span>
           </button>
         </div>
       </div>
@@ -1199,12 +1238,14 @@ export default function LinksPage() {
             </div>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
-              {activeLinksCount} actif{activeLinksCount > 1 ? "s" : ""}
+              {isFr
+                ? `${activeLinksCount} actif${activeLinksCount > 1 ? "s" : ""}`
+                : `${activeLinksCount} active`}
             </span>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
-              Nombre total de liens créés
+              {isFr ? "Nombre total de liens créés" : "Total Links Created"}
             </p>
             <div className="flex items-baseline gap-2">
               <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-[#0F172A] dark:text-[#F8FAFC]">
@@ -1213,8 +1254,12 @@ export default function LinksPage() {
             </div>
             <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
               {totalCreatedLinks > 0
-                ? `${Math.round((activeLinksCount / totalCreatedLinks) * 100)}% de liens opérationnels`
-                : "Aucun lien créé pour le moment"}
+                ? isFr
+                  ? `${Math.round((activeLinksCount / totalCreatedLinks) * 100)}% de liens opérationnels`
+                  : `${Math.round((activeLinksCount / totalCreatedLinks) * 100)}% operational links`
+                : isFr
+                  ? "Aucun lien créé pour le moment"
+                  : "No links created yet"}
             </p>
           </div>
         </div>
@@ -1226,12 +1271,12 @@ export default function LinksPage() {
               <MousePointerClick className="w-5 h-5" />
             </div>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 select-none">
-              {formatNumber(totalUniqueClicks)} uniques
+              {formatNumber(totalUniqueClicks)} {isFr ? "uniques" : "unique"}
             </span>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
-              Nombre total de clics
+              {isFr ? "Nombre total de clics" : "Total Clicks"}
             </p>
             <div className="flex items-baseline gap-2">
               <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-[#0F172A] dark:text-[#F8FAFC]">
@@ -1240,8 +1285,12 @@ export default function LinksPage() {
             </div>
             <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
               {totalCreatedLinks > 0
-                ? `Moyenne de ${(totalClicks / totalCreatedLinks).toFixed(1)} clics par lien`
-                : "En attente des premiers clics"}
+                ? isFr
+                  ? `Moyenne de ${(totalClicks / totalCreatedLinks).toFixed(1)} clics par lien`
+                  : `Avg ${(totalClicks / totalCreatedLinks).toFixed(1)} clicks per link`
+                : isFr
+                  ? "En attente des premiers clics"
+                  : "Waiting for first clicks"}
             </p>
           </div>
         </div>
@@ -1253,12 +1302,14 @@ export default function LinksPage() {
               <DollarSign className="w-5 h-5" />
             </div>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
-              {totalConversions} vente{totalConversions > 1 ? "s" : ""}
+              {isFr
+                ? `${totalConversions} vente${totalConversions > 1 ? "s" : ""}`
+                : `${totalConversions} ${totalConversions === 1 ? "sale" : "sales"}`}
             </span>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8]">
-              Revenus totaux
+              {isFr ? "Revenus totaux" : "Total Revenue"}
             </p>
             <div className="flex items-baseline gap-2">
               <h3 className="text-2xl sm:text-[28px] font-bold font-mono tabular-nums tracking-[-0.02em] text-emerald-600 dark:text-emerald-400">
@@ -1267,8 +1318,12 @@ export default function LinksPage() {
             </div>
             <p className="text-[11.5px] text-[#94A3B8] dark:text-[#64748B] pt-0.5">
               {totalConversions > 0
-                ? `Taux de conversion ~${((totalConversions / Math.max(1, totalClicks)) * 100).toFixed(1)}%`
-                : "Monétisation et conversions activées"}
+                ? isFr
+                  ? `Taux de conversion ~${((totalConversions / Math.max(1, totalClicks)) * 100).toFixed(1)}%`
+                  : `Conversion rate ~${((totalConversions / Math.max(1, totalClicks)) * 100).toFixed(1)}%`
+                : isFr
+                  ? "Monétisation et conversions activées"
+                  : "Monetization & conversion tracking active"}
             </p>
           </div>
         </div>
@@ -1289,7 +1344,7 @@ export default function LinksPage() {
         onDeleteLink={(l) => promptDeleteSingle(l)}
         onDeleteMultiple={(ids) => promptDeleteBulk(ids)}
         pageSize={10}
-        title="Datatable 1 — Short Links & Edge Routing"
+        title={isFr ? "Liens courts & Routage Edge" : "Short Links & Edge Routing"}
       />
 
       <div className="hidden">
@@ -1500,7 +1555,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <Copy className="w-4 h-4 text-neutral-400" />
-                <span>Copy link</span>
+                <span>{isFr ? "Copier le lien" : "Copy link"}</span>
               </button>
 
               {/* 2. View QR Code */}
@@ -1514,7 +1569,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <QrCode className="w-4 h-4 text-[var(--brand-primary-text)]" />
-                <span>View QR Code</span>
+                <span>{isFr ? "Voir le QR Code" : "View QR Code"}</span>
               </button>
 
               {/* 3. Test redirection */}
@@ -1530,7 +1585,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <ExternalLink className="w-4 h-4 text-neutral-400" />
-                <span>Test redirection</span>
+                <span>{isFr ? "Tester la redirection" : "Test redirection"}</span>
               </a>
 
               {/* 4. Edit link */}
@@ -1544,7 +1599,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <Edit3 className="w-4 h-4 text-[var(--brand-primary-text)]" />
-                <span>Edit link</span>
+                <span>{isFr ? "Modifier le lien" : "Edit link"}</span>
               </button>
 
               {/* 5. Share link */}
@@ -1558,7 +1613,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <Share2 className="w-4 h-4 text-sky-400" />
-                <span>Share link</span>
+                <span>{isFr ? "Partager le lien" : "Share link"}</span>
               </button>
 
               {/* 6. View analytics */}
@@ -1574,7 +1629,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <BarChart2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>View analytics</span>
+                <span>{isFr ? "Voir les analytiques" : "View analytics"}</span>
               </button>
 
               {/* 7. Pause or Activate link */}
@@ -1590,12 +1645,12 @@ export default function LinksPage() {
                 {isLinkActive(activeMenuLink) ? (
                   <>
                     <Pause className="w-4 h-4 text-amber-500" />
-                    <span>Pause link</span>
+                    <span>{isFr ? "Mettre en pause" : "Pause link"}</span>
                   </>
                 ) : (
                   <>
                     <Play className="w-4 h-4 text-emerald-500" />
-                    <span>Activate link</span>
+                    <span>{isFr ? "Activer le lien" : "Activate link"}</span>
                   </>
                 )}
               </button>
@@ -1613,7 +1668,7 @@ export default function LinksPage() {
                 className="w-full px-4 py-2.5 text-left text-rose-600 dark:text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-500" />
-                <span className="font-semibold">Delete link</span>
+                <span className="font-semibold">{isFr ? "Supprimer le lien" : "Delete link"}</span>
               </button>
             </div>
           </div>,

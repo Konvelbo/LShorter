@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export function TwoFactorSetupModal({
   name,
   onSuccess,
 }: TwoFactorSetupModalProps) {
+  const { tr } = useI18n();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -81,10 +83,10 @@ export function TwoFactorSetupModal({
         setQrCodeUrl(data.qrCode);
         setRecoveryCodes(data.recoveryCodes);
       } else {
-        setErrorMessage(data.error || "Unable to generate 2FA QR code.");
+        setErrorMessage(data.error || tr("Unable to generate 2FA QR code.", "Impossible de générer le QR code 2FA."));
       }
     } catch {
-      setErrorMessage("Connection error during 2FA generation.");
+      setErrorMessage(tr("Connection error during 2FA generation.", "Erreur de connexion lors de la génération 2FA."));
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +96,7 @@ export function TwoFactorSetupModal({
     if (!secret) return;
     navigator.clipboard.writeText(secret);
     setIsSecretCopied(true);
-    showToast.success("Secret key copied!");
+    showToast.success(tr("Secret key copied!", "Clé secrète copiée !"));
     setTimeout(() => setIsSecretCopied(false), 2000);
   };
 
@@ -115,7 +117,7 @@ export function TwoFactorSetupModal({
 
     navigator.clipboard.writeText(text);
     setAreCodesCopied(true);
-    showToast.success("Backup codes copied to clipboard!");
+    showToast.success(tr("Backup codes copied to clipboard!", "Codes de secours copiés dans le presse-papiers !"));
     setTimeout(() => setAreCodesCopied(false), 2000);
   };
 
@@ -141,7 +143,7 @@ export function TwoFactorSetupModal({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast.success("Backup codes file downloaded!");
+    showToast.success(tr("Backup codes file downloaded!", "Fichier des codes de secours téléchargé !"));
   };
 
   const handleVerifyCode = async (e?: React.FormEvent) => {
@@ -149,7 +151,7 @@ export function TwoFactorSetupModal({
     const cleanCode = verificationCode.trim().replace(/\s+/g, "");
 
     if (cleanCode.length !== 6 || !/^\d{6}$/.test(cleanCode)) {
-      setErrorMessage("Please enter the complete 6-digit code.");
+      setErrorMessage(tr("Please enter the complete 6-digit code.", "Veuillez saisir le code complet à 6 chiffres."));
       return;
     }
 
@@ -172,12 +174,12 @@ export function TwoFactorSetupModal({
         // Code is mathematically verified against the Base32 secret!
         await onSuccess(secret, recoveryCodes);
         setStep(3);
-        showToast.success("Code verified! Save your backup codes.");
+        showToast.success(tr("Code verified! Save your backup codes.", "Code vérifié ! Sauvegardez vos codes de secours."));
       } else {
-        setErrorMessage("Invalid or expired code. Check your device clock and try again.");
+        setErrorMessage(tr("Invalid or expired code. Check your device clock and try again.", "Code invalide ou expiré. Vérifiez l'heure de votre appareil et réessayez."));
       }
     } catch {
-      setErrorMessage("Communication error during verification.");
+      setErrorMessage(tr("Communication error during verification.", "Erreur de communication lors de la vérification."));
     } finally {
       setIsVerifying(false);
     }
@@ -196,12 +198,12 @@ export function TwoFactorSetupModal({
             </div>
             <div>
               <h2 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                <span>Two-Factor Authentication (2FA / TOTP)</span>
+                <span>{tr("Two-Factor Authentication (2FA / TOTP)", "Authentification à deux facteurs (2FA / TOTP)")}</span>
               </h2>
               <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                {step === 1 && "Step 1 of 3: Scan the standard QR Code"}
-                {step === 2 && "Step 2 of 3: Verify the 6-digit code"}
-                {step === 3 && "Step 3 of 3: Emergency backup codes"}
+                {step === 1 && tr("Step 1 of 3: Scan the standard QR Code", "Étape 1 sur 3 : Scannez le QR Code")}
+                {step === 2 && tr("Step 2 of 3: Verify the 6-digit code", "Étape 2 sur 3 : Vérifiez le code à 6 chiffres")}
+                {step === 3 && tr("Step 3 of 3: Emergency backup codes", "Étape 3 sur 3 : Codes de secours d'urgence")}
               </p>
             </div>
           </div>
@@ -228,7 +230,10 @@ export function TwoFactorSetupModal({
             <div className="flex flex-col gap-5">
               <div className="flex flex-col items-center text-center gap-1">
                 <p className="text-xs text-zinc-600 dark:text-neutral-300">
-                  Scan this QR Code with your preferred authenticator app:
+                  {tr(
+                    "Scan this QR Code with your preferred authenticator app:",
+                    "Scannez ce QR Code avec votre application d'authentification :"
+                  )}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1 text-[10px] text-zinc-500 dark:text-neutral-400">
                   <span className="px-2 py-0.5 rounded-[6px] bg-zinc-100 dark:bg-[#1c1c22] border border-zinc-200 dark:border-[#2a2a32]">Google Authenticator</span>
@@ -244,18 +249,18 @@ export function TwoFactorSetupModal({
                   {isLoading ? (
                     <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 text-neutral-800">
                       <RefreshCw className="w-6 h-6 animate-spin text-brand" />
-                      <span className="text-[11px] font-medium font-mono">Generating QR...</span>
+                      <span className="text-[11px] font-medium font-mono">{tr("Generating QR...", "Génération du QR...")}</span>
                     </div>
                   ) : qrCodeUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={qrCodeUrl}
-                      alt="Standard TOTP QR Code"
+                      alt={tr("Standard TOTP QR Code", "QR Code TOTP standard")}
                       className="w-48 h-48 object-contain rounded-[4px]"
                     />
                   ) : (
                     <div className="w-48 h-48 flex items-center justify-center text-neutral-500 text-xs">
-                      Failed to load
+                      {tr("Failed to load", "Échec du chargement")}
                     </div>
                   )}
                 </div>
@@ -264,18 +269,18 @@ export function TwoFactorSetupModal({
               {/* Manual Entry Secret Key */}
               <div className="flex flex-col gap-1.5 p-3 rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-[#222226]">
                 <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400">
-                  <span>Can&apos;t scan? Manual entry secret key:</span>
+                  <span>{tr("Can't scan? Manual entry secret key:", "Impossible de scanner ? Clé manuelle :")}</span>
                   <button
                     type="button"
                     onClick={handleCopySecret}
                     className="text-brand hover:underline font-bold flex items-center gap-1 cursor-pointer"
                   >
                     {isSecretCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                    <span>{isSecretCopied ? "Copied" : "Copy"}</span>
+                    <span>{isSecretCopied ? tr("Copied", "Copié") : tr("Copy", "Copier")}</span>
                   </button>
                 </div>
                 <div className="font-mono text-xs font-bold text-zinc-900 dark:text-white tracking-widest text-center py-1 select-all bg-white dark:bg-[#141418] rounded-[6px] border border-zinc-200 dark:border-[#1f1f25]">
-                  {formattedSecret || "LOADING..."}
+                  {formattedSecret || tr("LOADING...", "CHARGEMENT...")}
                 </div>
               </div>
 
@@ -287,7 +292,7 @@ export function TwoFactorSetupModal({
                   onClick={onClose}
                   className="text-xs h-10 px-4 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 rounded-[10px]"
                 >
-                  Cancel
+                  {tr("Cancel", "Annuler")}
                 </Button>
                 <Button
                   type="button"
@@ -298,7 +303,7 @@ export function TwoFactorSetupModal({
                   }}
                   className="text-xs h-10 px-5 font-bold gap-1.5 cursor-pointer shadow-md bg-[#0066FF] hover:bg-[#0055d4] text-white rounded-[10px]"
                 >
-                  <span>Next: Verify Code</span>
+                  <span>{tr("Next: Verify Code", "Suivant : Vérifier le code")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -312,9 +317,12 @@ export function TwoFactorSetupModal({
                 <div className="w-12 h-12 rounded-full bg-brand-subtle border border-brand-subtle flex items-center justify-center text-brand mb-1">
                   <Smartphone className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Enter verification code</h3>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{tr("Enter verification code", "Saisissez le code de vérification")}</h3>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400 max-w-xs leading-relaxed">
-                  Enter the temporary 6-digit code currently displayed in your app to confirm setup.
+                  {tr(
+                    "Enter the temporary 6-digit code currently displayed in your app to confirm setup.",
+                    "Saisissez le code temporaire à 6 chiffres affiché dans votre application pour confirmer l'activation."
+                  )}
                 </p>
               </div>
 
@@ -332,7 +340,9 @@ export function TwoFactorSetupModal({
                   }}
                   className="h-14 w-56 text-center font-mono text-2xl tracking-[0.4em] bg-zinc-50 dark:bg-[#0c0c0e] border-zinc-200 dark:border-[#27272a] focus:border-[#0066FF] text-zinc-900 dark:text-white font-bold rounded-[10px]"
                 />
-                <span className="text-[11px] text-zinc-400 dark:text-neutral-500">The code changes every 30 seconds</span>
+                <span className="text-[11px] text-zinc-400 dark:text-neutral-500">
+                  {tr("The code changes every 30 seconds", "Le code change toutes les 30 secondes")}
+                </span>
               </div>
 
               {/* Navigation buttons */}
@@ -347,7 +357,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-10 px-4 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 gap-1 rounded-[10px]"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to QR</span>
+                  <span>{tr("Back to QR", "Retour au QR")}</span>
                 </Button>
                 <Button
                   type="submit"
@@ -357,12 +367,12 @@ export function TwoFactorSetupModal({
                   {isVerifying ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Verifying...</span>
+                      <span>{tr("Verifying...", "Vérification...")}</span>
                     </>
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      <span>Verify &amp; Enable</span>
+                      <span>{tr("Verify & Enable", "Vérifier & Activer")}</span>
                     </>
                   )}
                 </Button>
@@ -378,9 +388,14 @@ export function TwoFactorSetupModal({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Two-Factor Authentication Enabled Successfully!</h4>
+                  <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    {tr("Two-Factor Authentication Enabled Successfully!", "Authentification 2FA activée avec succès !")}
+                  </h4>
                   <p className="text-[11px] text-zinc-600 dark:text-neutral-300">
-                    Your account is now secured following RFC 6238 standards.
+                    {tr(
+                      "Your account is now secured following RFC 6238 standards.",
+                      "Votre compte est désormais protégé selon le standard RFC 6238."
+                    )}
                   </p>
                 </div>
               </div>
@@ -388,10 +403,15 @@ export function TwoFactorSetupModal({
               <div className="p-3.5 rounded-[10px] bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Save your emergency backup codes</span>
+                  <span>{tr("Save your emergency backup codes", "Enregistrez vos codes de secours")}</span>
                 </div>
                 <p className="text-[11px] text-zinc-600 dark:text-neutral-300 leading-relaxed">
-                  If you lose your phone or switch devices, these one-time codes are the <strong>only way</strong> to recover access to your account.
+                  {tr(
+                    "If you lose your phone or switch devices, these one-time codes are the ",
+                    "Si vous perdez votre téléphone ou changez d'appareil, ces codes à usage unique sont le "
+                  )}
+                  <strong>{tr("only way", "seul moyen")}</strong>{" "}
+                  {tr("to recover access to your account.", "de récupérer l'accès à votre compte.")}
                 </p>
               </div>
 
@@ -417,7 +437,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-9 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 gap-1.5 rounded-[8px]"
                 >
                   {areCodesCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{areCodesCopied ? "Copied!" : "Copy 8 codes"}</span>
+                  <span>{areCodesCopied ? tr("Copied!", "Copié !") : tr("Copy 8 codes", "Copier les 8 codes")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -426,7 +446,7 @@ export function TwoFactorSetupModal({
                   className="text-xs h-9 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 gap-1.5 rounded-[8px]"
                 >
                   <Download className="w-3.5 h-3.5 text-[#0066FF]" />
-                  <span>Download (.txt)</span>
+                  <span>{tr("Download (.txt)", "Télécharger (.txt)")}</span>
                 </Button>
               </div>
 
@@ -436,7 +456,7 @@ export function TwoFactorSetupModal({
                   onClick={onClose}
                   className="w-full text-xs h-10 font-bold cursor-pointer bg-[#0066FF] hover:bg-[#0055d4] text-white rounded-[10px]"
                 >
-                  I have saved my codes &bull; Done
+                  {tr("I have saved my codes • Done", "J'ai sauvegardé mes codes • Terminé")}
                 </Button>
               </div>
             </div>

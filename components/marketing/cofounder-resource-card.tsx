@@ -8,6 +8,7 @@ import gsap from "gsap";
 import { DocFeature } from "@/lib/docs-data";
 import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface CofounderResourceCardProps {
   feature: DocFeature;
@@ -24,6 +25,7 @@ export function CofounderResourceCard({
   dateLabel = "09/12",
   index = 0,
 }: CofounderResourceCardProps) {
+  const { tr } = useI18n();
   const cardRef = useRef<HTMLDivElement>(null);
   const popupImgRef = useRef<HTMLDivElement>(null);
 
@@ -74,14 +76,14 @@ export function CofounderResourceCard({
               <>
                 <Image
                   src={pair.light}
-                  alt={`${feature.title} (mode clair)`}
+                  alt={tr(`${feature.title} (light mode)`, `${feature.title} (mode clair)`)}
                   fill
                   sizes="(max-width: 768px) 100vw, 360px"
                   className="object-cover block dark:hidden"
                 />
                 <Image
                   src={pair.dark}
-                  alt={`${feature.title} (mode sombre)`}
+                  alt={tr(`${feature.title} (dark mode)`, `${feature.title} (mode sombre)`)}
                   fill
                   sizes="(max-width: 768px) 100vw, 360px"
                   className="object-cover hidden dark:block"
@@ -121,7 +123,7 @@ export function CofounderResourceCard({
 
           {/* Bottom Monospace Action Link */}
           <div className="mt-6 pt-4 border-t border-[#E4E7EC] dark:border-white/5 flex items-center justify-between font-mono text-xs text-neutral-500 dark:text-neutral-400 group-hover/item:text-brand transition-colors">
-            <span>Read guide</span>
+            <span>{tr("Read guide", "Lire le guide")}</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover/item:translate-x-1.5 transition-transform duration-200" />
           </div>
         </Card>

@@ -21,7 +21,13 @@ import {
 } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { DocFeature, DocApiEndpoint, DocApiParameter } from "@/lib/docs-data";
+import {
+  DocFeature,
+  DocApiEndpoint,
+  DocApiParameter,
+  getLocalizedDocBySlug,
+} from "@/lib/docs-data";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { getThemedScreenshotPair } from "@/lib/themed-screenshots";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
@@ -86,6 +92,7 @@ function ParameterTable({
   title: string;
   parameters?: DocApiParameter[];
 }) {
+  const { tr } = useI18n();
   if (!parameters || parameters.length === 0) return null;
 
   return (
@@ -97,11 +104,11 @@ function ParameterTable({
         <table className="w-full text-left text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-[#E4E7EC] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
-              <th className="py-2.5 px-4 font-semibold">Parameter</th>
-              <th className="py-2.5 px-3 font-semibold">Type</th>
-              <th className="py-2.5 px-3 font-semibold">Required</th>
-              <th className="py-2.5 px-4 font-semibold">Description</th>
-              <th className="py-2.5 px-4 font-semibold">Example</th>
+              <th className="py-2.5 px-4 font-semibold">{tr("Parameter", "Paramètre")}</th>
+              <th className="py-2.5 px-3 font-semibold">{tr("Type", "Type")}</th>
+              <th className="py-2.5 px-3 font-semibold">{tr("Required", "Requis")}</th>
+              <th className="py-2.5 px-4 font-semibold">{tr("Description", "Description")}</th>
+              <th className="py-2.5 px-4 font-semibold">{tr("Example", "Exemple")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/5 font-mono text-xs">
@@ -121,11 +128,11 @@ function ParameterTable({
                 <td className="py-2.5 px-3 whitespace-nowrap">
                   {param.required ? (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                      Required
+                      {tr("Required", "Requis")}
                     </span>
                   ) : (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
-                      Optional
+                      {tr("Optional", "Optionnel")}
                     </span>
                   )}
                 </td>
@@ -133,7 +140,7 @@ function ParameterTable({
                   {param.description}
                   {param.default && (
                     <span className="block text-[11px] font-mono text-neutral-400 dark:text-neutral-500 mt-0.5">
-                      Default: <code className="text-neutral-600 dark:text-neutral-300">{param.default}</code>
+                      {tr("Default:", "Par défaut :")} <code className="text-neutral-600 dark:text-neutral-300">{param.default}</code>
                     </span>
                   )}
                 </td>
@@ -155,6 +162,7 @@ function ParameterTable({
 
 /** Individual REST API Endpoint Card */
 function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
+  const { tr } = useI18n();
   const [copied, setCopied] = useState(false);
   const fullUrl = `https://lsho.cc${endpoint.path}`;
 
@@ -205,17 +213,19 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
           <button
             onClick={copyUrl}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-white/10 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-xs font-mono text-neutral-600 dark:text-neutral-300 transition-colors shrink-0 cursor-pointer"
-            title="Copy Endpoint URL"
+            title={tr("Copy Endpoint URL", "Copier l'URL du point de terminaison")}
           >
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copied</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  {tr("Copied", "Copié")}
+                </span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copy URL</span>
+                <span>{tr("Copy URL", "Copier l'URL")}</span>
               </>
             )}
           </button>
@@ -228,17 +238,17 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
 
       {/* Parameter Tables */}
       <div className="space-y-4 pt-1">
-        <ParameterTable title="Headers" parameters={endpoint.headers} />
-        <ParameterTable title="Path Parameters" parameters={endpoint.pathParams} />
-        <ParameterTable title="Query Parameters" parameters={endpoint.queryParams} />
-        <ParameterTable title="Request Body Parameters" parameters={endpoint.bodyParams} />
+        <ParameterTable title={tr("Headers", "En-têtes")} parameters={endpoint.headers} />
+        <ParameterTable title={tr("Path Parameters", "Paramètres de chemin")} parameters={endpoint.pathParams} />
+        <ParameterTable title={tr("Query Parameters", "Paramètres de requête")} parameters={endpoint.queryParams} />
+        <ParameterTable title={tr("Request Body Parameters", "Paramètres du corps de requête")} parameters={endpoint.bodyParams} />
       </div>
 
       {/* Code Examples */}
       {endpoint.codeExamples && endpoint.codeExamples.length > 0 && (
         <div className="space-y-2.5 pt-2">
           <h4 className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-500 dark:text-neutral-400">
-            Request Examples
+            {tr("Request Examples", "Exemples de requêtes")}
           </h4>
           <CodeBlock
             language={endpoint.codeExamples[0].language}
@@ -256,7 +266,7 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
       {endpoint.responses && endpoint.responses.length > 0 && (
         <div className="space-y-3 pt-2">
           <h4 className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-500 dark:text-neutral-400">
-            Response Payload
+            {tr("Response Payload", "Réponse attendue")}
           </h4>
           {endpoint.responses.map((resp, rIdx) => (
             <div key={rIdx} className="space-y-2">
@@ -277,15 +287,15 @@ function ApiEndpointCard({ endpoint }: { endpoint: DocApiEndpoint }) {
         <div className="space-y-2.5 pt-2">
           <h4 className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-            <span>Possible Error Responses</span>
+            <span>{tr("Possible Error Responses", "Réponses d'erreur possibles")}</span>
           </h4>
           <div className="overflow-x-auto rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214]">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-[#E4E7EC] dark:border-white/10 bg-neutral-100/60 dark:bg-white/[0.03] text-neutral-600 dark:text-neutral-400 font-mono text-[11px]">
-                  <th className="py-2 px-4 font-semibold">HTTP Status</th>
-                  <th className="py-2 px-4 font-semibold">Error Code</th>
-                  <th className="py-2 px-4 font-semibold">Description</th>
+                  <th className="py-2 px-4 font-semibold">{tr("HTTP Status", "Statut HTTP")}</th>
+                  <th className="py-2 px-4 font-semibold">{tr("Error Code", "Code d'erreur")}</th>
+                  <th className="py-2 px-4 font-semibold">{tr("Description", "Description")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E4E7EC] dark:divide-white/5 font-mono text-xs">
@@ -320,7 +330,19 @@ export function DocArticleView({
   prevFeature,
   nextFeature,
 }: DocArticleViewProps) {
+  const { locale, tr } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeFeature = getLocalizedDocBySlug(feature.slug, locale) ?? feature;
+  const activePrevFeature = prevFeature
+    ? (getLocalizedDocBySlug(prevFeature.slug, locale) ?? prevFeature)
+    : null;
+  const activeNextFeature = nextFeature
+    ? (getLocalizedDocBySlug(nextFeature.slug, locale) ?? nextFeature)
+    : null;
+  const activeRelatedFeatures = relatedFeatures.map(
+    (rf) => getLocalizedDocBySlug(rf.slug, locale) ?? rf
+  );
 
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current) return;
@@ -364,7 +386,7 @@ export function DocArticleView({
     }, containerRef);
 
     return () => ctx.revert();
-  }, [feature.slug]);
+  }, [activeFeature.slug]);
 
   return (
     <div
@@ -379,35 +401,37 @@ export function DocArticleView({
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-mono text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors mb-6 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>All guides &amp; documentation</span>
+          <span>{tr("All guides & documentation", "Tous les guides & documentation")}</span>
         </Link>
 
         {/* Big Authoritative Sans-Serif H1 */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#101828] dark:text-neutral-100 leading-[1.15]">
-          {feature.title}
+          {activeFeature.title}
         </h1>
 
         {/* Subtitle */}
         <p className="mt-4 text-base sm:text-xl text-neutral-600 dark:text-neutral-400 font-normal leading-relaxed max-w-3xl">
-          {feature.subtitle}
+          {activeFeature.subtitle}
         </p>
 
         {/* Read Time Info & Edge Badge */}
         <div className="mt-4 flex items-center gap-3 text-xs font-mono text-neutral-500">
-          <span>{feature.readTime}</span>
+          <span>{activeFeature.readTime}</span>
           <span>•</span>
-          <span className="text-brand font-semibold">Official Edge Documentation</span>
+          <span className="text-brand font-semibold">
+            {tr("Official Edge Documentation", "Documentation Edge officielle")}
+          </span>
         </div>
 
         {/* Wide 16:9 Hero Image */}
         <div className="mt-8 relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-[#E4E7EC] dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-neutral-100 dark:bg-neutral-900">
           {(() => {
-            const pair = getThemedScreenshotPair(feature.image);
+            const pair = getThemedScreenshotPair(activeFeature.image);
             return (
               <>
                 <Image
                   src={pair.light}
-                  alt={`${feature.title} (mode clair)`}
+                  alt={`${activeFeature.title} (${tr("light mode", "mode clair")})`}
                   fill
                   priority
                   className="object-cover block dark:hidden"
@@ -415,7 +439,7 @@ export function DocArticleView({
                 />
                 <Image
                   src={pair.dark}
-                  alt={`${feature.title} (mode sombre)`}
+                  alt={`${activeFeature.title} (${tr("dark mode", "mode sombre")})`}
                   fill
                   priority
                   className="object-cover hidden dark:block"
@@ -433,10 +457,10 @@ export function DocArticleView({
         {/* 1. Overview Section */}
         <section className="doc-article-section space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-            Overview &amp; Architecture
+            {tr("Overview & Architecture", "Présentation & Architecture")}
           </h2>
           <div className="space-y-3">
-            {feature.overview.map((paragraph, idx) => (
+            {activeFeature.overview.map((paragraph, idx) => (
               <p
                 key={idx}
                 className="text-base sm:text-[17px] leading-relaxed text-neutral-700 dark:text-neutral-300"
@@ -448,20 +472,23 @@ export function DocArticleView({
         </section>
 
         {/* 2. Key Points — Arranged in a Clean Horizontal Row */}
-        {feature.keyPoints.length > 0 && (
+        {activeFeature.keyPoints.length > 0 && (
           <section className="doc-article-section space-y-5">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-                Key Principles
+                {tr("Key Principles", "Principes clés")}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                Core architectural pillars ensuring high performance, isolation, and security.
+                {tr(
+                  "Core architectural pillars ensuring high performance, isolation, and security.",
+                  "Piliers architecturaux garantissant hautes performances, isolation et sécurité."
+                )}
               </p>
             </div>
 
             {/* HORIZONTAL CARDS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-              {feature.keyPoints.map((point, idx) => (
+              {activeFeature.keyPoints.map((point, idx) => (
                 <Card
                   key={idx}
                   className="doc-interactive-card doc-keypoint-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs"
@@ -488,23 +515,26 @@ export function DocArticleView({
         )}
 
         {/* 3. Code Snippets & Implementation Section */}
-        {feature.codeSnippets && feature.codeSnippets.length > 0 && (
+        {activeFeature.codeSnippets && activeFeature.codeSnippets.length > 0 && (
           <section className="doc-article-section space-y-8">
             <div>
               <div className="flex items-center gap-2 text-xs font-mono text-brand font-bold uppercase tracking-wider mb-1">
                 <Terminal className="w-4 h-4" />
-                <span>SDK Integration</span>
+                <span>{tr("SDK Integration", "Intégration SDK")}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-                Implementation &amp; SDK Examples
+                {tr("Implementation & SDK Examples", "Exemples d'implémentation & SDK")}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                Ready-to-use TypeScript, Python, Rust, Go, and PHP SDK snippets and configuration examples for your integrations.
+                {tr(
+                  "Ready-to-use TypeScript, Python, Rust, Go, and PHP SDK snippets and configuration examples for your integrations.",
+                  "Extraits SDK prêts à l'emploi en TypeScript, Python, Rust, Go et PHP ainsi que des exemples de configuration pour vos intégrations."
+                )}
               </p>
             </div>
 
             <div className="space-y-6">
-              {feature.codeSnippets.map((cs, idx) => (
+              {activeFeature.codeSnippets.map((cs, idx) => (
                 <div key={idx} className="space-y-3">
                   <h3 className="text-lg font-semibold text-[#101828] dark:text-neutral-100">
                     {cs.title}
@@ -525,23 +555,26 @@ export function DocArticleView({
         )}
 
         {/* 4. Dedicated REST API Endpoints Reference Section */}
-        {feature.apiEndpoints && feature.apiEndpoints.length > 0 && (
+        {activeFeature.apiEndpoints && activeFeature.apiEndpoints.length > 0 && (
           <section className="doc-article-section space-y-6">
             <div>
               <div className="flex items-center gap-2 text-xs font-mono text-brand font-bold uppercase tracking-wider mb-1">
                 <Globe className="w-4 h-4" />
-                <span>REST API Specification</span>
+                <span>{tr("REST API Specification", "Spécification API REST")}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-                API Endpoints &amp; Reference
+                {tr("API Endpoints & Reference", "Points de terminaison & Référence API")}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                Direct HTTP request methods, parameters schema, authentication, and responses.
+                {tr(
+                  "Direct HTTP request methods, parameters schema, authentication, and responses.",
+                  "Méthodes HTTP directes, schémas de paramètres, authentification et réponses."
+                )}
               </p>
             </div>
 
             <div className="space-y-6">
-              {feature.apiEndpoints.map((ep, idx) => (
+              {activeFeature.apiEndpoints.map((ep, idx) => (
                 <ApiEndpointCard key={idx} endpoint={ep} />
               ))}
             </div>
@@ -549,37 +582,40 @@ export function DocArticleView({
         )}
 
         {/* 5. Response Sample Section (if available) */}
-        {feature.responseSample && (
+        {activeFeature.responseSample && (
           <section className="doc-article-section space-y-4">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-              {feature.responseSample.title}
+              {activeFeature.responseSample.title}
             </h2>
             <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-              {feature.responseSample.description}
+              {activeFeature.responseSample.description}
             </p>
             <CodeBlock
               language="json"
               filename="response.json"
-              code={feature.responseSample.json}
+              code={activeFeature.responseSample.json}
             />
           </section>
         )}
 
         {/* 6. Best Practices */}
-        {feature.bestPractices.length > 0 && (
+        {activeFeature.bestPractices.length > 0 && (
           <section className="doc-article-section space-y-5">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#101828] dark:text-white">
-                Recommended Best Practices
+                {tr("Recommended Best Practices", "Bonnes pratiques recommandées")}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                Expert tips to maximize performance, resilience, and link security.
+                {tr(
+                  "Expert tips to maximize performance, resilience, and link security.",
+                  "Conseils d'experts pour maximiser les performances, la résilience et la sécurité de vos liens."
+                )}
               </p>
             </div>
 
             {/* HORIZONTAL CARDS GRID FOR BEST PRACTICES */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-              {feature.bestPractices.map((bp, idx) => (
+              {activeFeature.bestPractices.map((bp, idx) => (
                 <Card
                   key={idx}
                   className="doc-interactive-card doc-practice-card p-5 flex flex-col justify-between h-full rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] shadow-xs"
@@ -587,7 +623,9 @@ export function DocArticleView({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-mono uppercase tracking-wider">
                       <CheckCircle2 className="practice-icon w-4 h-4 shrink-0" />
-                      <span>Recommendation 0{idx + 1}</span>
+                      <span>
+                        {tr("Recommendation", "Recommandation")} 0{idx + 1}
+                      </span>
                     </div>
                     <p className="text-xs sm:text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
                       {bp}
@@ -600,37 +638,37 @@ export function DocArticleView({
         )}
 
         {/* 7. Previous & Next Article Navigation Cards */}
-        {(prevFeature || nextFeature) && (
+        {(activePrevFeature || activeNextFeature) && (
           <section className="doc-article-section pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-              {prevFeature ? (
+              {activePrevFeature ? (
                 <Link
-                  href={`/docs/${prevFeature.slug}`}
+                  href={`/docs/${activePrevFeature.slug}`}
                   className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] cursor-pointer shadow-xs"
                 >
                   <span className="text-[10px] font-mono uppercase font-bold text-neutral-400 dark:text-neutral-500 flex items-center gap-1 mb-1">
                     <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                    <span>Previous guide</span>
+                    <span>{tr("Previous guide", "Guide précédent")}</span>
                   </span>
                   <span className="text-sm font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors block truncate">
-                    {prevFeature.title}
+                    {activePrevFeature.title}
                   </span>
                 </Link>
               ) : (
                 <div className="hidden sm:block" />
               )}
 
-              {nextFeature && (
+              {activeNextFeature && (
                 <Link
-                  href={`/docs/${nextFeature.slug}`}
+                  href={`/docs/${activeNextFeature.slug}`}
                   className="doc-interactive-card doc-nav-card group block p-4 rounded-xl border border-[#E4E7EC] dark:border-white/10 bg-white dark:bg-[#121214] cursor-pointer shadow-xs sm:text-right"
                 >
                   <span className="text-[10px] font-mono uppercase font-bold text-neutral-400 dark:text-neutral-500 flex items-center gap-1 sm:justify-end mb-1">
-                    <span>Next guide</span>
+                    <span>{tr("Next guide", "Guide suivant")}</span>
                     <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <span className="text-sm font-bold text-[#101828] dark:text-white group-hover:text-brand transition-colors block truncate">
-                    {nextFeature.title}
+                    {activeNextFeature.title}
                   </span>
                 </Link>
               )}
@@ -641,13 +679,13 @@ export function DocArticleView({
         <Separator />
 
         {/* 8. Related Resources / Guides */}
-        {relatedFeatures.length > 0 && (
+        {activeRelatedFeatures.length > 0 && (
           <section className="doc-article-section pt-2 space-y-6">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#101828] dark:text-white">
-              Related Guides &amp; APIs
+              {tr("Related Guides & APIs", "Guides & API associés")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {relatedFeatures.map((rf) => (
+              {activeRelatedFeatures.map((rf) => (
                 <Link
                   key={rf.slug}
                   href={`/docs/${rf.slug}`}
@@ -661,14 +699,14 @@ export function DocArticleView({
                           <>
                             <Image
                               src={pair.light}
-                              alt={`${rf.title} (mode clair)`}
+                              alt={`${rf.title} (${tr("light mode", "mode clair")})`}
                               fill
                               className="object-cover block dark:hidden"
                               sizes="(max-width: 1024px) 100vw, 500px"
                             />
                             <Image
                               src={pair.dark}
-                              alt={`${rf.title} (mode sombre)`}
+                              alt={`${rf.title} (${tr("dark mode", "mode sombre")})`}
                               fill
                               className="object-cover hidden dark:block"
                               sizes="(max-width: 1024px) 100vw, 500px"
@@ -689,7 +727,7 @@ export function DocArticleView({
                     </CardContent>
                     <CardFooter className="p-0 pt-3 flex items-center justify-between text-xs font-semibold text-brand">
                       <span className="inline-flex items-center gap-1 group-hover:underline">
-                        <span>Read guide &amp; API</span>
+                        <span>{tr("Read guide & API", "Lire le guide & l'API")}</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     </CardFooter>

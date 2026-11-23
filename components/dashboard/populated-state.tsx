@@ -48,6 +48,7 @@ import {
   generateTimelineForRange,
   toLocalDateKey,
 } from "@/lib/analytics-generators";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface PopulatedStateProps {
   links: ShortLink[];
@@ -55,7 +56,7 @@ interface PopulatedStateProps {
   onRefresh?: () => void;
 }
 
-const MONTH_LABELS = [
+const MONTH_LABELS_EN = [
   "Jan",
   "Feb",
   "Mar",
@@ -70,11 +71,28 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
+const MONTH_LABELS_FR = [
+  "Jan",
+  "Fév",
+  "Mar",
+  "Avr",
+  "Mai",
+  "Juin",
+  "Juil",
+  "Août",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Déc",
+];
+
 export function PopulatedState({
   links,
   analytics,
   onRefresh,
 }: PopulatedStateProps) {
+  const { locale, tr, formatNumber: formatLocaleNumber, formatDate } = useI18n();
+  const MONTH_LABELS = locale === "fr" ? MONTH_LABELS_FR : MONTH_LABELS_EN;
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -139,21 +157,24 @@ export function PopulatedState({
     session?.user?.name?.trim() ||
     cachedName?.trim() ||
     session?.user?.email?.split("@")[0] ||
-    "User";
+    tr("User", "Utilisateur");
 
-  const getGreeting = (name: string): string => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return `Good morning ${name} 👋`;
-    }
-    if (hour >= 12 && hour < 17) {
-      return `Good afternoon ${name} 👋`;
-    }
-    if (hour >= 17 && hour < 22) {
-      return `Good evening ${name} 👋`;
-    }
-    return `Good night ${name} 🌙`;
-  };
+  const getGreeting = useCallback(
+    (name: string): string => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        return tr(`Good morning ${name} 👋`, `Bonjour ${name} 👋`);
+      }
+      if (hour >= 12 && hour < 17) {
+        return tr(`Good afternoon ${name} 👋`, `Bon après-midi ${name} 👋`);
+      }
+      if (hour >= 17 && hour < 22) {
+        return tr(`Good evening ${name} 👋`, `Bonsoir ${name} 👋`);
+      }
+      return tr(`Good night ${name} 🌙`, `Bonne nuit ${name} 🌙`);
+    },
+    [tr],
+  );
 
   const [greetingText, setGreetingText] = useState<string>(() =>
     getGreeting(userName),
@@ -164,7 +185,7 @@ export function PopulatedState({
     const updateTimeGreeting = () => {
       setGreetingText(getGreeting(userName));
       setFormattedDate(
-        new Date().toLocaleDateString("en-US", {
+        formatDate(new Date(), {
           weekday: "long",
           month: "long",
           day: "numeric",
@@ -187,7 +208,7 @@ export function PopulatedState({
       window.removeEventListener("focus", updateTimeGreeting);
       document.removeEventListener("visibilitychange", updateTimeGreeting);
     };
-  }, [userName]);
+  }, [userName, getGreeting, formatDate]);
 
   const [targetMetric, setTargetMetric] = useState<"revenue" | "clicks">(
     "clicks",
@@ -458,7 +479,7 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks, rawClicksByMonth]);
+  }, [safeLiveClickEvents, safeClicksByDay, displayTotalClicks, rawClicksByMonth, MONTH_LABELS]);
 
   const monthlyIncomeBars = useMemo(() => {
     if (Array.isArray(rawIncomeByMonth) && rawIncomeByMonth.length === 12) {
@@ -504,7 +525,7 @@ export function PopulatedState({
     }
 
     return buckets;
-  }, [safeLiveClickEvents, displayRevenue, rawIncomeByMonth]);
+  }, [safeLiveClickEvents, displayRevenue, rawIncomeByMonth, MONTH_LABELS]);
 
   const periodMetrics = useMemo(() => {
     const nowMs = Date.now();
@@ -676,13 +697,15 @@ export function PopulatedState({
           uniqueClicks: 0,
         }));
       } else if (mappedRange === "week") {
-        timeline = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-          (d) => ({
-            label: d,
-            clicks: 0,
-            uniqueClicks: 0,
-          }),
-        );
+        const weekLabels =
+          locale === "fr"
+            ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        timeline = weekLabels.map((d) => ({
+          label: d,
+          clicks: 0,
+          uniqueClicks: 0,
+        }));
       } else if (mappedRange === "year") {
         timeline = MONTH_LABELS.map((m) => ({
           label: m,
@@ -770,29 +793,29 @@ export function PopulatedState({
     if (statsTab === "Sales") {
       return {
         chart14Data,
-        organicLabel: "Confirmed Sales",
-        paidLabel: "Converted Visitors",
-        primaryLabel: `Confirmed Sales (${formatNumber(totalSalesCount)})`,
-        secondaryLabel: `Converted Visitors (${formatNumber(totalSalesCount)})`,
+        organicLabel: tr("Confirmed Sales", "Ventes confirmées"),
+        paidLabel: tr("Converted Visitors", "Visiteurs convertis"),
+        primaryLabel: `${tr("Confirmed Sales", "Ventes confirmées")} (${formatNumber(totalSalesCount)})`,
+        secondaryLabel: `${tr("Converted Visitors", "Visiteurs convertis")} (${formatNumber(totalSalesCount)})`,
         valuePrefix: "",
       };
     }
     if (statsTab === "Revenue") {
       return {
         chart14Data,
-        organicLabel: "Tracked Revenue",
-        paidLabel: "Net Attribution",
-        primaryLabel: `Tracked Revenue ($${displayRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })})`,
-        secondaryLabel: `Target ($${targetRevenueLimit.toLocaleString("en-US")})`,
+        organicLabel: tr("Tracked Revenue", "Revenus suivis"),
+        paidLabel: tr("Net Attribution", "Attribution nette"),
+        primaryLabel: `${tr("Tracked Revenue", "Revenus suivis")} ($${formatLocaleNumber(displayRevenue, { minimumFractionDigits: 2 })})`,
+        secondaryLabel: `${tr("Target", "Objectif")} ($${formatLocaleNumber(targetRevenueLimit)})`,
         valuePrefix: "$",
       };
     }
     return {
       chart14Data,
-      organicLabel: "Total Clicks",
-      paidLabel: "Unique Visitors",
-      primaryLabel: `Total Clicks (${formatNumber(rangeClicksSum)})`,
-      secondaryLabel: `Unique Visitors (${formatNumber(Math.min(rangeClicksSum, rangeUniquesSum))})`,
+      organicLabel: tr("Total Clicks", "Total des clics"),
+      paidLabel: tr("Unique Visitors", "Visiteurs uniques"),
+      primaryLabel: `${tr("Total Clicks", "Total des clics")} (${formatNumber(rangeClicksSum)})`,
+      secondaryLabel: `${tr("Unique Visitors", "Visiteurs uniques")} (${formatNumber(Math.min(rangeClicksSum, rangeUniquesSum))})`,
       valuePrefix: "",
     };
   }, [
@@ -805,6 +828,10 @@ export function PopulatedState({
     displayUniqueVisitors,
     displayRevenue,
     targetRevenueLimit,
+    locale,
+    tr,
+    formatLocaleNumber,
+    MONTH_LABELS,
   ]);
 
   const [donutToggleMode, setDonutToggleMode] = useState<"clicks" | "revenue">(
@@ -820,9 +847,9 @@ export function PopulatedState({
           return {
             key: l.id || l.slug,
             label: `lsho.cc/${l.slug}`,
-            sublabel: l.title || l.targetUrl || "Active short link",
+            sublabel: l.title || l.targetUrl || tr("Active short link", "Lien court actif"),
             value: clk,
-            secondaryText: `${formatNumber(uniq)} unique`,
+            secondaryText: `${formatNumber(uniq)} ${tr("unique", "uniques")}`,
           };
         })
         .filter((it) => it.value > 0)
@@ -837,15 +864,15 @@ export function PopulatedState({
         return {
           key: l.id || l.slug,
           label: `lsho.cc/${l.slug}`,
-          sublabel: l.title || l.targetUrl || "Monetized short link",
+          sublabel: l.title || l.targetUrl || tr("Monetized short link", "Lien court monétisé"),
           value: rev,
-          secondaryText: `${formatNumber(clk)} clicks`,
+          secondaryText: `${formatNumber(clk)} ${tr("clicks", "clics")}`,
         };
       })
       .filter((it) => it.value > 0)
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
-  }, [donutToggleMode, links]);
+  }, [donutToggleMode, links, tr]);
 
   const formatCompactMetric = (val: number, isCurrency: boolean) => {
     const prefix = isCurrency ? "$" : "";
@@ -853,7 +880,7 @@ export function PopulatedState({
       return `${prefix}${(val / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
     if (val >= 1_000)
       return `${prefix}${(val / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-    return `${prefix}${val.toLocaleString("en-US")}`;
+    return `${prefix}${formatLocaleNumber(val)}`;
   };
 
   const currentMetricVal =
@@ -895,7 +922,7 @@ export function PopulatedState({
     } catch {}
     setIsTargetMenuOpen(false);
     setIsTargetEditModalOpen(false);
-    showToast.success("Objectif mensuel mis à jour");
+    showToast.success(tr("Monthly target updated", "Objectif mensuel mis à jour"));
 
     // Persist targets directly into Cloudflare D1
     if (userId) {
@@ -937,12 +964,12 @@ export function PopulatedState({
       const targetName = userName || session?.user?.name || "";
       const metricAchieved =
         targetMetric === "revenue"
-          ? `$${displayRevenue.toLocaleString("en-US")}`
-          : `${displayTotalClicks.toLocaleString("en-US")} clics`;
+          ? `$${formatLocaleNumber(displayRevenue)}`
+          : `${formatLocaleNumber(displayTotalClicks)} ${tr("clicks", "clics")}`;
       const metricTarget =
         targetMetric === "revenue"
-          ? `$${targetRevenueLimit.toLocaleString("en-US")}`
-          : `${targetClicksLimit.toLocaleString("en-US")} clics`;
+          ? `$${formatLocaleNumber(targetRevenueLimit)}`
+          : `${formatLocaleNumber(targetClicksLimit)} ${tr("clicks", "clics")}`;
 
       const res = await fetch("/api/targets/notify", {
         method: "POST",
@@ -954,7 +981,7 @@ export function PopulatedState({
           metricType: targetMetric,
           achievedValue: metricAchieved,
           targetValue: metricTarget,
-          monthLabel: new Date().toLocaleDateString("fr-FR", {
+          monthLabel: formatDate(new Date(), {
             month: "long",
             year: "numeric",
           }),
@@ -970,22 +997,38 @@ export function PopulatedState({
               id: `target_test_${Date.now()}`,
               title:
                 targetMetric === "revenue"
-                  ? "🎯 Objectif de revenus mensuel atteint !"
-                  : "🎯 Objectif de clics mensuel atteint !",
-              message: `Félicitations ${targetName} ! Vous avez atteint votre objectif (${metricAchieved} sur ${metricTarget}).`,
+                  ? tr("🎯 Monthly revenue target reached!", "🎯 Objectif de revenus mensuel atteint !")
+                  : tr("🎯 Monthly clicks target reached!", "🎯 Objectif de clics mensuel atteint !"),
+              message: tr(
+                `Congratulations ${targetName}! You reached your target (${metricAchieved} of ${metricTarget}).`,
+                `Félicitations ${targetName} ! Vous avez atteint votre objectif (${metricAchieved} sur ${metricTarget}).`
+              ),
               createdAt: Date.now(),
             },
           })
         );
 
         showToast.success(
-          `Notification test envoyée ! Email expédié à ${targetEmail} et popup cloche mis à jour.`
+          tr(
+            `Test notification sent! Email sent to ${targetEmail} and notification bell updated.`,
+            `Notification test envoyée ! Email expédié à ${targetEmail} et popup cloche mis à jour.`
+          )
         );
       } else {
-        showToast.error("Échec de l'envoi de la notification test.");
+        showToast.error(
+          tr(
+            "Failed to send test notification.",
+            "Échec de l'envoi de la notification test."
+          )
+        );
       }
     } catch {
-      showToast.error("Erreur réseau lors de l'envoi de la notification.");
+      showToast.error(
+        tr(
+          "Network error while sending notification.",
+          "Erreur réseau lors de l'envoi de la notification."
+        )
+      );
     } finally {
       setIsTestingTargetNotif(false);
       setIsTargetMenuOpen(false);
@@ -1006,12 +1049,12 @@ export function PopulatedState({
           const targetName = userName || session?.user?.name || "";
           const metricAchieved =
             targetMetric === "revenue"
-              ? `$${displayRevenue.toLocaleString("en-US")}`
-              : `${displayTotalClicks.toLocaleString("en-US")} clics`;
+              ? `$${formatLocaleNumber(displayRevenue)}`
+              : `${formatLocaleNumber(displayTotalClicks)} ${tr("clicks", "clics")}`;
           const metricTarget =
             targetMetric === "revenue"
-              ? `$${targetRevenueLimit.toLocaleString("en-US")}`
-              : `${targetClicksLimit.toLocaleString("en-US")} clics`;
+              ? `$${formatLocaleNumber(targetRevenueLimit)}`
+              : `${formatLocaleNumber(targetClicksLimit)} ${tr("clicks", "clics")}`;
 
           fetch("/api/targets/notify", {
             method: "POST",
@@ -1023,7 +1066,7 @@ export function PopulatedState({
               metricType: targetMetric,
               achievedValue: metricAchieved,
               targetValue: metricTarget,
-              monthLabel: new Date().toLocaleDateString("fr-FR", {
+              monthLabel: formatDate(new Date(), {
                 month: "long",
                 year: "numeric",
               }),
@@ -1038,15 +1081,21 @@ export function PopulatedState({
                       id: `target_${Date.now()}`,
                       title:
                         targetMetric === "revenue"
-                          ? "🎉 Objectif de revenus mensuel atteint !"
-                          : "🎉 Objectif de clics mensuel atteint !",
-                      message: `Félicitations ${targetName} ! Vous avez atteint 100% de votre objectif (${metricAchieved} / ${metricTarget}).`,
+                          ? tr("🎉 Monthly revenue target reached!", "🎉 Objectif de revenus mensuel atteint !")
+                          : tr("🎉 Monthly clicks target reached!", "🎉 Objectif de clics mensuel atteint !"),
+                      message: tr(
+                        `Congratulations ${targetName}! You reached 100% of your target (${metricAchieved} / ${metricTarget}).`,
+                        `Félicitations ${targetName} ! Vous avez atteint 100% de votre objectif (${metricAchieved} / ${metricTarget}).`
+                      ),
                       createdAt: Date.now(),
                     },
                   })
                 );
                 showToast.success(
-                  "🎉 Félicitations ! Votre objectif mensuel est atteint. Un email et une notification ont été envoyés !"
+                  tr(
+                    "🎉 Congratulations! Your monthly target is reached. An email and notification have been sent!",
+                    "🎉 Félicitations ! Votre objectif mensuel est atteint. Un email et une notification ont été envoyés !"
+                  )
                 );
               }
             })
@@ -1065,14 +1114,17 @@ export function PopulatedState({
     session?.user?.email,
     userName,
     userId,
+    formatLocaleNumber,
+    formatDate,
+    tr,
   ]);
 
   const handleExportMonthlyCsv = () => {
     try {
       const isClicks = monthlyMetricMode === "clicks";
       const headers = isClicks
-        ? ["Month", "Clicks", "Unique Visitors"]
-        : ["Month", "Attributed Revenue (€)", "Conversions"];
+        ? [tr("Month", "Mois"), tr("Clicks", "Clics"), tr("Unique Visitors", "Visiteurs uniques")]
+        : [tr("Month", "Mois"), tr("Attributed Revenue ($)", "Revenus attribués ($)"), tr("Conversions", "Conversions")];
 
       const rows = isClicks
         ? monthlyBars.map((b) => {
@@ -1103,9 +1155,13 @@ export function PopulatedState({
       a.remove();
       URL.revokeObjectURL(url);
       setIsMonthlyMenuOpen(false);
-      showToast.success(`Monthly ${isClicks ? "clicks" : "income"} CSV downloaded`);
+      showToast.success(
+        isClicks
+          ? tr("Monthly clicks CSV downloaded", "CSV des clics mensuels téléchargé")
+          : tr("Monthly income CSV downloaded", "CSV des revenus mensuels téléchargé")
+      );
     } catch {
-      showToast.error("Could not export CSV");
+      showToast.error(tr("Could not export CSV", "Impossible d'exporter le CSV"));
     }
   };
 
@@ -1127,7 +1183,7 @@ export function PopulatedState({
     triggerUndoDelete({
       id: linkId,
       itemType: "link",
-      title: "Lien supprimé",
+      title: tr("Link deleted", "Lien supprimé"),
       description: `/${linkSlug}`,
       confirmText: linkSlug,
       onExecute: async () => {
@@ -1154,7 +1210,12 @@ export function PopulatedState({
           }
         } catch (err) {
           console.error("Delete link error:", err);
-          showToast.error("Erreur lors de la suppression définitive du lien");
+          showToast.error(
+            tr(
+              "Error permanently deleting link",
+              "Erreur lors de la suppression définitive du lien"
+            )
+          );
           setPendingDeletedIds((prev) => {
             const next = new Set(prev);
             next.delete(linkId);
@@ -1180,8 +1241,14 @@ export function PopulatedState({
     triggerUndoDelete({
       id: `bulk_${Date.now()}`,
       itemType: "link",
-      title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-      description: count > 1 ? `${count} liens sélectionnés` : (firstLink?.slug ? `/${firstLink.slug}` : undefined),
+      title:
+        count > 1
+          ? tr(`${count} links deleted`, `${count} liens supprimés`)
+          : tr("Link deleted", "Lien supprimé"),
+      description:
+        count > 1
+          ? tr(`${count} selected links`, `${count} liens sélectionnés`)
+          : (firstLink?.slug ? `/${firstLink.slug}` : undefined),
       confirmText: count === 1 && firstLink?.slug ? firstLink.slug : "DELETE",
       onExecute: async () => {
         setPendingDeletedIds((prev) => {
@@ -1200,7 +1267,9 @@ export function PopulatedState({
           }
         } catch (err) {
           console.error("Bulk delete error:", err);
-          showToast.error("Erreur lors de la suppression des liens");
+          showToast.error(
+            tr("Error deleting links", "Erreur lors de la suppression des liens")
+          );
           setPendingDeletedIds((prev) => {
             const next = new Set(prev);
             targetIds.forEach((id) => next.delete(id));
@@ -1246,14 +1315,14 @@ export function PopulatedState({
                   <Users className="h-6 w-6" />
                 </div>
                 <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#0066FF] inline-flex items-center gap-1 transition-colors">
-                  Analytics <ExternalLink className="h-3 w-3" />
+                  {tr("Analytics", "Analytiques")} <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
 
               <div className="mt-5 flex items-end justify-between">
                 <div>
                   <span className="text-sm font-medium text-[#667085] dark:text-[#98A2B3]">
-                    Total Clicks
+                    {tr("Total Clicks", "Total des clics")}
                   </span>
                   <h4 className="mt-2 text-[30px] font-bold leading-none text-[#101828] dark:text-white">
                     {formatNumber(displayTotalClicks)}
@@ -1264,14 +1333,19 @@ export function PopulatedState({
                   <ArrowUp className="h-3 w-3 text-[#0066FF]" />
                   {clicksGrowthPct > 0
                     ? `${clicksGrowthPct}%`
-                    : `${todayClicksValue} today`}
+                    : `${todayClicksValue} ${tr("today", "auj.")}`}
                 </span>
               </div>
 
               <div className="mt-3 pt-2.5 border-t border-[#E4E7EC]/70 dark:border-[#344054]/70 flex items-center justify-between text-[11px] text-[#667085] dark:text-[#98A2B3]">
-                <span>Total cumulé Edge</span>
+                <span>{tr("Cumulative Edge total", "Total cumulé Edge")}</span>
                 <span className="font-medium text-[#0066FF] dark:text-[#5294FF]">
-                  {todayClicksValue > 0 ? `+${todayClicksValue} clic${todayClicksValue > 1 ? "s" : ""} aujourd'hui` : "0 clic aujourd'hui"}
+                  {todayClicksValue > 0
+                    ? tr(
+                        `+${todayClicksValue} click${todayClicksValue > 1 ? "s" : ""} today`,
+                        `+${todayClicksValue} clic${todayClicksValue > 1 ? "s" : ""} aujourd'hui`
+                      )
+                    : tr("0 clicks today", "0 clic aujourd'hui")}
                 </span>
               </div>
             </div>
@@ -1285,14 +1359,14 @@ export function PopulatedState({
                   <Package className="h-6 w-6" />
                 </div>
                 <span className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] group-hover:text-[#0066FF] inline-flex items-center gap-1 transition-colors">
-                  Manage Links <ExternalLink className="h-3 w-3" />
+                  {tr("Manage Links", "Gérer les liens")} <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
 
               <div className="mt-5 flex items-end justify-between">
                 <div>
                   <span className="text-sm font-medium text-[#667085] dark:text-[#98A2B3]">
-                    Active Short Links
+                    {tr("Active Short Links", "Liens courts actifs")}
                   </span>
                   <h4 className="mt-2 text-[30px] font-bold leading-none text-[#101828] dark:text-white flex items-baseline gap-1.5">
                     <span>{formatNumber(displayActiveLinks)}</span>
@@ -1304,7 +1378,9 @@ export function PopulatedState({
 
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
                   <span className={`w-1.5 h-1.5 rounded-full ${displayActiveLinks > 0 ? "bg-[#0066FF] animate-pulse" : "bg-neutral-400"}`} />
-                  {links.length > 0 ? `${activeRatioPct}% active` : "0% active"}
+                  {links.length > 0
+                    ? `${activeRatioPct}% ${tr("active", "actifs")}`
+                    : `0% ${tr("active", "actifs")}`}
                 </span>
               </div>
 
@@ -1312,14 +1388,24 @@ export function PopulatedState({
                 <div className="mt-3 pt-2.5 border-t border-[#E4E7EC]/70 dark:border-[#344054]/70 flex items-center justify-between text-[11px] text-[#667085] dark:text-[#98A2B3]">
                   <span>
                     {links.length > displayActiveLinks
-                      ? `${displayActiveLinks} actif${displayActiveLinks > 1 ? "s" : ""} sur ${links.length} total`
-                      : "100% des liens sont actifs"}
+                      ? tr(
+                          `${displayActiveLinks} active out of ${links.length} total`,
+                          `${displayActiveLinks} actif${displayActiveLinks > 1 ? "s" : ""} sur ${links.length} total`
+                        )
+                      : tr("100% of links are active", "100% des liens sont actifs")}
                   </span>
                   {links.length > displayActiveLinks && (
                     <span className="font-medium text-[#F04438] dark:text-[#FDA29B]">
-                      {expiredLinksCount > 0 ? `${expiredLinksCount} expiré${expiredLinksCount > 1 ? "s" : ""}` : ""}
+                      {expiredLinksCount > 0
+                        ? tr(
+                            `${expiredLinksCount} expired`,
+                            `${expiredLinksCount} expiré${expiredLinksCount > 1 ? "s" : ""}`
+                          )
+                        : ""}
                       {expiredLinksCount > 0 && pausedLinksCount > 0 ? " • " : ""}
-                      {pausedLinksCount > 0 ? `${pausedLinksCount} en pause` : ""}
+                      {pausedLinksCount > 0
+                        ? tr(`${pausedLinksCount} paused`, `${pausedLinksCount} en pause`)
+                        : ""}
                     </span>
                   )}
                 </div>
@@ -1331,12 +1417,20 @@ export function PopulatedState({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative">
               <div>
                 <h3 className="text-lg font-semibold text-[#101828] dark:text-white">
-                  {monthlyMetricMode === "clicks" ? "Monthly Clicks" : "Monthly Income"}
+                  {monthlyMetricMode === "clicks"
+                    ? tr("Monthly Clicks", "Clics mensuels")
+                    : tr("Monthly Income", "Revenus mensuels")}
                 </h3>
                 <p className="text-xs text-[#667085] dark:text-[#98A2B3] mt-0.5">
                   {monthlyMetricMode === "clicks"
-                    ? `Live click distribution across ${new Date().getFullYear()} (${formatNumber(displayTotalClicks)} total)`
-                    : `Attributed revenue distribution across ${new Date().getFullYear()} ($${displayRevenue.toFixed(2)} total)`}
+                    ? tr(
+                        `Live click distribution across ${new Date().getFullYear()} (${formatNumber(displayTotalClicks)} total)`,
+                        `Répartition en direct des clics sur ${new Date().getFullYear()} (${formatNumber(displayTotalClicks)} au total)`
+                      )
+                    : tr(
+                        `Attributed revenue distribution across ${new Date().getFullYear()} ($${displayRevenue.toFixed(2)} total)`,
+                        `Répartition des revenus attribués sur ${new Date().getFullYear()} ($${displayRevenue.toFixed(2)} au total)`
+                      )}
                 </p>
               </div>
 
@@ -1352,7 +1446,7 @@ export function PopulatedState({
                         : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                     }`}
                   >
-                    Monthly Clicks
+                    {tr("Monthly Clicks", "Clics mensuels")}
                   </button>
                   <button
                     type="button"
@@ -1363,7 +1457,7 @@ export function PopulatedState({
                         : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                     }`}
                   >
-                    Monthly Income
+                    {tr("Monthly Income", "Revenus mensuels")}
                   </button>
                 </div>
 
@@ -1393,8 +1487,8 @@ export function PopulatedState({
                         <BarChart2 className="h-4 w-4 text-[#465FFF]" />
                         <span>
                           {monthlyMetricMode === "clicks"
-                            ? "Open Traffic Analytics"
-                            : "Open Revenue Analytics"}
+                            ? tr("Open Traffic Analytics", "Ouvrir l'analyse du trafic")
+                            : tr("Open Revenue Analytics", "Ouvrir l'analyse des revenus")}
                         </span>
                       </button>
                       <button
@@ -1404,7 +1498,9 @@ export function PopulatedState({
                       >
                         <Download className="h-4 w-4 text-[#667085]" />
                         <span>
-                          Export {monthlyMetricMode === "clicks" ? "Monthly Clicks" : "Monthly Income"} CSV
+                          {monthlyMetricMode === "clicks"
+                            ? tr("Export Monthly Clicks CSV", "Exporter les clics mensuels (CSV)")
+                            : tr("Export Monthly Income CSV", "Exporter les revenus mensuels (CSV)")}
                         </span>
                       </button>
                     </div>
@@ -1432,7 +1528,10 @@ export function PopulatedState({
                         return {
                           label: item.month,
                           fullDate: `${item.month} ${new Date().getFullYear()}`,
-                          extraLabel: `${sharePct}% of annual traffic`,
+                          extraLabel: tr(
+                            `${sharePct}% of annual traffic`,
+                            `${sharePct}% du trafic annuel`
+                          ),
                           primary: item.value,
                           secondary: estUnique,
                         };
@@ -1445,14 +1544,25 @@ export function PopulatedState({
                         return {
                           label: item.month,
                           fullDate: `${item.month} ${new Date().getFullYear()}`,
-                          extraLabel: `${sharePct}% of annual revenue`,
+                          extraLabel: tr(
+                            `${sharePct}% of annual revenue`,
+                            `${sharePct}% des revenus annuels`
+                          ),
                           primary: item.value,
                           secondary: item.conversions,
                         };
                       })
                 }
-                primaryLabel={monthlyMetricMode === "clicks" ? "Total Clicks" : "Attributed Revenue ($)"}
-                secondaryLabel={monthlyMetricMode === "clicks" ? "Unique Visitors" : "Conversions"}
+                primaryLabel={
+                  monthlyMetricMode === "clicks"
+                    ? tr("Total Clicks", "Total des clics")
+                    : tr("Attributed Revenue ($)", "Revenus attribués ($)")
+                }
+                secondaryLabel={
+                  monthlyMetricMode === "clicks"
+                    ? tr("Unique Visitors", "Visiteurs uniques")
+                    : tr("Conversions", "Conversions")
+                }
                 primaryColorLight="#0066FF"
                 primaryColorDark="#0066FF"
                 secondaryColorLight="#93C5FD"
@@ -1472,10 +1582,13 @@ export function PopulatedState({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-semibold text-[#101828] dark:text-white">
-                    Monthly Target
+                    {tr("Monthly Target", "Objectif mensuel")}
                   </h3>
                   <p className="mt-1 text-sm text-[#667085] dark:text-[#98A2B3]">
-                    Target you&apos;ve set for each month
+                    {tr(
+                      "Target you've set for each month",
+                      "Objectif défini pour chaque mois"
+                    )}
                   </p>
                 </div>
 
@@ -1490,7 +1603,7 @@ export function PopulatedState({
                           : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                       }`}
                     >
-                      Clicks
+                      {tr("Clicks", "Clics")}
                     </button>
                     <button
                       type="button"
@@ -1501,7 +1614,7 @@ export function PopulatedState({
                           : "text-[#667085] dark:text-[#98A2B3] hover:text-[#101828]"
                       }`}
                     >
-                      Revenue
+                      {tr("Revenue", "Revenus")}
                     </button>
                   </div>
 
@@ -1510,7 +1623,7 @@ export function PopulatedState({
                       type="button"
                       onClick={() => setIsTargetMenuOpen((prev) => !prev)}
                       className="p-1 rounded-lg text-[#98A2B3] hover:text-[#344054] dark:hover:text-white hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-                      aria-label="Options d'objectif"
+                      aria-label={tr("Target options", "Options d'objectif")}
                     >
                       <MoreVertical className="h-5 w-5" />
                     </button>
@@ -1532,9 +1645,14 @@ export function PopulatedState({
                           >
                             <Sliders className="h-4 w-4 text-[#0066FF]" />
                             <div>
-                              <p className="font-semibold">Modifier l'objectif</p>
+                              <p className="font-semibold">
+                                {tr("Edit target", "Modifier l'objectif")}
+                              </p>
                               <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
-                                Ajuster les seuils de clics ou revenus
+                                {tr(
+                                  "Adjust click or revenue thresholds",
+                                  "Ajuster les seuils de clics ou revenus"
+                                )}
                               </p>
                             </div>
                           </button>
@@ -1549,9 +1667,14 @@ export function PopulatedState({
                           >
                             <Bell className="h-4 w-4 text-[#0066FF]" />
                             <div>
-                              <p className="font-semibold">Gérer toutes les alertes</p>
+                              <p className="font-semibold">
+                                {tr("Manage all alerts", "Gérer toutes les alertes")}
+                              </p>
                               <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
-                                Dashboard complet dans Paramètres
+                                {tr(
+                                  "Full dashboard in Settings",
+                                  "Tableau complet dans Paramètres"
+                                )}
                               </p>
                             </div>
                           </button>
@@ -1567,10 +1690,15 @@ export function PopulatedState({
                             <Send className="h-4 w-4" />
                             <div>
                               <p className="font-semibold">
-                                {isTestingTargetNotif ? "Envoi du test en cours..." : "Tester l'alerte & e-mail"}
+                                {isTestingTargetNotif
+                                  ? tr("Sending test...", "Envoi du test en cours...")
+                                  : tr("Test alert & email", "Tester l'alerte & e-mail")}
                               </p>
                               <p className="text-[10px] text-[#667085] dark:text-[#98A2B3]">
-                                Vérifier l'e-mail de félicitations & la cloche
+                                {tr(
+                                  "Verify congratulatory email & bell alert",
+                                  "Vérifier l'e-mail de félicitations & la cloche"
+                                )}
                               </p>
                             </div>
                           </button>
@@ -1608,34 +1736,29 @@ export function PopulatedState({
                   </span>
                   <span className="mt-2.5 inline-flex items-center rounded-full bg-[#0066FF]/10 px-2.5 py-0.5 text-xs font-semibold text-[#0066FF] dark:text-[#5294FF]">
                     {targetMetric === "revenue"
-                      ? "Revenue Goal"
-                      : "Clicks Goal"}
+                      ? tr("Revenue Goal", "Objectif de revenus")
+                      : tr("Clicks Goal", "Objectif de clics")}
                   </span>
                 </div>
               </div>
 
               <p className="mx-auto max-w-[330px] text-center text-sm text-[#667085] dark:text-[#98A2B3] leading-relaxed">
-                {targetMetric === "revenue" ? (
-                  <>
-                    You generated ${displayRevenue.toLocaleString("en-US")} in
-                    attributed revenue against your $
-                    {targetRevenueLimit.toLocaleString("en-US")} target.
-                  </>
-                ) : (
-                  <>
-                    You recorded {displayTotalClicks.toLocaleString("en-US")}{" "}
-                    total clicks ({todayClicksValue.toLocaleString("en-US")}{" "}
-                    today) against your{" "}
-                    {targetClicksLimit.toLocaleString("en-US")} target.
-                  </>
-                )}
+                {targetMetric === "revenue"
+                  ? tr(
+                      `You generated $${formatLocaleNumber(displayRevenue)} in attributed revenue against your $${formatLocaleNumber(targetRevenueLimit)} target.`,
+                      `Vous avez généré $${formatLocaleNumber(displayRevenue)} de revenus attribués sur votre objectif de $${formatLocaleNumber(targetRevenueLimit)}.`
+                    )
+                  : tr(
+                      `You recorded ${formatLocaleNumber(displayTotalClicks)} total clicks (${formatLocaleNumber(todayClicksValue)} today) against your ${formatLocaleNumber(targetClicksLimit)} target.`,
+                      `Vous avez enregistré ${formatLocaleNumber(displayTotalClicks)} clics au total (${formatLocaleNumber(todayClicksValue)} aujourd'hui) sur votre objectif de ${formatLocaleNumber(targetClicksLimit)}.`
+                    )}
               </p>
             </div>
 
             <div className="grid grid-cols-3 divide-x divide-[#E4E7EC] dark:divide-[#344054] px-4 py-5 text-center">
               <div>
                 <p className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] mb-1">
-                  Target
+                  {tr("Target", "Objectif")}
                 </p>
                 <p className="text-lg font-bold text-[#101828] dark:text-white">
                   {targetMetric === "revenue"
@@ -1645,7 +1768,9 @@ export function PopulatedState({
               </div>
               <div>
                 <p className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] mb-1">
-                  {targetMetric === "revenue" ? "Revenue" : "Clicks"}
+                  {targetMetric === "revenue"
+                    ? tr("Revenue", "Revenus")
+                    : tr("Clicks", "Clics")}
                 </p>
                 <p className="inline-flex items-center justify-center gap-1 text-lg font-bold text-[#101828] dark:text-white">
                   {targetMetric === "revenue"
@@ -1656,7 +1781,7 @@ export function PopulatedState({
               </div>
               <div>
                 <p className="text-xs font-medium text-[#667085] dark:text-[#98A2B3] mb-1">
-                  Today
+                  {tr("Today", "Aujourd'hui")}
                 </p>
                 <p className="inline-flex items-center justify-center gap-1 text-lg font-bold text-[#101828] dark:text-white">
                   {targetMetric === "revenue"
@@ -1674,7 +1799,13 @@ export function PopulatedState({
       <div className="rounded-[10px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#1D2939] p-5 md:p-6 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
           <h3 className="text-lg font-semibold text-[#101828] dark:text-white">
-            Overview ({saasPeriod})
+            {tr("Overview", "Vue d'ensemble")} (
+            {saasPeriod === "Weekly"
+              ? tr("Weekly", "Hebdomadaire")
+              : saasPeriod === "Monthly"
+                ? tr("Monthly", "Mensuel")
+                : tr("Yearly", "Annuel")}
+            )
           </h3>
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="inline-flex rounded-[10px] bg-[#F2F4F7] dark:bg-[#101828] p-1">
@@ -1689,7 +1820,11 @@ export function PopulatedState({
                       : "text-[#667085] dark:text-[#98A2B3]"
                   }`}
                 >
-                  {tab}
+                  {tab === "Weekly"
+                    ? tr("Weekly", "Hebdo")
+                    : tab === "Monthly"
+                      ? tr("Monthly", "Mensuel")
+                      : tr("Yearly", "Annuel")}
                 </button>
               ))}
             </div>
@@ -1700,7 +1835,7 @@ export function PopulatedState({
               className="inline-flex items-center gap-2 rounded-[10px] bg-[#465FFF] hover:bg-[#3641F5] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span>Create Link</span>
+              <span>{tr("Create Link", "Créer un lien")}</span>
             </button>
           </div>
         </div>
@@ -1710,13 +1845,15 @@ export function PopulatedState({
             onClick={() => router.push("/dashboard/analytics/revenue")}
             className="p-5 cursor-pointer"
           >
-            <p className="text-xs font-medium text-[#667085]">Total Revenue</p>
+            <p className="text-xs font-medium text-[#667085]">
+              {tr("Total Revenue", "Revenus totaux")}
+            </p>
             <div className="mt-2.5 flex items-baseline gap-2.5">
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 ${periodMetrics.rev.toFixed(2)}
               </span>
               <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
-                Live
+                {tr("Live", "En direct")}
               </span>
             </div>
           </div>
@@ -1725,14 +1862,14 @@ export function PopulatedState({
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
-              Unique Edge Visitors
+              {tr("Unique Edge Visitors", "Visiteurs Edge uniques")}
             </p>
             <div className="mt-2.5 flex items-baseline gap-2.5">
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 {formatNumber(periodMetrics.visitors)}
               </span>
               <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
-                Verified
+                {tr("Verified", "Vérifié")}
               </span>
             </div>
           </div>
@@ -1741,14 +1878,14 @@ export function PopulatedState({
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
-              Avg. Value per Click (EPC)
+              {tr("Avg. Value per Click (EPC)", "Valeur moy. par clic (EPC)")}
             </p>
             <div className="mt-2.5 flex items-baseline gap-2.5">
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 ${periodMetrics.epc.toFixed(2)}
               </span>
               <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
-                Attributed
+                {tr("Attributed", "Attribué")}
               </span>
             </div>
           </div>
@@ -1757,14 +1894,14 @@ export function PopulatedState({
             className="p-5 cursor-pointer"
           >
             <p className="text-xs font-medium text-[#667085]">
-              Avg. Clicks per Link
+              {tr("Avg. Clicks per Link", "Clics moy. par lien")}
             </p>
             <div className="mt-2.5 flex items-baseline gap-2.5">
               <span className="text-2xl font-bold text-[#101828] dark:text-white">
                 {periodMetrics.avgClicks}
               </span>
               <span className="rounded-full bg-[#ECFDF3] dark:bg-[#027A48]/20 px-2 py-0.5 text-xs font-semibold text-[#039855] dark:text-[#12B76A]">
-                {displayActiveLinks} / {links.length} Active
+                {displayActiveLinks} / {links.length} {tr("Active", "Actifs")}
               </span>
             </div>
           </div>
@@ -1776,7 +1913,12 @@ export function PopulatedState({
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-lg font-semibold text-[#101828] dark:text-white">
-              Statistics — {statsTab}
+              {tr("Statistics", "Statistiques")} —{" "}
+              {statsTab === "Overview"
+                ? tr("Overview", "Vue d'ensemble")
+                : statsTab === "Sales"
+                  ? tr("Sales", "Ventes")
+                  : tr("Revenue", "Revenus")}
             </h3>
             <div className="mt-1 flex flex-wrap items-center gap-4 text-xs text-[#667085] dark:text-[#98A2B3]">
               <span className="inline-flex items-center gap-1.5">
@@ -1803,7 +1945,11 @@ export function PopulatedState({
                       : "text-[#667085] dark:text-[#98A2B3]"
                   }`}
                 >
-                  {tab}
+                  {tab === "Overview"
+                    ? tr("Overview", "Vue d'ensemble")
+                    : tab === "Sales"
+                      ? tr("Sales", "Ventes")
+                      : tr("Revenue", "Revenus")}
                 </button>
               ))}
             </div>
@@ -1817,12 +1963,12 @@ export function PopulatedState({
                 <Calendar className="h-4 w-4 text-[#667085]" />
                 <span>
                   {statsRange === "24h"
-                    ? "Last 24 Hours"
+                    ? tr("Last 24 Hours", "24 dernières heures")
                     : statsRange === "7d"
-                      ? "Last 7 Days"
+                      ? tr("Last 7 Days", "7 derniers jours")
                       : statsRange === "30d"
-                        ? "Last 30 Days"
-                        : "Last 12 Months"}
+                        ? tr("Last 30 Days", "30 derniers jours")
+                        : tr("Last 12 Months", "12 derniers mois")}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-[#667085]" />
               </button>
@@ -1830,10 +1976,10 @@ export function PopulatedState({
               {isStatsDateOpen && (
                 <div className="absolute right-0 mt-1.5 w-44 rounded-[8px] border border-[#E4E7EC] dark:border-[#344054] bg-white dark:bg-[#141418] p-1.5 shadow-xl z-40">
                   {[
-                    { id: "24h", label: "Last 24 Hours" },
-                    { id: "7d", label: "Last 7 Days" },
-                    { id: "30d", label: "Last 30 Days" },
-                    { id: "12m", label: "Last 12 Months" },
+                    { id: "24h", label: tr("Last 24 Hours", "24 dernières heures") },
+                    { id: "7d", label: tr("Last 7 Days", "7 derniers jours") },
+                    { id: "30d", label: tr("Last 30 Days", "30 derniers jours") },
+                    { id: "12m", label: tr("Last 12 Months", "12 derniers mois") },
                   ].map((opt) => (
                     <button
                       key={opt.id}
@@ -1876,13 +2022,22 @@ export function PopulatedState({
           <div>
             <h3 className="text-lg font-semibold text-[#101828] dark:text-white">
               {donutToggleMode === "clicks"
-                ? "Top Short Links by Clicks"
-                : "Top Clients & Links by Revenue Traffic"}
+                ? tr("Top Short Links by Clicks", "Meilleurs liens courts par clics")
+                : tr(
+                    "Top Clients & Links by Revenue Traffic",
+                    "Meilleurs clients & liens par revenus"
+                  )}
             </h3>
             <p className="mt-0.5 text-xs text-[#667085] dark:text-[#98A2B3]">
               {donutToggleMode === "clicks"
-                ? "Active-segment breakdown of links receiving click volume"
-                : "Breakdown of clients and links driving attributed revenue"}
+                ? tr(
+                    "Active-segment breakdown of links receiving click volume",
+                    "Répartition des liens générant le plus de volume de clics"
+                  )
+                : tr(
+                    "Breakdown of clients and links driving attributed revenue",
+                    "Répartition des clients et liens générant des revenus attribués"
+                  )}
             </p>
           </div>
 
@@ -1896,7 +2051,7 @@ export function PopulatedState({
                   : "text-[#667085]"
               }`}
             >
-              Top Clicks
+              {tr("Top Clicks", "Top clics")}
             </button>
             <button
               type="button"
@@ -1907,7 +2062,7 @@ export function PopulatedState({
                   : "text-[#667085]"
               }`}
             >
-              Revenue & Clients
+              {tr("Revenue & Clients", "Revenus & Clients")}
             </button>
           </div>
         </div>
@@ -1915,14 +2070,19 @@ export function PopulatedState({
         <ReuiDonutChart22
           items={dashboardDonutItems}
           centerLabel={
-            donutToggleMode === "clicks" ? "Total Clicks" : "Total Revenue"
+            donutToggleMode === "clicks"
+              ? tr("Total Clicks", "Total des clics")
+              : tr("Total Revenue", "Revenus totaux")
           }
           centerValueFormatter={(val) =>
             donutToggleMode === "revenue"
-              ? `$${Number(val || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+              ? `$${formatLocaleNumber(Number(val || 0), { minimumFractionDigits: 2 })}`
               : formatNumber(val)
           }
-          emptyMessage="No clicks or revenue recorded yet."
+          emptyMessage={tr(
+            "No clicks or revenue recorded yet.",
+            "Aucun clic ni revenu enregistré pour le moment."
+          )}
         />
       </div>
 
@@ -1938,7 +2098,7 @@ export function PopulatedState({
         onQr={(link) => setSelectedQRLink(link)}
         onDeleteLink={handleDeleteLink}
         onDeleteMultiple={handleDeleteMultiple}
-        title="Short Links Directory"
+        title={tr("Short Links Directory", "Répertoire des liens courts")}
       />
 
       <PageLinkDrawers
@@ -1973,10 +2133,13 @@ export function PopulatedState({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#101828] dark:text-white">
-                    Edit Monthly Targets
+                    {tr("Edit Monthly Targets", "Modifier les objectifs mensuels")}
                   </h3>
                   <p className="text-xs text-[#667085] dark:text-[#98A2B3]">
-                    Configure your workspace targets for the current month
+                    {tr(
+                      "Configure your workspace targets for the current month",
+                      "Configurez les objectifs de votre espace pour le mois en cours"
+                    )}
                   </p>
                 </div>
               </div>
@@ -1992,7 +2155,7 @@ export function PopulatedState({
             <form onSubmit={handleSaveTargets} noValidate className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
-                  Monthly Clicks Target
+                  {tr("Monthly Clicks Target", "Objectif mensuel de clics")}
                 </label>
                 <div className="relative">
                   <input
@@ -2007,7 +2170,7 @@ export function PopulatedState({
                     required
                   />
                   <span className="absolute right-3 top-2 text-xs text-[#667085] dark:text-[#98A2B3]">
-                    clicks
+                    {tr("clicks", "clics")}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-2">
@@ -2026,7 +2189,7 @@ export function PopulatedState({
 
               <div>
                 <label className="block text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] mb-1.5">
-                  Monthly Revenue Target ($)
+                  {tr("Monthly Revenue Target ($)", "Objectif mensuel de revenus ($)")}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-sm text-[#667085] dark:text-[#98A2B3]">
@@ -2060,10 +2223,14 @@ export function PopulatedState({
 
               <div className="p-3 rounded-[8px] bg-[#0066FF]/5 border border-[#0066FF]/15 text-[11px] text-[#344054] dark:text-[#D0D5DD] space-y-1">
                 <p className="font-semibold text-[#0066FF] dark:text-[#5294FF] flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5" /> Automatic alert at 100%
+                  <Check className="h-3.5 w-3.5" />{" "}
+                  {tr("Automatic alert at 100%", "Alerte automatique à 100%")}
                 </p>
                 <p className="text-[#667085] dark:text-[#98A2B3] leading-relaxed">
-                  As soon as your threshold is reached, a congratulatory email is sent and a notification appears in your dashboard bell icon.
+                  {tr(
+                    "As soon as your threshold is reached, a congratulatory email is sent and a notification appears in your dashboard bell icon.",
+                    "Dès que votre seuil est atteint, un e-mail de félicitations est envoyé et une notification apparaît dans la cloche de votre tableau de bord."
+                  )}
                 </p>
               </div>
 
@@ -2073,13 +2240,13 @@ export function PopulatedState({
                   onClick={() => setIsTargetEditModalOpen(false)}
                   className="px-3.5 py-2 rounded-lg text-xs font-semibold text-[#344054] dark:text-[#E4E7EC] hover:bg-[#F2F4F7] dark:hover:bg-[#101828] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {tr("Cancel", "Annuler")}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#0066FF] text-white hover:bg-[#0055D6] transition-colors shadow-sm cursor-pointer"
                 >
-                  Save Targets
+                  {tr("Save Targets", "Enregistrer les objectifs")}
                 </button>
               </div>
             </form>

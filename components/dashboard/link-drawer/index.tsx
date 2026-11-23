@@ -37,6 +37,17 @@ import { Trash2, Loader2 } from "lucide-react";
 
 import { LinkDrawerProps, DRAWER_TABS, DrawerTabId } from "./types";
 import { SectionLink } from "./sections/section-link";
+import { useI18n } from "@/components/providers/i18n-provider";
+
+const DRAWER_TAB_FR_LABELS: Record<DrawerTabId, string> = {
+  link: "Lien",
+  social_tracking: "Réseaux sociaux, suivi & pixels",
+  routing: "Routage",
+  protection: "Protection & expiration",
+  ab_testing: "Tests A/B",
+  advanced: "Avancé",
+  review: "Résumé",
+};
 
 const loadSectionSocialTracking = () =>
   import("./sections/section-social-tracking").then((m) => ({
@@ -85,23 +96,29 @@ function preloadSecondaryDrawerTabs() {
 }
 
 // Pure validation helpers (module-scoped so references remain stable across renders)
-function checkUrlFormat(val: string, isRequired = true): string {
+function checkUrlFormat(val: string, isRequired = true, isFr = false): string {
   const trimmed = val.trim();
   if (!trimmed) {
-    return isRequired ? "Destination URL is required." : "";
+    return isRequired
+      ? (isFr ? "L'URL de destination est requise." : "Destination URL is required.")
+      : "";
   }
   if (/\s/.test(trimmed)) {
-    return "URL must not contain spaces.";
+    return isFr ? "L'URL ne doit pas contenir d'espaces." : "URL must not contain spaces.";
   }
   if (/^(javascript|data|vbscript|file|blob|ftp|about):/i.test(trimmed)) {
-    return "Invalid URL scheme. Only HTTP and HTTPS protocols are permitted.";
+    return isFr
+      ? "Protocole d'URL invalide. Seuls HTTP et HTTPS sont autorisés."
+      : "Invalid URL scheme. Only HTTP and HTTPS protocols are permitted.";
   }
   if (
     trimmed.includes("169.254.169.254") ||
     trimmed.includes("metadata.google.internal") ||
     trimmed.includes("100.100.100.200")
   ) {
-    return "Internal or cloud metadata addresses are not permitted.";
+    return isFr
+      ? "Les adresses internes ou de métadonnées cloud ne sont pas autorisées."
+      : "Internal or cloud metadata addresses are not permitted.";
   }
   const withProto = /^https?:\/\//i.test(trimmed)
     ? trimmed
@@ -114,74 +131,94 @@ function checkUrlFormat(val: string, isRequired = true): string {
       urlObj.hostname.startsWith(".") ||
       urlObj.hostname.endsWith(".")
     ) {
-      return "Invalid domain name (e.g. https://example.com).";
+      return isFr
+        ? "Nom de domaine invalide (ex. https://example.com)."
+        : "Invalid domain name (e.g. https://example.com).";
     }
   } catch {
-    return "Invalid URL format. Expected: https://example.com/page";
+    return isFr
+      ? "Format d'URL invalide. Attendu : https://example.com/page"
+      : "Invalid URL format. Expected: https://example.com/page";
   }
   return "";
 }
 
-function checkDomainFormat(val: string): string {
+function checkDomainFormat(val: string, isFr = false): string {
   const trimmed = val.trim();
   if (!trimmed) {
-    return "Domain name is required.";
+    return isFr ? "Le nom de domaine est requis." : "Domain name is required.";
   }
   if (/\s/.test(trimmed)) {
-    return "Domain name must not contain spaces.";
+    return isFr
+      ? "Le nom de domaine ne doit pas contenir d'espaces."
+      : "Domain name must not contain spaces.";
   }
   const cleaned = trimmed.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
   if (
     !/^[a-zA-Z0-9.-]+$/.test(cleaned) ||
     (!cleaned.includes(".") && cleaned !== "localhost")
   ) {
-    return "Invalid domain name (e.g. example.com or lsho.cc).";
+    return isFr
+      ? "Nom de domaine invalide (ex. example.com ou lsho.cc)."
+      : "Invalid domain name (e.g. example.com or lsho.cc).";
   }
   return "";
 }
 
-function checkSlugFormat(val: string): string {
+function checkSlugFormat(val: string, isFr = false): string {
   const trimmed = val.trim();
   if (!trimmed) {
-    return "Custom slug is required.";
+    return isFr ? "Le slug personnalisé est requis." : "Custom slug is required.";
   }
   if (trimmed.length < 2) {
-    return "Slug must be at least 2 characters.";
+    return isFr
+      ? "Le slug doit contenir au moins 2 caractères."
+      : "Slug must be at least 2 characters.";
   }
   if (!/^[a-zA-Z0-9-_]+$/.test(trimmed)) {
-    return "Slug can only contain letters, numbers, hyphens, and underscores.";
+    return isFr
+      ? "Le slug ne peut contenir que des lettres, chiffres, tirets et underscores."
+      : "Slug can only contain letters, numbers, hyphens, and underscores.";
   }
   if (RESERVED_SLUGS.has(trimmed.toLowerCase())) {
-    return `The slug '${trimmed}' is reserved and cannot be used.`;
+    return isFr
+      ? `Le slug « ${trimmed} » est réservé et ne peut pas être utilisé.`
+      : `The slug '${trimmed}' is reserved and cannot be used.`;
   }
   return "";
 }
 
-function checkPasswordFormat(val: string): string {
+function checkPasswordFormat(val: string, isFr = false): string {
   if (!val) return "";
   if (val.length < 4) {
-    return "Password must be at least 4 characters.";
+    return isFr
+      ? "Le mot de passe doit contenir au moins 4 caractères."
+      : "Password must be at least 4 characters.";
   }
   return "";
 }
 
-function checkMaxClicksFormat(val: number | string, enabled: boolean): string {
+function checkMaxClicksFormat(val: number | string, enabled: boolean, isFr = false): string {
   if (!enabled) return "";
   const num = Number(val);
   if (!val || isNaN(num) || num <= 0) {
-    return "Maximum clicks limit must be greater than 0.";
+    return isFr
+      ? "La limite de clics maximum doit être supérieure à 0."
+      : "Maximum clicks limit must be greater than 0.";
   }
   return "";
 }
 
-function checkExpiresAtFormat(val: string): string {
+function checkExpiresAtFormat(val: string, isFr = false): string {
   if (!val) return "";
   const expDate = new Date(val);
   if (isNaN(expDate.getTime())) {
-    return "Invalid expiration date.";
+    return isFr ? "Date d'expiration invalide." : "Invalid expiration date.";
   }
   if (expDate.getTime() <= Date.now()) {
-    return "Expiration date must be in the future.";
+    return isFr
+      ? "La date d'expiration doit être dans le futur."
+      : "Expiration date must be in the future.";
   }
   return "";
 }
@@ -217,8 +254,27 @@ export function LinkDrawer({
   onSuccess,
   linksCount,
 }: LinkDrawerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const drawerFormId = useId();
   const isEditMode = mode === "edit" || Boolean(link);
+
+  const validateUrl = React.useCallback(
+    (val: string, isRequired = true) => checkUrlFormat(val, isRequired, isFr),
+    [isFr],
+  );
+  const validateDomain = React.useCallback(
+    (val: string) => checkDomainFormat(val, isFr),
+    [isFr],
+  );
+  const validateSlug = React.useCallback(
+    (val: string) => checkSlugFormat(val, isFr),
+    [isFr],
+  );
+  const validateExpiresAt = React.useCallback(
+    (val: string) => checkExpiresAtFormat(val, isFr),
+    [isFr],
+  );
 
   const { data: session } = useSession();
   const sessionUserId = session?.user?.id;
@@ -923,11 +979,19 @@ export function LinkDrawer({
 
       if (bannerCropReqIdRef.current === reqId && uploadRes?.url) {
         setOgImage(uploadRes.url);
-        showToast.success("Bannière recadrée et compressée avec succès !");
+        showToast.success(
+          isFr
+            ? "Bannière recadrée et compressée avec succès !"
+            : "Banner cropped and compressed successfully!",
+        );
       }
     } catch (err) {
       console.error("Banner crop & upload error:", err);
-      showToast.error("Erreur lors de l'enregistrement de la bannière.");
+      showToast.error(
+        isFr
+          ? "Erreur lors de l'enregistrement de la bannière."
+          : "Error saving banner image.",
+      );
     } finally {
       if (bannerCropReqIdRef.current === reqId) {
         setIsUploadingImage(false);
@@ -1032,7 +1096,11 @@ export function LinkDrawer({
   // A/B Testing helpers
   const handleAddVariation = () => {
     if (abVariations.length >= 5) {
-      showToast.error("Maximum 5 variations allowed.");
+      showToast.error(
+        isFr
+          ? "Maximum 5 variations autorisées."
+          : "Maximum 5 variations allowed.",
+      );
       return;
     }
     const newVariations = [...abVariations, { url: "", weight: 20 }];
@@ -1058,7 +1126,11 @@ export function LinkDrawer({
     const remainder = 100 - equalWeight * count;
     setMainWeight(equalWeight + remainder);
     setAbVariations(abVariations.map((v) => ({ ...v, weight: equalWeight })));
-    showToast.success("Percentages balanced automatically!");
+    showToast.success(
+      isFr
+        ? "Pourcentages équilibrés automatiquement !"
+        : "Percentages balanced automatically!",
+    );
   };
 
   const handleDeleteLinkWithUndo = () => {
@@ -1069,7 +1141,7 @@ export function LinkDrawer({
     triggerUndoDelete({
       id: link.id,
       itemType: "link",
-      title: "Lien supprimé",
+      title: isFr ? "Lien supprimé" : "Link deleted",
       description: `/${effectiveSlug}`,
       confirmText: effectiveSlug,
       onExecute: async () => {
@@ -1086,7 +1158,11 @@ export function LinkDrawer({
             window.dispatchEvent(new Event("lshorter_data_change"));
           }
         } catch {
-          showToast.error("Erreur lors de la suppression du lien.");
+          showToast.error(
+            isFr
+              ? "Erreur lors de la suppression du lien."
+              : "Error deleting link.",
+          );
           if (typeof window !== "undefined") {
             window.dispatchEvent(
               new CustomEvent("lshorter_links_updated", { detail: deletedLink }),
@@ -1106,31 +1182,31 @@ export function LinkDrawer({
     setHasAttemptedSubmit(true);
 
     const errors: Record<string, string> = {};
-    const targetErr = checkUrlFormat(targetUrl, true);
+    const targetErr = checkUrlFormat(targetUrl, true, isFr);
     if (targetErr) errors.targetUrl = targetErr;
 
-    const domainErr = checkDomainFormat(domainName);
+    const domainErr = checkDomainFormat(domainName, isFr);
     if (domainErr) errors.domainName = domainErr;
 
-    const slugErr = checkSlugFormat(slug);
+    const slugErr = checkSlugFormat(slug, isFr);
     if (slugErr) errors.slug = slugErr;
 
     if (password) {
-      const pwdErr = checkPasswordFormat(password);
+      const pwdErr = checkPasswordFormat(password, isFr);
       if (pwdErr) errors.password = pwdErr;
     }
 
     if (expiresAt) {
-      const expErr = checkExpiresAtFormat(expiresAt);
+      const expErr = checkExpiresAtFormat(expiresAt, isFr);
       if (expErr) errors.expiresAt = expErr;
     }
 
     if (hasClickLimit) {
-      const clicksErr = checkMaxClicksFormat(maxClicks, hasClickLimit);
+      const clicksErr = checkMaxClicksFormat(maxClicks, hasClickLimit, isFr);
       if (clicksErr) errors.maxClicks = clicksErr;
 
       if (fallbackUrl) {
-        const fbErr = checkUrlFormat(fallbackUrl, false);
+        const fbErr = checkUrlFormat(fallbackUrl, false, isFr);
         if (fbErr) errors.fallbackUrl = fbErr;
       }
     }
@@ -1138,17 +1214,19 @@ export function LinkDrawer({
     if (abVariations.length > 0) {
       abVariations.forEach((v, idx) => {
         if (v.url && v.url.trim()) {
-          const err = checkUrlFormat(v.url, false);
+          const err = checkUrlFormat(v.url, false, isFr);
           if (err)
             errors[`abVariation_${idx}`] =
-              `Variation ${String.fromCharCode(66 + idx)}: ${err}`;
+              `${isFr ? "Variante" : "Variation"} ${String.fromCharCode(66 + idx)}: ${err}`;
         }
       });
       const totalWeight =
         mainWeight +
         abVariations.reduce((sum, v) => sum + (Number(v.weight) || 0), 0);
       if (totalWeight !== 100) {
-        errors.abTotal = `The sum of percentages must equal 100% (currently ${totalWeight}%).`;
+        errors.abTotal = isFr
+          ? `La somme des pourcentages doit être égale à 100 % (actuellement ${totalWeight} %).`
+          : `The sum of percentages must equal 100% (currently ${totalWeight}%).`;
       }
     }
 
@@ -1170,7 +1248,11 @@ export function LinkDrawer({
       ) {
         setActiveTab("ab_testing");
       }
-      showToast.error("Certains champs obligatoires sont manquants ou invalides.");
+      showToast.error(
+        isFr
+          ? "Certains champs obligatoires sont manquants ou invalides."
+          : "Some required fields are missing or invalid.",
+      );
       return;
     }
 
@@ -1213,11 +1295,20 @@ export function LinkDrawer({
       const quotaCheck = guardLinkCreation(userPlan as any, linksCount);
       if (!quotaCheck.allowed) {
         triggerPlanUpgrade({
-          reason: quotaCheck.reason || `Limite de liens atteinte pour le forfait ${userPlan}. Passez au forfait supérieur pour créer des liens illimités.`,
-          featureName: "Active Links Quota",
+          reason:
+            quotaCheck.reason ||
+            (isFr
+              ? `Limite de liens atteinte pour le forfait ${userPlan}. Passez au forfait supérieur pour créer des liens illimités.`
+              : `Link limit reached for the ${userPlan} plan. Upgrade to create unlimited links.`),
+          featureName: isFr ? "Quota de liens actifs" : "Active Links Quota",
           targetPlan: "PRO",
         });
-        showToast.error(quotaCheck.reason || "Limite de liens atteinte pour votre forfait.");
+        showToast.error(
+          quotaCheck.reason ||
+            (isFr
+              ? "Limite de liens atteinte pour votre forfait."
+              : "Link limit reached for your plan."),
+        );
         setIsSubmitting(false);
         return;
       }
@@ -1232,18 +1323,26 @@ export function LinkDrawer({
         (deviceTargeting && Object.keys(deviceTargeting).length > 0)
       ) {
         triggerPlanUpgrade({
-          reason: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
-          featureName: "Dynamic Routing",
+          reason: isFr
+            ? "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise)."
+            : "Dynamic smart routing is reserved for paid plans (Pro, Business, and Enterprise).",
+          featureName: isFr ? "Routage dynamique" : "Dynamic Routing",
           targetPlan: "PRO",
         });
-        showToast.error("Le routage dynamique requiert un forfait payant (Pro, Business ou Enterprise).");
+        showToast.error(
+          isFr
+            ? "Le routage dynamique requiert un forfait payant (Pro, Business ou Enterprise)."
+            : "Dynamic routing requires a paid plan (Pro, Business, or Enterprise).",
+        );
         setIsSubmitting(false);
         return;
       }
       if (password) {
         triggerPlanUpgrade({
-          reason: "Password protection requires the Pro plan.",
-          featureName: "Password Protection",
+          reason: isFr
+            ? "La protection par mot de passe nécessite le forfait Pro."
+            : "Password protection requires the Pro plan.",
+          featureName: isFr ? "Protection par mot de passe" : "Password Protection",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);
@@ -1251,8 +1350,10 @@ export function LinkDrawer({
       }
       if (isCloaked) {
         triggerPlanUpgrade({
-          reason: "Branded URL masking requires the Pro plan.",
-          featureName: "Branded URL Masking",
+          reason: isFr
+            ? "Le masquage d'URL de marque nécessite le forfait Pro."
+            : "Branded URL masking requires the Pro plan.",
+          featureName: isFr ? "Masquage d'URL de marque" : "Branded URL Masking",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);
@@ -1260,8 +1361,10 @@ export function LinkDrawer({
       }
       if (pathLockMode && pathLockMode !== "off") {
         triggerPlanUpgrade({
-          reason: "PathLock™ restricted browsing requires the Pro plan.",
-          featureName: "PathLock™ Restricted Browsing",
+          reason: isFr
+            ? "La navigation restreinte PathLock™ nécessite le forfait Pro."
+            : "PathLock™ restricted browsing requires the Pro plan.",
+          featureName: isFr ? "Navigation restreinte PathLock™" : "PathLock™ Restricted Browsing",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);
@@ -1269,8 +1372,10 @@ export function LinkDrawer({
       }
       if (abVariations && abVariations.length > 0) {
         triggerPlanUpgrade({
-          reason: "A/B testing requires the Pro plan.",
-          featureName: "A/B Split Testing",
+          reason: isFr
+            ? "Les tests A/B nécessitent le forfait Pro."
+            : "A/B testing requires the Pro plan.",
+          featureName: isFr ? "Tests A/B" : "A/B Split Testing",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);
@@ -1278,8 +1383,10 @@ export function LinkDrawer({
       }
       if (selectedPixels && selectedPixels.length > 0) {
         triggerPlanUpgrade({
-          reason: "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
-          featureName: "Retargeting Pixels",
+          reason: isFr
+            ? "Les pixels de retargeting (Meta, Google, TikTok, LinkedIn) sont réservés aux forfaits payants (Pro, Business, Enterprise)."
+            : "Retargeting Pixels (Meta, Google, TikTok, LinkedIn) are reserved for paid plans (Pro, Business, Enterprise).",
+          featureName: isFr ? "Pixels de retargeting" : "Retargeting Pixels",
           targetPlan: "PRO",
         });
         setIsSubmitting(false);
@@ -1534,7 +1641,9 @@ export function LinkDrawer({
           window.dispatchEvent(new Event("lshorter_data_change"));
         }
 
-        showToast.success("Link updated successfully!");
+        showToast.success(
+          isFr ? "Lien mis à jour avec succès !" : "Link updated successfully!",
+        );
         setIsSubmitting(false);
         if (onSuccess) onSuccess(updatedShortLink);
         onClose();
@@ -1785,7 +1894,9 @@ export function LinkDrawer({
         }
 
         showToast.success(
-          `Link https://${cleanDomain}/${cleanSlug} created successfully!`,
+          isFr
+            ? `Lien https://${cleanDomain}/${cleanSlug} créé avec succès !`
+            : `Link https://${cleanDomain}/${cleanSlug} created successfully!`,
         );
         setIsSubmitting(false);
         if (onSuccess) onSuccess(createdLink);
@@ -1808,9 +1919,14 @@ export function LinkDrawer({
       ) {
         triggerPlanUpgrade({
           reason: lower.includes("routage")
-            ? "Le système de routage dynamique est strictement réservé aux forfaits payants."
-            : (msg || "Cette fonctionnalité requiert un forfait payant supérieur."),
-          featureName: "Options Avancées",
+            ? (isFr
+                ? "Le système de routage dynamique est strictement réservé aux forfaits payants."
+                : "Dynamic routing is strictly reserved for paid plans.")
+            : (msg ||
+              (isFr
+                ? "Cette fonctionnalité requiert un forfait payant supérieur."
+                : "This feature requires a paid plan upgrade.")),
+          featureName: isFr ? "Options avancées" : "Advanced Options",
           targetPlan: "PRO",
         });
         return;
@@ -1845,9 +1961,9 @@ export function LinkDrawer({
     if (isUploadingImage || isSubmitting) return;
     // If moving past the first tab ("link"), validate destination, domain, and slug
     if (activeTab === "link") {
-      const targetErr = checkUrlFormat(targetUrl, true);
-      const domainErr = checkDomainFormat(domainName);
-      const slugErr = checkSlugFormat(slug);
+      const targetErr = checkUrlFormat(targetUrl, true, isFr);
+      const domainErr = checkDomainFormat(domainName, isFr);
+      const slugErr = checkSlugFormat(slug, isFr);
       if (targetErr || domainErr || slugErr) {
         setFieldErrors((prev) => ({
           ...prev,
@@ -1855,7 +1971,11 @@ export function LinkDrawer({
           ...(domainErr ? { domainName: domainErr } : {}),
           ...(slugErr ? { slug: slugErr } : {}),
         }));
-        showToast.error("Please fill in destination URL, domain and custom slug.");
+        showToast.error(
+          isFr
+            ? "Veuillez renseigner l'URL de destination, le domaine et le slug personnalisé."
+            : "Please fill in destination URL, domain and custom slug.",
+        );
         return;
       }
     }
@@ -1915,7 +2035,11 @@ export function LinkDrawer({
         ref={panelRef}
         role="dialog"
         aria-modal={isShown || undefined}
-        aria-label={isEditMode ? "Edit link" : "Create link"}
+        aria-label={
+          isEditMode
+            ? (isFr ? "Modifier le lien" : "Edit link")
+            : (isFr ? "Créer un lien" : "Create link")
+        }
         onTransitionEnd={(e) => {
           if (e.target === e.currentTarget && !isShown) {
             setIsShadowActive(false);
@@ -1937,12 +2061,14 @@ export function LinkDrawer({
         {/* ── 1. MINIMALIST HEADER ── */}
         <header className="flex justify-between items-center px-6 pt-5 pb-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <b className="font-bold text-[15px] text-zinc-950 dark:text-white">
-            {isEditMode ? "Edit link" : "Create link"}
+            {isEditMode
+              ? (isFr ? "Modifier le lien" : "Edit link")
+              : (isFr ? "Créer un lien" : "Create link")}
           </b>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={isFr ? "Fermer" : "Close"}
             className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 text-2xl leading-none px-2 py-0.5 rounded-[6px] transition-colors cursor-pointer"
           >
             ×
@@ -1954,7 +2080,7 @@ export function LinkDrawer({
         {/* Mobile: horizontal manual scroll (overflow-x-auto whitespace-nowrap). */}
         <nav
           ref={tabsNavRef}
-          aria-label="Drawer steps"
+          aria-label={isFr ? "Étapes du formulaire" : "Drawer steps"}
           className={cn(
             "flex items-center border-b border-zinc-200 dark:border-zinc-800 px-5 sm:px-6 pt-2 pb-0 shrink-0 select-none",
             "gap-x-4 sm:gap-x-5 gap-y-1 sm:gap-y-1.5",
@@ -1984,8 +2110,10 @@ export function LinkDrawer({
                   }
                   if (tab.id === "routing" && !isProPlan) {
                     triggerPlanUpgrade({
-                      featureName: "Dynamic Smart Routing",
-                      reason: "Dynamic Smart Routing is reserved for paid plans (Pro, Business, and Enterprise).",
+                      featureName: isFr ? "Routage dynamique intelligent" : "Dynamic Smart Routing",
+                      reason: isFr
+                        ? "Le routage dynamique intelligent est réservé aux forfaits payants (Pro, Business et Enterprise)."
+                        : "Dynamic Smart Routing is reserved for paid plans (Pro, Business, and Enterprise).",
                       targetPlan: "PRO",
                     });
                     setActiveTab("routing");
@@ -1994,9 +2122,9 @@ export function LinkDrawer({
 
                   // If leaving tab 0, validate destination URL
                   if (activeTab === "link" && tab.id !== "link") {
-                    const targetErr = checkUrlFormat(targetUrl, true);
-                    const domainErr = checkDomainFormat(domainName);
-                    const slugErr = checkSlugFormat(slug);
+                    const targetErr = checkUrlFormat(targetUrl, true, isFr);
+                    const domainErr = checkDomainFormat(domainName, isFr);
+                    const slugErr = checkSlugFormat(slug, isFr);
                     if (targetErr || domainErr || slugErr) {
                       setFieldErrors((prev) => ({
                         ...prev,
@@ -2004,7 +2132,11 @@ export function LinkDrawer({
                         ...(domainErr ? { domainName: domainErr } : {}),
                         ...(slugErr ? { slug: slugErr } : {}),
                       }));
-                      showToast.error("Please fill in destination URL, domain and custom slug.");
+                      showToast.error(
+                        isFr
+                          ? "Veuillez renseigner l'URL de destination, le domaine et le slug personnalisé."
+                          : "Please fill in destination URL, domain and custom slug.",
+                      );
                       return;
                     }
                   }
@@ -2027,7 +2159,7 @@ export function LinkDrawer({
                       : "opacity-80",
                   )}
                 />
-                <span>{tab.label}</span>
+                <span>{isFr ? DRAWER_TAB_FR_LABELS[tab.id] : tab.label}</span>
                 {tab.isPro && !isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 tracking-wider">
                     PRO
@@ -2065,9 +2197,9 @@ export function LinkDrawer({
                 setTagsInput={setTagsInput}
                 fieldErrors={fieldErrors}
                 setFieldErrors={setFieldErrors}
-                checkUrlFormat={checkUrlFormat}
-                checkDomainFormat={checkDomainFormat}
-                checkSlugFormat={checkSlugFormat}
+                checkUrlFormat={validateUrl}
+                checkDomainFormat={validateDomain}
+                checkSlugFormat={validateSlug}
               />
             )}
 
@@ -2164,7 +2296,7 @@ export function LinkDrawer({
                     targetUrl={targetUrl}
                     fieldErrors={fieldErrors}
                     setFieldErrors={setFieldErrors}
-                    checkExpiresAtFormat={checkExpiresAtFormat}
+                    checkExpiresAtFormat={validateExpiresAt}
                   />
                 )}
 
@@ -2246,7 +2378,9 @@ export function LinkDrawer({
               disabled={isSubmitting || isUploadingImage}
               className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {activeTabIndex > 0 ? "Back" : "Cancel"}
+              {activeTabIndex > 0
+                ? (isFr ? "Retour" : "Back")
+                : (isFr ? "Annuler" : "Cancel")}
             </button>
 
             {isEditMode && (
@@ -2255,10 +2389,10 @@ export function LinkDrawer({
                 onClick={handleDeleteLinkWithUndo}
                 disabled={isSubmitting}
                 className="text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-500/10 px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer flex items-center gap-1.5"
-                title="Supprimer ce lien"
+                title={isFr ? "Supprimer ce lien" : "Delete this link"}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Supprimer</span>
+                <span>{isFr ? "Supprimer" : "Delete"}</span>
               </button>
             )}
           </div>
@@ -2274,10 +2408,14 @@ export function LinkDrawer({
                 {isUploadingImage ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Upload bannière...</span>
+                    <span>{isFr ? "Envoi de la bannière..." : "Uploading banner..."}</span>
                   </>
                 ) : (
-                  <span>{isEditMode ? "Save now" : "Create Link now"}</span>
+                  <span>
+                    {isEditMode
+                      ? (isFr ? "Enregistrer maintenant" : "Save now")
+                      : (isFr ? "Créer le lien maintenant" : "Create Link now")}
+                  </span>
                 )}
               </button>
             )}
@@ -2289,7 +2427,7 @@ export function LinkDrawer({
                 disabled={isUploadingImage}
                 className="bg-[#1d5fe0] dark:bg-[#3b82f6] hover:bg-[#154fc0] dark:hover:bg-[#2563eb] text-white font-medium text-sm px-5 py-2 rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Continue
+                {isFr ? "Continuer" : "Continue"}
               </button>
             ) : (
               <button
@@ -2303,14 +2441,18 @@ export function LinkDrawer({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>
                       {isUploadingImage
-                        ? "Upload bannière..."
+                        ? (isFr ? "Envoi de la bannière..." : "Uploading banner...")
                         : isEditMode
-                          ? "Saving..."
-                          : "Creating..."}
+                          ? (isFr ? "Enregistrement..." : "Saving...")
+                          : (isFr ? "Création..." : "Creating...")}
                     </span>
                   </>
                 ) : (
-                  <span>{isEditMode ? "Save Changes" : "Create Link"}</span>
+                  <span>
+                    {isEditMode
+                      ? (isFr ? "Enregistrer les modifications" : "Save Changes")
+                      : (isFr ? "Créer le lien" : "Create Link")}
+                  </span>
                 )}
               </button>
             )}

@@ -31,7 +31,7 @@ import { DashboardMobileMenu } from "./dashboard-mobile-menu";
 
 export function Topbar() {
   const { theme, toggleTheme } = useTheme();
-  const { locale, toggleLocale, t } = useI18n();
+  const { locale, toggleLocale, t, tr } = useI18n();
   const { data: session } = useSession();
   const rawUserId = session?.user?.id || (session?.user as any)?.userId || session?.user?.email || "";
   const rawEmail = session?.user?.email || "";
@@ -275,7 +275,7 @@ export function Topbar() {
     cachedUser?.name?.trim() ||
     session?.user?.email?.split("@")[0] ||
     cachedUser?.email?.split("@")[0] ||
-    "User";
+    tr("User", "Utilisateur");
 
   const displayEmail =
     convexUser?.email?.trim() ||
@@ -334,8 +334,8 @@ export function Topbar() {
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent("lshorter:toggle-sidebar"))}
               className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Toggle Sidebar (Ctrl+B)"
-              title="Toggle Sidebar (Ctrl+B)"
+              aria-label={tr("Toggle Sidebar (Ctrl+B)", "Basculer la barre latérale (Ctrl+B)")}
+              title={tr("Toggle Sidebar (Ctrl+B)", "Basculer la barre latérale (Ctrl+B)")}
             >
               <PanelLeft className="w-4 h-4" />
             </button>
@@ -352,8 +352,8 @@ export function Topbar() {
                 setIsProfileOpen(false);
               }}
               className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Search commands, links, analytics, and docs"
-              title="Search (⌘K)"
+              aria-label={t("topbar.searchPlaceholder")}
+              title={tr("Search (⌘K)", "Rechercher (⌘K)")}
             >
               <Search className="w-4 h-4" />
             </button>
@@ -363,8 +363,8 @@ export function Topbar() {
               type="button"
               onClick={toggleTheme}
               className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Basculer le thème"
-              title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+              aria-label={tr("Toggle theme", "Basculer le thème")}
+              title={theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}
             >
               {theme === "dark" ? (
                 <Sun className="w-4 h-4 text-amber-400 transition-transform active:rotate-45" />
@@ -382,7 +382,7 @@ export function Topbar() {
                   setIsProfileOpen(false);
                 }}
                 className="relative flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-transparent text-zinc-500 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
-                aria-label="Notifications"
+                aria-label={t("topbar.notifications")}
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
@@ -400,7 +400,7 @@ export function Topbar() {
                 >
                   <div className="flex items-center justify-between pb-2.5 mb-2 border-b ds-border">
                     <span className="text-sm font-semibold ds-text-primary flex items-center gap-1.5">
-                      Notifications
+                      {t("topbar.notifications")}
                       {unreadCount > 0 && (
                         <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF]">
                           {unreadCount}
@@ -413,14 +413,17 @@ export function Topbar() {
                         onClick={markAllNotificationsRead}
                         className="text-xs font-medium text-[#465FFF] dark:text-[#7592FF] hover:underline cursor-pointer"
                       >
-                        Mark all as read
+                        {tr("Mark all as read", "Tout marquer comme lu")}
                       </button>
                     )}
                   </div>
 
                   {mergedNotifications.length === 0 ? (
                     <div className="py-6 text-center text-xs ds-text-muted">
-                      No notifications yet. Set a Monthly Target on your dashboard to receive goal alerts.
+                      {tr(
+                        "No notifications yet. Set a Monthly Target on your dashboard to receive goal alerts.",
+                        "Aucune notification pour le moment. Définissez un objectif mensuel sur votre tableau de bord pour recevoir des alertes."
+                      )}
                     </div>
                   ) : (
                     <div className="max-h-72 overflow-y-auto pt-2.5 -mt-1 flex flex-col gap-1.5">
@@ -454,7 +457,7 @@ export function Topbar() {
                                 {notif.title}
                               </span>
                               <span className="text-[10.5px] ds-text-muted shrink-0">
-                                {d.toLocaleTimeString([], {
+                                {d.toLocaleTimeString(locale === "fr" ? "fr-FR" : "en-US", {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                 })}
@@ -503,13 +506,16 @@ export function Topbar() {
                     className="text-[11px] font-semibold ds-text-primary truncate max-w-[140px]"
                     title={isMounted ? displayName : undefined}
                   >
-                    {isMounted ? displayName : (cachedUser?.name || "User")}
+                    {isMounted ? displayName : (cachedUser?.name || tr("User", "Utilisateur"))}
                   </span>
                   <span
                     className="inline-flex items-center gap-1 text-[9px] font-medium text-[#465FFF] dark:text-[#7592FF] mt-0.5"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] shrink-0" />
-                    {isMounted ? planDef.name : (cachedUser?.plan ? getPlanDefinition(cachedUser.plan).name : "Starter")} Plan
+                    {tr(
+                      `${isMounted ? planDef.name : (cachedUser?.plan ? getPlanDefinition(cachedUser.plan).name : "Starter")} Plan`,
+                      `Forfait ${isMounted ? planDef.name : (cachedUser?.plan ? getPlanDefinition(cachedUser.plan).name : "Starter")}`
+                    )}
                   </span>
                 </div>
 
@@ -545,7 +551,7 @@ export function Topbar() {
                         <p
                           className="text-sm font-bold ds-text-primary truncate"
                         >
-                          {isMounted ? displayName : "User"}
+                          {isMounted ? displayName : tr("User", "Utilisateur")}
                         </p>
                       </div>
                       <p
@@ -636,7 +642,7 @@ export function Topbar() {
           <Link
             href="/"
             className="flex items-center gap-2 select-none group"
-            title="Retour à l'accueil"
+            title={tr("Back to home", "Retour à l'accueil")}
           >
             <div className="flex h-6 w-6 items-center justify-center rounded-[6px] overflow-hidden shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Image
@@ -658,7 +664,7 @@ export function Topbar() {
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-zinc-600 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-neutral-800/60 active:scale-95 transition-all cursor-pointer"
-            aria-label="Ouvrir le menu"
+            aria-label={t("nav.openMenu")}
           >
             <Menu className="w-5 h-5" />
           </button>

@@ -35,8 +35,10 @@ import { ApiKeyCreatedModal } from "@/components/dashboard/api-key-created-modal
 import { ApiKeyDrawer } from "@/components/dashboard/api-key-drawer";
 import { CodeBlock } from "@/components/ui/code-block";
 import { getPlanLimits } from "@/lib/plan-guard";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function ApiSdkPage() {
+  const { locale, tr } = useI18n();
   const { triggerUndoDelete } = useUndoDelete();
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -131,11 +133,11 @@ export default function ApiSdkPage() {
   };
 
   const promptRevokeKeyWithUndo = (key: ApiKeyItem) => {
-    const label = key.name || key.prefix || "Clé API";
+    const label = key.name || key.prefix || tr("API Key", "Clé API");
     triggerUndoDelete({
       id: key.id,
       itemType: "api_key",
-      title: "Clé API révoquée",
+      title: tr("API Key revoked", "Clé API révoquée"),
       description: label,
       confirmText: label,
       onExecute: async () => {
@@ -145,7 +147,9 @@ export default function ApiSdkPage() {
           cfInvalidateCache("/api/keys");
         } catch {
           loadKeys();
-          showToast.error("Erreur lors de la révocation de la clé API.");
+          showToast.error(
+            tr("Error revoking API key.", "Erreur lors de la révocation de la clé API.")
+          );
           return false;
         }
       },
@@ -218,11 +222,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#09090B] dark:text-white tracking-wide">
-            Developer API & SDK
+            {tr("Developer API & SDK", "API Développeur & SDK")}
           </h1>
           <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-            Generate secure API keys (sk_live_...) and integrate URL shortening
-            directly into your applications.
+            {tr(
+              "Generate secure API keys (sk_live_...) and integrate URL shortening directly into your applications.",
+              "Générez des clés API sécurisées (sk_live_...) et intégrez le raccourcissement d'URL directement dans vos applications."
+            )}
           </p>
         </div>
 
@@ -233,7 +239,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               cfInvalidateCache("/api/keys");
               await loadKeys();
               setIsRefreshing(false);
-              showToast.success("API keys list refreshed!");
+              showToast.success(tr("API keys list refreshed!", "Liste des clés API actualisée !"));
             }}
             variant="outline"
             disabled={isRefreshing}
@@ -242,7 +248,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-brand" : "text-zinc-500 dark:text-neutral-400"}`}
             />
-            <span>Refresh</span>
+            <span>{tr("Refresh", "Actualiser")}</span>
           </Button>
 
           <Button
@@ -251,7 +257,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
             className="font-bebas text-lg tracking-wide gap-1.5 shrink-0 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
-            <span>GENERATE API KEY</span>
+            <span>{tr("GENERATE API KEY", "GÉNÉRER UNE CLÉ API")}</span>
           </Button>
         </div>
       </div>
@@ -274,7 +280,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#09090B] dark:text-white flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-brand" />
-            <span>Active API Keys ({keys.length})</span>
+            <span>{tr("Active API Keys", "Clés API actives")} ({keys.length})</span>
           </h3>
         </div>
 
@@ -284,11 +290,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <KeyRound className="w-5 h-5" />
             </div>
             <p className="text-xs font-semibold text-zinc-800 dark:text-neutral-300">
-              No active API keys yet
+              {tr("No active API keys yet", "Aucune clé API active pour le moment")}
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-neutral-500 max-w-xs">
-              Click &quot;Generate API Key&quot; above to create your first
-              developer token.
+              {tr(
+                'Click "Generate API Key" above to create your first developer token.',
+                'Cliquez sur « Générer une clé API » ci-dessus pour créer votre premier jeton développeur.'
+              )}
             </p>
           </div>
         ) : (
@@ -304,12 +312,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
               const getScopeBadge = (scope?: string) => {
                 if (scope === "read")
                   return {
-                    label: "Read Only",
+                    label: tr("Read Only", "Lecture seule"),
                     color:
                       "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
                   };
                 return {
-                  label: "Read & Write",
+                  label: tr("Read & Write", "Lecture & Écriture"),
                   color:
                     "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
                 };
@@ -339,17 +347,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                     <div className="flex items-center gap-4 text-[11px] text-zinc-500 dark:text-neutral-500">
                       <span>
-                        Created on{" "}
-                        {new Date(key.created_at).toLocaleDateString("en-US", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                        {tr("Created on", "Créée le")}{" "}
+                        {new Date(key.created_at).toLocaleDateString(
+                          locale === "fr" ? "fr-FR" : "en-US",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )}
                       </span>
                       {key.lastUsedAt && (
                         <span>
-                          Last used:{" "}
-                          {new Date(key.lastUsedAt).toLocaleDateString("en-US")}
+                          {tr("Last used:", "Dernière utilisation :")}{" "}
+                          {new Date(key.lastUsedAt).toLocaleDateString(
+                            locale === "fr" ? "fr-FR" : "en-US"
+                          )}
                         </span>
                       )}
                     </div>
@@ -364,7 +377,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     return (
                       <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 dark:text-neutral-400 bg-zinc-100 dark:bg-[#070709] px-2.5 py-1 rounded-[6px] border border-black/[0.08] dark:border-[#1f1f23] truncate">
                         <span className="text-zinc-500 text-[10px] font-semibold shrink-0">
-                          Creator:
+                          {tr("Creator:", "Créateur :")}
                         </span>
                         {name && (
                           <span className="text-zinc-800 dark:text-neutral-200 font-medium truncate">
@@ -399,17 +412,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         type="button"
                         onClick={() => toggleRevealKey(key.id)}
                         className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-black/[0.08] dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-[#09090B] dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        title={isRevealed ? "Hide key" : "Reveal key"}
+                        title={isRevealed ? tr("Hide key", "Masquer la clé") : tr("Reveal key", "Afficher la clé")}
                       >
                         {isRevealed ? (
                           <>
                             <EyeOff className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
-                            <span className="hidden sm:inline">Hide</span>
+                            <span className="hidden sm:inline">{tr("Hide", "Masquer")}</span>
                           </>
                         ) : (
                           <>
                             <Eye className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
-                            <span className="hidden sm:inline">Reveal</span>
+                            <span className="hidden sm:inline">{tr("Reveal", "Afficher")}</span>
                           </>
                         )}
                       </button>
@@ -420,23 +433,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         onClick={() => {
                           handleCopy(actualKey);
                           setCopiedKey(key.id);
-                          showToast.success("API key copied to clipboard!");
+                          showToast.success(tr("API key copied to clipboard!", "Clé API copiée dans le presse-papiers !"));
                           setTimeout(() => setCopiedKey(null), 2000);
                         }}
                         className="h-8 px-2.5 rounded-[6px] bg-white dark:bg-[#1a1a1e] hover:bg-zinc-100 dark:hover:bg-[#25252c] border border-black/[0.08] dark:border-[#2a2a30] text-zinc-700 dark:text-neutral-300 hover:text-[#09090B] dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        title="Copy key"
+                        title={tr("Copy key", "Copier la clé")}
                       >
                         {isCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                             <span className="text-emerald-600 dark:text-emerald-400">
-                              Copied
+                              {tr("Copied", "Copié")}
                             </span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
-                            <span>Copy</span>
+                            <span>{tr("Copy", "Copier")}</span>
                           </>
                         )}
                       </button>
@@ -446,7 +459,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         type="button"
                         onClick={() => promptRevokeKeyWithUndo(key)}
                         className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Révoquer cette clé API"
+                        title={tr("Revoke this API key", "Révoquer cette clé API")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -468,10 +481,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
             </div>
             <div>
               <h3 className="text-base font-bold text-[#09090B] dark:text-white">
-                Official TypeScript SDK (npm i lshorter-api)
+                {tr("Official TypeScript SDK (npm i lshorter-api)", "SDK TypeScript officiel (npm i lshorter-api)")}
               </h3>
               <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                Ready-to-use implementation examples
+                {tr("Ready-to-use implementation examples", "Exemples d'implémentation prêts à l'emploi")}
               </p>
             </div>
           </div>
@@ -485,7 +498,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
-              Create Link
+              {tr("Create Link", "Créer un lien")}
             </button>
             <button
               onClick={() => setActiveCodeTab("track")}
@@ -495,7 +508,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
-              Track Conversion
+              {tr("Track Conversion", "Suivre une conversion")}
             </button>
             <button
               onClick={() => setActiveCodeTab("analytics")}
@@ -505,7 +518,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
               }`}
             >
-              Analytics
+              {tr("Analytics", "Analytique")}
             </button>
           </div>
         </div>

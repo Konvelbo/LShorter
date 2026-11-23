@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -158,6 +159,7 @@ async function copyToClipboard(text: string) {
 }
 
 function CopyButton({ text }: { text: string }) {
+  const { tr } = useI18n();
   const [copied, setCopied] = React.useState(false);
   const timer = React.useRef<number | undefined>(undefined);
 
@@ -219,8 +221,8 @@ function CopyButton({ text }: { text: string }) {
           />
         </svg>
       </span>
-      <span aria-live="polite" className="w-10 text-left">
-        {copied ? "Copied" : "Copy"}
+      <span aria-live="polite" className="min-w-[44px] text-left">
+        {copied ? tr("Copied", "Copié") : tr("Copy", "Copier")}
       </span>
     </button>
   );
@@ -237,6 +239,7 @@ function CodeWindow({
   tabs: CodeTab[];
   footer?: { status: string; endpoint: string };
 }) {
+  const { tr } = useI18n();
   const baseId = React.useId();
   const [active, setActive] = React.useState(0);
   const [shown, setShown] = React.useState(0);
@@ -301,7 +304,7 @@ function CodeWindow({
 
         <div
           role="tablist"
-          aria-label="Code examples"
+          aria-label={tr("Code examples", "Exemples de code")}
           onKeyDown={handleKeyDown}
           className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
@@ -434,6 +437,7 @@ function ActionButton({
 /* ------------------------------------------------------------------ */
 
 function InstallCommandBar({ items }: { items: InstallCommandItem[] }) {
+  const { tr } = useI18n();
   const [index, setIndex] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -473,8 +477,14 @@ function InstallCommandBar({ items }: { items: InstallCommandItem[] }) {
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
-        title={`Click to copy: ${current.command}`}
-        aria-label={`Copy ${current.label} install command: ${current.command}`}
+        title={tr(
+          `Click to copy: ${current.command}`,
+          `Cliquer pour copier : ${current.command}`
+        )}
+        aria-label={tr(
+          `Copy ${current.label} install command: ${current.command}`,
+          `Copier la commande d'installation ${current.label} : ${current.command}`
+        )}
         className={cn(
           "group/cmd relative flex h-11 w-full max-w-[500px] items-center gap-2.5 rounded-[10px] border px-3.5 text-left transition-[border-color,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.995]",
           copied
@@ -528,7 +538,7 @@ function InstallCommandBar({ items }: { items: InstallCommandItem[] }) {
           {copied ? (
             <>
               <Check className="size-3" aria-hidden="true" />
-              <span>Copied</span>
+              <span>{tr("Copied", "Copié")}</span>
             </>
           ) : (
             <AnimatePresence mode="wait" initial={false}>

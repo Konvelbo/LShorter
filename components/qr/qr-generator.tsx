@@ -131,6 +131,7 @@ import {
   isAnimatedFrame,
 } from "./qr-render-engine";
 import { BrandIcons } from "./qr-icons";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export const FONT_FAMILIES: {
   id: FontFamilyType;
@@ -234,6 +235,7 @@ export const FONT_FAMILIES: {
 ];
 
 export function QRGenerator() {
+  const { tr } = useI18n();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const paramUrl = searchParams.get("url") || "";
@@ -900,7 +902,9 @@ export function QRGenerator() {
     setUseSeparateEyeColor(false);
     setEyeColor("#000000");
     setFrameColor("#ff6600");
-    showToast.success("Color palette reset to defaults");
+    showToast.success(
+      tr("Color palette reset to defaults", "Palette de couleurs réinitialisée")
+    );
   };
 
   const handleResetTypography = () => {
@@ -908,14 +912,19 @@ export function QRGenerator() {
     setFontSize(12);
     setFontWeight("bold");
     setTextTransform("uppercase");
-    showToast.success("Typography reset to defaults");
+    showToast.success(
+      tr("Typography reset to defaults", "Typographie réinitialisée")
+    );
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Uploading a custom logo is reserved for the Pro plan.",
-        featureName: "Custom QR Logo",
+        reason: tr(
+          "Uploading a custom logo is reserved for the Pro plan.",
+          "L'import d'un logo personnalisé est réservé au forfait Pro."
+        ),
+        featureName: tr("Custom QR Logo", "Logo QR personnalisé"),
       });
       return;
     }
@@ -934,12 +943,21 @@ export function QRGenerator() {
       const uploadRes = await cfUploadImage(file, "qr_logos");
       if (uploadRes.success && uploadRes.url) {
         setUploadedLogo(uploadRes.url);
-        showToast.success("Custom logo successfully uploaded to Cloud!");
+        showToast.success(
+          tr(
+            "Custom logo successfully uploaded to Cloud!",
+            "Logo personnalisé envoyé dans le Cloud avec succès !"
+          )
+        );
       } else {
-        showToast.success("Custom logo loaded locally!");
+        showToast.success(
+          tr("Custom logo loaded locally!", "Logo personnalisé chargé localement !")
+        );
       }
     } catch {
-      showToast.success("Custom logo loaded successfully!");
+      showToast.success(
+        tr("Custom logo loaded successfully!", "Logo personnalisé chargé avec succès !")
+      );
     }
   };
 
@@ -951,7 +969,9 @@ export function QRGenerator() {
     link.download = `lshorter-qr-${contentType}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    showToast.success("PNG QR Code downloaded successfully!");
+    showToast.success(
+      tr("PNG QR Code downloaded successfully!", "QR Code PNG téléchargé avec succès !")
+    );
   };
 
   const downloadSVG = async () => {
@@ -974,18 +994,25 @@ export function QRGenerator() {
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
-      showToast.success("Vector SVG QR Code downloaded!");
+      showToast.success(
+        tr("Vector SVG QR Code downloaded!", "QR Code SVG vectoriel téléchargé !")
+      );
     } catch (e) {
       console.error("SVG generation error:", e);
-      showToast.error("Error generating SVG");
+      showToast.error(
+        tr("Error generating SVG", "Erreur lors de la génération du SVG")
+      );
     }
   };
 
   const downloadGIF = async () => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Exporting animated QR codes in GIF format is reserved for the Pro plan.",
-        featureName: "Animated GIF Export",
+        reason: tr(
+          "Exporting animated QR codes in GIF format is reserved for the Pro plan.",
+          "L'exportation des QR codes animés au format GIF est réservée au forfait Pro."
+        ),
+        featureName: tr("Animated GIF Export", "Export GIF animé"),
       });
       return;
     }
@@ -1041,10 +1068,17 @@ export function QRGenerator() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      showToast.success("Animated GIF QR Code exported successfully!");
+      showToast.success(
+        tr(
+          "Animated GIF QR Code exported successfully!",
+          "QR Code GIF animé exporté avec succès !"
+        )
+      );
     } catch (err) {
       console.error("GIF export error:", err);
-      showToast.error("Error creating animated GIF.");
+      showToast.error(
+        tr("Error creating animated GIF.", "Erreur lors de la création du GIF animé.")
+      );
     } finally {
       setIsGeneratingGif(false);
       setGifProgress(0);
@@ -1053,12 +1087,19 @@ export function QRGenerator() {
 
   const handleSaveCustomization = async () => {
     if (contentType !== "link") {
-      showToast.error("Customization saving is only available for short link URLs.");
+      showToast.error(
+        tr(
+          "Customization saving is only available for short link URLs.",
+          "La sauvegarde de la personnalisation est disponible uniquement pour les liens courts."
+        )
+      );
       return;
     }
 
     if (!websiteUrl || !websiteUrl.trim()) {
-      showToast.error("Please enter a short link URL.");
+      showToast.error(
+        tr("Please enter a short link URL.", "Veuillez saisir l'URL d'un lien court.")
+      );
       return;
     }
 
@@ -1080,7 +1121,12 @@ export function QRGenerator() {
       const target = findMatchingLink(websiteUrl);
 
       if (!target) {
-        showToast.error("This URL does not exist in your short link database.");
+        showToast.error(
+          tr(
+            "This URL does not exist in your short link database.",
+            "Cette URL n'existe pas dans votre base de liens courts."
+          )
+        );
         setIsSavingCustomization(false);
         return;
       }
@@ -1100,10 +1146,20 @@ export function QRGenerator() {
         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
       }
 
-      showToast.success(`QR Code design successfully saved for link /${target.slug}!`);
+      showToast.success(
+        tr(
+          `QR Code design successfully saved for link /${target.slug}!`,
+          `Design du QR Code enregistré pour le lien /${target.slug} !`
+        )
+      );
     } catch (err: unknown) {
       console.error("Save QR error:", err);
-      showToast.error("Error saving customization.");
+      showToast.error(
+        tr(
+          "Error saving customization.",
+          "Erreur lors de l'enregistrement de la personnalisation."
+        )
+      );
     } finally {
       setIsSavingCustomization(false);
     }
@@ -1112,29 +1168,34 @@ export function QRGenerator() {
   const copyConfigJSON = () => {
     const json = getV3QRCodeConfigJSON();
     navigator.clipboard.writeText(json);
-    showToast.success("V3 JSON configuration copied to clipboard!");
+    showToast.success(
+      tr(
+        "V3 JSON configuration copied to clipboard!",
+        "Configuration JSON V3 copiée dans le presse-papiers !"
+      )
+    );
   };
 
   // Pixel Motifs Definitions
   const PIXEL_STYLES = useMemo(
     () => [
-      { id: "square" as const, label: "Squares", icon: "■", isPro: false },
-      { id: "rounded" as const, label: "Rounded", icon: "●", isPro: false },
-      { id: "dots" as const, label: "Dots", icon: "•", isPro: true },
-      { id: "diamond" as const, label: "Diamonds", icon: "◆", isPro: true },
-      { id: "classy" as const, label: "Classy", icon: "◈", isPro: true },
-      { id: "stars" as const, label: "Stars", icon: "★", isPro: true },
-      { id: "lines" as const, label: "Lines", icon: "▬", isPro: true },
-      { id: "vertical_bars" as const, label: "Bars", icon: "▮", isPro: true },
-      { id: "cross" as const, label: "Cross +", icon: "✚", isPro: true },
-      { id: "hexagon_dots" as const, label: "Hexagons", icon: "⬡", isPro: true },
-      { id: "heart" as const, label: "Hearts", icon: "♥", isPro: true },
+      { id: "square" as const, label: tr("Squares", "Carrés"), icon: "■", isPro: false },
+      { id: "rounded" as const, label: tr("Rounded", "Arrondis"), icon: "●", isPro: false },
+      { id: "dots" as const, label: tr("Dots", "Points"), icon: "•", isPro: true },
+      { id: "diamond" as const, label: tr("Diamonds", "Losanges"), icon: "◆", isPro: true },
+      { id: "classy" as const, label: tr("Classy", "Élégant"), icon: "◈", isPro: true },
+      { id: "stars" as const, label: tr("Stars", "Étoiles"), icon: "★", isPro: true },
+      { id: "lines" as const, label: tr("Lines", "Lignes"), icon: "▬", isPro: true },
+      { id: "vertical_bars" as const, label: tr("Bars", "Barres"), icon: "▮", isPro: true },
+      { id: "cross" as const, label: tr("Cross +", "Croix +"), icon: "✚", isPro: true },
+      { id: "hexagon_dots" as const, label: tr("Hexagons", "Hexagones"), icon: "⬡", isPro: true },
+      { id: "heart" as const, label: tr("Hearts", "Cœurs"), icon: "♥", isPro: true },
       { id: "cyber_tiles" as const, label: "Cyber", icon: "⯃", isPro: true },
-      { id: "sparkle" as const, label: "Sparkles", icon: "✦", isPro: true },
-      { id: "pill" as const, label: "Pills", icon: "⬭", isPro: true },
-      { id: "fluid" as const, label: "Fluid", icon: "◎", isPro: true },
+      { id: "sparkle" as const, label: tr("Sparkles", "Éclats"), icon: "✦", isPro: true },
+      { id: "pill" as const, label: tr("Pills", "Pilules"), icon: "⬭", isPro: true },
+      { id: "fluid" as const, label: tr("Fluid", "Fluide"), icon: "◎", isPro: true },
     ],
-    []
+    [tr]
   );
 
   // Finder Eyes Definitions
@@ -1142,7 +1203,7 @@ export function QRGenerator() {
     () => [
     {
       id: "square" as const,
-      label: "Square",
+      label: tr("Square", "Carré"),
       isPro: false,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1153,7 +1214,7 @@ export function QRGenerator() {
     },
     {
       id: "rounded" as const,
-      label: "Rounded",
+      label: tr("Rounded", "Arrondi"),
       isPro: false,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1164,7 +1225,7 @@ export function QRGenerator() {
     },
     {
       id: "circle" as const,
-      label: "Circle",
+      label: tr("Circle", "Cercle"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1175,7 +1236,7 @@ export function QRGenerator() {
     },
     {
       id: "leaf" as const,
-      label: "Leaf",
+      label: tr("Leaf", "Feuille"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1186,7 +1247,7 @@ export function QRGenerator() {
     },
     {
       id: "hexagon" as const,
-      label: "Hexagon",
+      label: tr("Hexagon", "Hexagone"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1197,7 +1258,7 @@ export function QRGenerator() {
     },
     {
       id: "star" as const,
-      label: "Star",
+      label: tr("Star", "Étoile"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1219,7 +1280,7 @@ export function QRGenerator() {
     },
     {
       id: "diamond_eye" as const,
-      label: "Diamond",
+      label: tr("Diamond", "Diamant"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1230,7 +1291,7 @@ export function QRGenerator() {
     },
     {
       id: "shield" as const,
-      label: "Shield",
+      label: tr("Shield", "Bouclier"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1241,7 +1302,7 @@ export function QRGenerator() {
     },
     {
       id: "target" as const,
-      label: "Target",
+      label: tr("Target", "Cible"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1253,7 +1314,7 @@ export function QRGenerator() {
     },
     {
       id: "petal" as const,
-      label: "Petal",
+      label: tr("Petal", "Pétale"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1264,7 +1325,7 @@ export function QRGenerator() {
     },
     {
       id: "double_circle" as const,
-      label: "Double Ring",
+      label: tr("Double Ring", "Double anneau"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -1276,7 +1337,7 @@ export function QRGenerator() {
     },
     {
       id: "bracket" as const,
-      label: "Brackets [ ]",
+      label: tr("Brackets [ ]", "Crochets [ ]"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1287,7 +1348,7 @@ export function QRGenerator() {
     },
     {
       id: "heart_eye" as const,
-      label: "Heart",
+      label: tr("Heart", "Cœur"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1297,7 +1358,7 @@ export function QRGenerator() {
     },
     {
       id: "gear" as const,
-      label: "Gear",
+      label: tr("Gear", "Engrenage"),
       isPro: true,
       svg: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1307,15 +1368,15 @@ export function QRGenerator() {
       ),
     },
     ],
-    []
+    [tr]
   );
 
   // Real Logos List
   const LOGO_LIST: Array<{ id: LogoType | string; label: string; isPro: boolean; iconNode: React.ReactNode }> = useMemo(
     () => [
-    { id: "none", label: "None", isPro: false, iconNode: <X className="w-5 h-5 text-neutral-400" /> },
-    { id: "custom", label: "Upload Image", isPro: true, iconNode: <Upload className="w-4 h-4 text-brand" /> },
-    { id: "text", label: "Custom Text", isPro: true, iconNode: <Type className="w-4 h-4 text-neutral-700 dark:text-neutral-200" /> },
+    { id: "none", label: tr("None", "Aucun"), isPro: false, iconNode: <X className="w-5 h-5 text-neutral-400" /> },
+    { id: "custom", label: tr("Upload Image", "Importer une image"), isPro: true, iconNode: <Upload className="w-4 h-4 text-brand" /> },
+    { id: "text", label: tr("Custom Text", "Texte personnalisé"), isPro: true, iconNode: <Type className="w-4 h-4 text-neutral-700 dark:text-neutral-200" /> },
     // 1. Social & Communication
     { id: "facebook", label: "Facebook", isPro: false, iconNode: BrandIcons.facebook },
     { id: "instagram", label: "Instagram", isPro: false, iconNode: BrandIcons.instagram },
@@ -1419,7 +1480,7 @@ export function QRGenerator() {
     { id: "resend", label: "Resend", isPro: true, iconNode: BrandIcons.resend },
     { id: "crypto_btc", label: "Bitcoin", isPro: true, iconNode: BrandIcons.crypto_btc },
     ],
-    []
+    [tr]
   );
 
   const getAnimatedMotifIcon = useCallback((motif: ThemeMotif, className?: string) => {
@@ -1480,11 +1541,11 @@ export function QRGenerator() {
   }> = useMemo(
     () => [
     // --- Cadres Statiques ---
-    { id: "none", label: "None", isPro: false, previewIcon: <X className="w-5 h-5 text-neutral-400" /> },
+    { id: "none", label: tr("None", "Aucun"), isPro: false, previewIcon: <X className="w-5 h-5 text-neutral-400" /> },
     { id: "simple", label: "Simple", isPro: false, previewIcon: <div className="w-6 h-6 border-2 border-current rounded-[8px]" /> },
     {
       id: "corner_brackets",
-      label: "Brackets",
+      label: tr("Brackets", "Crochets"),
       isPro: false,
       previewIcon: (
         <div className="w-6 h-6 relative">
@@ -1498,7 +1559,7 @@ export function QRGenerator() {
     },
     {
       id: "floating_card",
-      label: "Bar",
+      label: tr("Bar", "Barre"),
       isPro: false,
       previewIcon: (
         <div className="w-6 h-6 border-2 border-current rounded-[6px] flex flex-col justify-between p-0.5">
@@ -1509,7 +1570,7 @@ export function QRGenerator() {
     },
     {
       id: "minimal_box",
-      label: "Cutout",
+      label: tr("Cutout", "Découpe"),
       isPro: false,
       previewIcon: (
         <div className="w-6 h-6 border-2 border-current rounded-[6px] relative flex flex-col justify-end items-center">
@@ -1527,8 +1588,8 @@ export function QRGenerator() {
         </div>
       ),
     },
-    { id: "bottom_pill", label: "Pill", isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
-    { id: "top_header", label: "Header", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
+    { id: "bottom_pill", label: tr("Pill", "Pilule"), isPro: false, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border-2 border-current rounded-[6px]" /><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span></div> },
+    { id: "top_header", label: tr("Header", "En-tête"), isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><span className="bg-brand text-white px-1 text-[6px] font-bold rounded">SCAN</span><div className="w-5 h-4 border-2 border-current rounded-[6px]" /></div> },
     {
       id: "clean_badge",
       label: "Badge",
@@ -1543,7 +1604,7 @@ export function QRGenerator() {
     },
     {
       id: "notched_corners",
-      label: "Notched",
+      label: tr("Notched", "Biseauté"),
       isPro: true,
       previewIcon: (
         <div className="w-6 h-6 border-2 border-current [clip-path:polygon(25%_0%,75%_0%,100%_25%,100%_75%,75%_100%,25%_100%,0%_75%,0%_25%)] flex items-center justify-center">
@@ -1553,7 +1614,7 @@ export function QRGenerator() {
     },
     {
       id: "stamp_border",
-      label: "Dotted",
+      label: tr("Dotted", "Pointillé"),
       isPro: true,
       previewIcon: (
         <div className="w-6 h-6 border-2 border-dashed border-current rounded-[6px] flex flex-col justify-end items-center p-0.5">
@@ -1561,15 +1622,15 @@ export function QRGenerator() {
         </div>
       ),
     },
-    { id: "hand_arrow", label: "Cursive", isPro: true, previewIcon: <span className="italic text-[10px] font-serif">Scan me ⤹</span> },
-    { id: "modern_badge", label: "Star", isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-brand text-[8px] font-bold">★ SCAN ★</span></div> },
-    { id: "neon", label: "Neon", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-brand rounded-[8px] shadow-brand" /> },
-    { id: "phone", label: "Phone", isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-brand" /> },
+    { id: "hand_arrow", label: tr("Cursive", "Cursive"), isPro: true, previewIcon: <span className="italic text-[10px] font-serif">Scan me ⤹</span> },
+    { id: "modern_badge", label: tr("Star", "Étoile"), isPro: true, previewIcon: <div className="flex flex-col items-center gap-0.5"><div className="w-5 h-4 border border-current rounded-[6px]" /><span className="text-brand text-[8px] font-bold">★ SCAN ★</span></div> },
+    { id: "neon", label: tr("Neon", "Néon"), isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-brand rounded-[8px] shadow-brand" /> },
+    { id: "phone", label: tr("Phone", "Mobile"), isPro: true, previewIcon: <Smartphone className="w-5 h-5 text-brand" /> },
     { id: "tag_ticket", label: "Ticket", isPro: true, previewIcon: <Tag className="w-5 h-5 text-emerald-400" /> },
     { id: "polaroid", label: "Polaroid", isPro: true, previewIcon: <div className="w-6 h-7 border-2 border-current rounded-sm flex flex-col justify-end p-0.5"><div className="w-full h-1.5 bg-neutral-500 rounded-xs" /></div> },
     { id: "luxury_gold", label: "Prestige", isPro: true, previewIcon: <div className="w-6 h-6 border-2 border-amber-400 p-0.5 rounded-[4px]"><div className="w-full h-full border border-amber-300" /></div> },
-    { id: "circular_badge", label: "Shield", isPro: true, previewIcon: <Shield className="w-5 h-5 text-sky-400" /> },
-    { id: "gradient_border", label: "Gradient", isPro: true, previewIcon: <div className="w-6 h-6 rounded-[8px] bg-gradient-to-tr from-[#ff007a] via-[#ff6600] to-[#7928ca] p-0.5"><div className="w-full h-full bg-white dark:bg-[#141416] rounded-[6px]" /></div> },
+    { id: "circular_badge", label: tr("Shield", "Bouclier"), isPro: true, previewIcon: <Shield className="w-5 h-5 text-sky-400" /> },
+    { id: "gradient_border", label: tr("Gradient", "Dégradé"), isPro: true, previewIcon: <div className="w-6 h-6 rounded-[8px] bg-gradient-to-tr from-[#ff007a] via-[#ff6600] to-[#7928ca] p-0.5"><div className="w-full h-full bg-white dark:bg-[#141416] rounded-[6px]" /></div> },
 
     // --- 40 GPU Shader-Driven Animated Studio Themes (Simple, Sobre & Minimal) ---
     ...Object.values(ANIMATED_THEMES).map((theme) => ({
@@ -1585,21 +1646,23 @@ export function QRGenerator() {
       ),
     })),
     ],
-    [getAnimatedMotifIcon]
+    [getAnimatedMotifIcon, tr]
   );
 
   const controlsContent = (
     <div className="flex flex-col gap-6">
 {/* Content Type Tabs */}
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Content Type</span>
+            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              {tr("Content Type", "Type de contenu")}
+            </span>
             <div className="flex flex-wrap items-center gap-2">
               {[
-                { type: "link" as const, label: "URL Link" },
-                { type: "text" as const, label: "Text" },
+                { type: "link" as const, label: tr("URL Link", "Lien URL") },
+                { type: "text" as const, label: tr("Text", "Texte") },
                 { type: "wifi" as const, label: "WiFi" },
-                { type: "email" as const, label: "Email" },
-                { type: "call" as const, label: "Call" },
+                { type: "email" as const, label: tr("Email", "E-mail") },
+                { type: "call" as const, label: tr("Call", "Appel") },
                 { type: "sms" as const, label: "SMS" },
               ].map((item) => (
                 <button
@@ -1624,11 +1687,14 @@ export function QRGenerator() {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                    Website URL or Short Link
+                    {tr("Website URL or Short Link", "URL du site web ou lien court")}
                   </label>
                   {userLinks.length > 0 && (
                     <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                      {userLinks.length} link{userLinks.length > 1 ? "s" : ""} in your account
+                      {tr(
+                        `${userLinks.length} link${userLinks.length > 1 ? "s" : ""} in your account`,
+                        `${userLinks.length} lien${userLinks.length > 1 ? "s" : ""} dans votre compte`
+                      )}
                     </span>
                   )}
                 </div>
@@ -1646,7 +1712,10 @@ export function QRGenerator() {
                       className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                     >
                       <option value="" className="bg-white dark:bg-[#141416] text-neutral-500 dark:text-neutral-400">
-                        -- Choose from your existing short links --
+                        {tr(
+                          "-- Choose from your existing short links --",
+                          "-- Choisir parmi vos liens courts existants --"
+                        )}
                       </option>
                       {userLinks.map((l) => (
                         <option
@@ -1665,7 +1734,7 @@ export function QRGenerator() {
                   <Input
                     value={websiteUrl}
                     onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://lsho.cc/my-link"
+                    placeholder={tr("https://lsho.cc/my-link", "https://lsho.cc/mon-lien")}
                   />
                 </div>
 
@@ -1675,7 +1744,7 @@ export function QRGenerator() {
                     <Check className="w-4 h-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
                     <div className="flex items-center justify-between gap-2 w-full">
                       <span className="text-neutral-800 dark:text-neutral-200">
-                        Linked in your account: <strong>/{matchedLink.slug}</strong>
+                        {tr("Linked in your account:", "Lié à votre compte :")} <strong>/{matchedLink.slug}</strong>
                       </span>
                       <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono truncate max-w-[200px]">
                         ↳ {matchedLink.targetUrl}
@@ -1686,7 +1755,10 @@ export function QRGenerator() {
                   <div className="flex items-center gap-2 text-[11px] text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/10 rounded-[10px] px-3 py-1.5 animate-in fade-in">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500 dark:text-amber-400" />
                     <span>
-                      Custom URL (not linked to a short link in your account). Saving requires an existing short link.
+                      {tr(
+                        "Custom URL (not linked to a short link in your account). Saving requires an existing short link.",
+                        "URL personnalisée (non associée à un lien court de votre compte). La sauvegarde nécessite un lien court existant."
+                      )}
                     </span>
                   </div>
                 ) : null}
@@ -1696,13 +1768,13 @@ export function QRGenerator() {
             {contentType === "text" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Plain Text
+                  {tr("Plain Text", "Texte brut")}
                 </label>
                 <textarea
                   rows={3}
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
-                  placeholder="Enter your message or note..."
+                  placeholder={tr("Enter your message or note...", "Saisissez votre message ou note...")}
                   className="w-full rounded-[10px] bg-white dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] p-3 text-sm text-neutral-900 dark:text-neutral-200 focus:outline-none focus:border-brand"
                 />
               </div>
@@ -1712,38 +1784,42 @@ export function QRGenerator() {
               <div className="flex flex-col gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Network Name (SSID)
+                    {tr("Network Name (SSID)", "Nom du réseau (SSID)")}
                   </label>
                   <Input
                     value={wifiSsid}
                     onChange={(e) => setWifiSsid(e.target.value)}
-                    placeholder="MyWiFi_Guest"
+                    placeholder={tr("MyWiFi_Guest", "MonWiFi_Invites")}
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                      Password
+                      {tr("Password", "Mot de passe")}
                     </label>
                     <Input
                       type="password"
                       value={wifiPassword}
                       onChange={(e) => setWifiPassword(e.target.value)}
-                      placeholder="WiFi password"
+                      placeholder={tr("WiFi password", "Mot de passe WiFi")}
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                      Encryption
+                      {tr("Encryption", "Chiffrement")}
                     </label>
                     <select
                       value={wifiEncryption}
                       onChange={(e) => setWifiEncryption(e.target.value as "WPA" | "WEP" | "nopass")}
                       className="w-full h-11 rounded-[10px] bg-white dark:bg-[#141416] text-neutral-900 dark:text-white border border-neutral-200 dark:border-[#27272a] px-3 text-sm focus:outline-none focus:border-brand cursor-pointer"
                     >
-                      <option value="WPA" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">WPA / WPA2 (Recommended)</option>
+                      <option value="WPA" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                        {tr("WPA / WPA2 (Recommended)", "WPA / WPA2 (Recommandé)")}
+                      </option>
                       <option value="WEP" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">WEP</option>
-                      <option value="nopass" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">No password</option>
+                      <option value="nopass" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                        {tr("No password", "Sans mot de passe")}
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -1754,7 +1830,7 @@ export function QRGenerator() {
               <div className="flex flex-col gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Email address
+                    {tr("Email address", "Adresse e-mail")}
                   </label>
                   <Input
                     type="email"
@@ -1765,12 +1841,12 @@ export function QRGenerator() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Message subject
+                    {tr("Message subject", "Objet du message")}
                   </label>
                   <Input
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder="Information request"
+                    placeholder={tr("Information request", "Demande d'information")}
                   />
                 </div>
               </div>
@@ -1779,7 +1855,7 @@ export function QRGenerator() {
             {contentType === "call" && (
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Phone number
+                  {tr("Phone number", "Numéro de téléphone")}
                 </label>
                 <Input
                   type="tel"
@@ -1794,7 +1870,7 @@ export function QRGenerator() {
               <div className="flex flex-col gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Recipient phone number
+                    {tr("Recipient phone number", "Numéro du destinataire")}
                   </label>
                   <Input
                     type="tel"
@@ -1805,12 +1881,12 @@ export function QRGenerator() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Pre-filled message
+                    {tr("Pre-filled message", "Message pré-rempli")}
                   </label>
                   <Input
                     value={smsMessage}
                     onChange={(e) => setSmsMessage(e.target.value)}
-                    placeholder="I am interested in your offer."
+                    placeholder={tr("I am interested in your offer.", "Je suis intéressé par votre offre.")}
                   />
                 </div>
               </div>
@@ -1819,20 +1895,30 @@ export function QRGenerator() {
 
           {/* SECTION 1: SELECT A STYLE */}
           <div className="p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] flex flex-col gap-5">
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">Select a Style</h3>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
+              {tr("Select a Style", "Choisir un style")}
+            </h3>
 
             {/* Pixels Style */}
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-                  Pixel Patterns ({PIXEL_STYLES.length} unique styles)
+                  {tr(
+                    `Pixel Patterns (${PIXEL_STYLES.length} unique styles)`,
+                    `Motifs de pixels (${PIXEL_STYLES.length} styles uniques)`
+                  )}
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowMorePixels(!showMorePixels)}
                   className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer"
                 >
-                  {showMorePixels ? "Show less ↑" : "View all patterns (" + PIXEL_STYLES.length + ") ↓"}
+                  {showMorePixels
+                    ? tr("Show less ↑", "Voir moins ↑")
+                    : tr(
+                        `View all patterns (${PIXEL_STYLES.length}) ↓`,
+                        `Voir tous les motifs (${PIXEL_STYLES.length}) ↓`
+                      )}
                 </button>
               </div>
 
@@ -1848,8 +1934,11 @@ export function QRGenerator() {
                     setPixelStyle(id);
                   } else {
                     triggerPlanUpgrade({
-                      reason: "This pixel style is reserved for Pro & Business plans.",
-                      featureName: "Pro Pixel Patterns",
+                      reason: tr(
+                        "This pixel style is reserved for Pro & Business plans.",
+                        "Ce motif de pixel est réservé aux forfaits Pro et Business."
+                      ),
+                      featureName: tr("Pro Pixel Patterns", "Motifs de pixels Pro"),
                     });
                   }
                 }}
@@ -1870,8 +1959,11 @@ export function QRGenerator() {
                     setEyeStyle(id);
                   } else {
                     triggerPlanUpgrade({
-                      reason: "The eye style is reserved for Pro & Business plans.",
-                      featureName: "Pro Eye Shapes",
+                      reason: tr(
+                        "The eye style is reserved for Pro & Business plans.",
+                        "Ce style d'angle est réservé aux forfaits Pro et Business."
+                      ),
+                      featureName: tr("Pro Eye Shapes", "Formes d'angles Pro"),
                     });
                   }
                 }}
@@ -1883,38 +1975,45 @@ export function QRGenerator() {
           <div className="p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">Palette & Colors</h3>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
+                  {tr("Palette & Colors", "Palette & Couleurs")}
+                </h3>
                 <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                  Customize pixels, background, eye corners, and frame
+                  {tr(
+                    "Customize pixels, background, eye corners, and frame",
+                    "Personnalisez les pixels, le fond, les angles et le cadre"
+                  )}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleResetColors}
                 className="btn-hover-scale px-2.5 py-1.5 rounded-[8px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer transition-all duration-200"
-                title="Reset all colors to defaults"
+                title={tr("Reset all colors to defaults", "Réinitialiser toutes les couleurs")}
               >
                 <RotateCcw className="w-3.5 h-3.5 text-brand" />
-                <span>Reset</span>
+                <span>{tr("Reset", "Réinitialiser")}</span>
               </button>
             </div>
 
             {/* Presets */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Presets</span>
+                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  {tr("Presets", "Préréglages")}
+                </span>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {[
-                  { hex: "#000000", name: "Black" },
+                  { hex: "#000000", name: tr("Black", "Noir") },
                   { hex: "#ff6600", name: "Orange LShorter" },
-                  { hex: "#ef4444", name: "Red" },
-                  { hex: "#ffffff", name: "White" },
-                  { hex: "#10b981", name: "Green" },
+                  { hex: "#ef4444", name: tr("Red", "Rouge") },
+                  { hex: "#ffffff", name: tr("White", "Blanc") },
+                  { hex: "#10b981", name: tr("Green", "Vert") },
                   { hex: "#0ea5e9", name: "Cyan" },
-                  { hex: "#3b82f6", name: "Blue" },
-                  { hex: "#8b5cf6", name: "Purple" },
-                  { hex: "#ec4899", name: "Pink" },
+                  { hex: "#3b82f6", name: tr("Blue", "Bleu") },
+                  { hex: "#8b5cf6", name: tr("Purple", "Violet") },
+                  { hex: "#ec4899", name: tr("Pink", "Rose") },
                 ].map((c) => (
                   <button
                     key={c.hex}
@@ -1935,31 +2034,37 @@ export function QRGenerator() {
             {/* Pixels color row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-2 border-t border-neutral-200 dark:border-[#222225]">
               <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">Pixels</label>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
+                  Pixels
+                </label>
                 <select
                   value={colorMode}
                   onChange={(e) => setColorMode(e.target.value as "monochrome" | "gradient")}
                   className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-900 dark:text-white border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                 >
-                  <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Monochrome</option>
-                  <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Gradient</option>
+                  <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                    Monochrome
+                  </option>
+                  <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                    {tr("Gradient", "Dégradé")}
+                  </option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
-                  Hex Value
+                  {tr("Hex Value", "Code hexadécimal")}
                 </label>
                 <div className="flex items-center gap-2">
                   <LiveColorControl
-                    ariaLabel="QR module color"
+                    ariaLabel={tr("QR module color", "Couleur des pixels du QR code")}
                     value={pixelColor}
                     onInstantPreview={(hex) => applyInstantColor({ pixelColor: hex })}
                     onCommit={setPixelColor}
                   />
                   {colorMode === "gradient" && (
                     <LiveColorControl
-                      ariaLabel="QR module gradient secondary color"
+                      ariaLabel={tr("QR module gradient secondary color", "Couleur secondaire du dégradé des pixels")}
                       value={pixelColor2}
                       showHexInput={false}
                       onInstantPreview={(hex) => applyInstantColor({ pixelColor2: hex })}
@@ -1970,44 +2075,54 @@ export function QRGenerator() {
               </div>
             </div>
 
-            {/* Arrière-plan color row */}
+            {/* Background color row */}
             <div className="flex flex-col gap-2 pt-2 border-t border-neutral-200 dark:border-[#222225]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
-                    Style de fond du QR code
+                    {tr("QR background style", "Style de fond du QR code")}
                   </label>
                   <select
                     value={bgMode}
                     onChange={(e) => setBgMode(e.target.value as "monochrome" | "transparent" | "gradient")}
                     className="w-full h-10 rounded-[10px] bg-white dark:bg-[#1a1a1e] text-neutral-900 dark:text-white border border-neutral-200 dark:border-[#27272a] px-3 text-xs focus:outline-none focus:border-brand cursor-pointer"
                   >
-                    <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Couleur Unie (Solide)</option>
-                    <option value="transparent" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Transparent (Verre dépoli)</option>
-                    <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">Dégradé personnalisé</option>
+                    <option value="monochrome" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                      {tr("Solid Color", "Couleur Unie (Solide)")}
+                    </option>
+                    <option value="transparent" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                      {tr("Transparent (Frosted Glass)", "Transparent (Verre dépoli)")}
+                    </option>
+                    <option value="gradient" className="bg-white dark:bg-[#141416] text-neutral-900 dark:text-white">
+                      {tr("Custom Gradient", "Dégradé personnalisé")}
+                    </option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-400 mb-1">
-                    {bgMode === "transparent" ? "Transparence" : "Couleur du fond"}
+                    {bgMode === "transparent"
+                      ? tr("Transparency", "Transparence")
+                      : tr("Background color", "Couleur du fond")}
                   </label>
                   {bgMode === "transparent" ? (
                     <div className="flex items-center gap-2 h-10 px-3 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] text-xs text-neutral-600 dark:text-neutral-400">
                       <span className="w-4 h-4 rounded-full bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:4px_4px] border border-neutral-300 dark:border-neutral-600 shrink-0" />
-                      <span className="font-medium truncate">Fond transparent (laisse passer le shader)</span>
+                      <span className="font-medium truncate">
+                        {tr("Transparent background (reveals shader)", "Fond transparent (laisse passer le shader)")}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <LiveColorControl
-                        ariaLabel="QR background color"
+                        ariaLabel={tr("QR background color", "Couleur de fond du QR code")}
                         value={bgColor}
                         onInstantPreview={(hex) => applyInstantColor({ bgColor: hex })}
                         onCommit={setBgColor}
                       />
                       {bgMode === "gradient" && (
                         <LiveColorControl
-                          ariaLabel="QR background gradient secondary color"
+                          ariaLabel={tr("QR background gradient secondary color", "Couleur secondaire du dégradé de fond")}
                           value={bgColor2}
                           showHexInput={false}
                           onInstantPreview={(hex) => applyInstantColor({ bgColor2: hex })}
@@ -2021,13 +2136,15 @@ export function QRGenerator() {
 
               {bgMode === "monochrome" && (
                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 mr-1">Presets fond :</span>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 mr-1">
+                    {tr("Background presets:", "Presets fond :")}
+                  </span>
                   {[
-                    { hex: "#ffffff", label: "Blanc pur" },
-                    { hex: "#0f172a", label: "Obsidienne" },
-                    { hex: "#18181b", label: "Anthracite" },
-                    { hex: "#f4f4f5", label: "Gris doux" },
-                    { hex: "#fef3c7", label: "Crème" },
+                    { hex: "#ffffff", label: tr("Pure White", "Blanc pur") },
+                    { hex: "#0f172a", label: tr("Obsidian", "Obsidienne") },
+                    { hex: "#18181b", label: tr("Charcoal", "Anthracite") },
+                    { hex: "#f4f4f5", label: tr("Soft Gray", "Gris doux") },
+                    { hex: "#fef3c7", label: tr("Cream", "Crème") },
                   ].map((preset) => (
                     <button
                       key={preset.hex}
@@ -2056,7 +2173,7 @@ export function QRGenerator() {
             {/* Angles Toggle */}
             <label className="flex items-center justify-between p-3 rounded-[10px] bg-neutral-50 dark:bg-[#1a1a1e] border border-neutral-200 dark:border-[#27272a] cursor-pointer text-xs">
               <span className="font-semibold text-neutral-800 dark:text-neutral-300">
-                Custom color for eye corners
+                {tr("Custom color for eye corners", "Couleur personnalisée pour les angles")}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -2067,7 +2184,7 @@ export function QRGenerator() {
                 />
                 {useSeparateEyeColor && (
                   <LiveColorControl
-                    ariaLabel="QR eye corner color"
+                    ariaLabel={tr("QR eye corner color", "Couleur des angles du QR code")}
                     value={eyeColor}
                     showHexInput={false}
                     swatchClassName="w-6 h-6 rounded-[10px] bg-transparent border-0 cursor-pointer hover:scale-105 shrink-0"
@@ -2083,9 +2200,14 @@ export function QRGenerator() {
           <div className="p-4 sm:p-5 rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-200 dark:border-[#222225] flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">Official Brand Logos</h3>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
+                  {tr("Official Brand Logos", "Logos officiels de marques")}
+                </h3>
                 <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                  {LOGO_LIST.length} HD vector logos ready to use
+                  {tr(
+                    `${LOGO_LIST.length} HD vector logos ready to use`,
+                    `${LOGO_LIST.length} logos vectoriels HD prêts à l'emploi`
+                  )}
                 </span>
               </div>
             </div>
@@ -2108,8 +2230,11 @@ export function QRGenerator() {
                 if (id === "custom") {
                   if (!isProPlan) {
                     triggerPlanUpgrade({
-                      reason: "Uploading your own brand logo is reserved for the Pro plan.",
-                      featureName: "Custom Logo Upload",
+                      reason: tr(
+                        "Uploading your own brand logo is reserved for the Pro plan.",
+                        "L'import de votre propre logo est réservé au forfait Pro."
+                      ),
+                      featureName: tr("Custom Logo Upload", "Import de logo personnalisé"),
                     });
                     return;
                   }
@@ -2120,8 +2245,11 @@ export function QRGenerator() {
                 if (id === "text") {
                   if (!isProPlan) {
                     triggerPlanUpgrade({
-                      reason: "Inserting custom center text requires the Pro plan.",
-                      featureName: "Custom Center Text",
+                      reason: tr(
+                        "Inserting custom center text requires the Pro plan.",
+                        "L'insertion d'un texte central personnalisé nécessite le forfait Pro."
+                      ),
+                      featureName: tr("Custom Center Text", "Texte central personnalisé"),
                     });
                     return;
                   }
@@ -2135,7 +2263,10 @@ export function QRGenerator() {
                   setSelectedLogo(id);
                 } else {
                   triggerPlanUpgrade({
-                    reason: `The official logo "${label}" is reserved for Pro & Business plans.`,
+                    reason: tr(
+                      `The official logo "${label}" is reserved for Pro & Business plans.`,
+                      `Le logo officiel « ${label} » est réservé aux forfaits Pro et Business.`
+                    ),
                     featureName: `Logo ${label}`,
                   });
                 }
@@ -2145,7 +2276,7 @@ export function QRGenerator() {
             {selectedLogo === "text" && isProPlan && (
               <div className="pt-2 flex flex-col gap-2 animate-in fade-in">
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                  Center text (max 6 chars)
+                  {tr("Center text (max 6 chars)", "Texte central (max 6 caractères)")}
                 </label>
                 <Input
                   maxLength={6}
@@ -2157,13 +2288,19 @@ export function QRGenerator() {
                   placeholder="SCAN"
                 />
                 <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
-                  💡 The font family, size, weight, and casing selected in typography options also apply to center text.
+                  {tr(
+                    "The font family, size, weight, and casing selected in typography options also apply to center text.",
+                    "La police, la taille, la graisse et la casse choisies dans les options typographiques s'appliquent aussi au texte central."
+                  )}
                 </span>
               </div>
             )}
 
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              Each logo is rendered with official vector curves and high-reliability error correction (Level H 30%).
+              {tr(
+                "Each logo is rendered with official vector curves and high-reliability error correction (Level H 30%).",
+                "Chaque logo est rendu en courbes vectorielles officielles avec une correction d'erreur haute fiabilité (Niveau H 30 %)."
+              )}
             </p>
           </div>
 
@@ -2172,10 +2309,13 @@ export function QRGenerator() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
-                  Frames & CTA Banners
+                  {tr("Frames & CTA Banners", "Cadres & Bannières CTA")}
                 </h3>
                 <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                  {FRAME_LIST.length} conversion frames (Static & Ultra-Pro Animated)
+                  {tr(
+                    `${FRAME_LIST.length} conversion frames (Static & Ultra-Pro Animated)`,
+                    `${FRAME_LIST.length} cadres de conversion (Statiques & Animés Ultra-Pro)`
+                  )}
                 </span>
               </div>
 
@@ -2194,8 +2334,11 @@ export function QRGenerator() {
                   setSelectedFrame(id);
                 } else {
                   triggerPlanUpgrade({
-                    reason: `This frame is reserved for Pro & Business plans.`,
-                    featureName: "Pro Frame",
+                    reason: tr(
+                      "This frame is reserved for Pro & Business plans.",
+                      "Ce cadre est réservé aux forfaits Pro et Business."
+                    ),
+                    featureName: tr("Pro Frame", "Cadre Pro"),
                   });
                 }
               }}
@@ -2244,7 +2387,7 @@ export function QRGenerator() {
                                 : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
-                            Solid Card
+                            {tr("Solid Card", "Carte unie")}
                           </button>
                           <button
                             type="button"
@@ -2255,7 +2398,7 @@ export function QRGenerator() {
                                 : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
-                            Transparent Card
+                            {tr("Transparent Card", "Carte transparente")}
                           </button>
                           <button
                             type="button"
@@ -2266,7 +2409,7 @@ export function QRGenerator() {
                                 : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
-                            Gradient Card
+                            {tr("Gradient Card", "Carte dégradée")}
                           </button>
                         </div>
 
@@ -2280,7 +2423,7 @@ export function QRGenerator() {
                                 : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
-                            Theme Palette
+                            {tr("Theme Palette", "Palette du thème")}
                           </button>
                           <button
                             type="button"
@@ -2291,7 +2434,7 @@ export function QRGenerator() {
                                 : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                             }`}
                           >
-                            Custom Tint
+                            {tr("Custom Tint", "Teinte libre")}
                           </button>
                         </div>
                       </div>
@@ -2302,7 +2445,7 @@ export function QRGenerator() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                      Frame text (Call To Action)
+                      {tr("Frame text (Call To Action)", "Texte du cadre (Appel à l'action)")}
                     </label>
                     <Input
                       value={frameText}
@@ -2316,11 +2459,13 @@ export function QRGenerator() {
 
                   <div>
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                      {isAnimatedFrame(selectedFrame) ? "Custom tint color" : "Frame color"}
+                      {isAnimatedFrame(selectedFrame)
+                        ? tr("Custom tint color", "Couleur de teinte personnalisée")
+                        : tr("Frame color", "Couleur du cadre")}
                     </label>
                     <div className="flex items-center gap-2">
                       <LiveColorControl
-                        ariaLabel="Frame or shader tint color"
+                        ariaLabel={tr("Frame or shader tint color", "Couleur du cadre ou teinte du shader")}
                         value={frameColor}
                         onInstantPreview={(hex) =>
                           applyInstantColor({
@@ -2353,14 +2498,17 @@ export function QRGenerator() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-zinc-900 dark:text-white tracking-wide">
-                            Google Fonts Typography Studio
+                            {tr("Google Fonts Typography Studio", "Studio Typographique Google Fonts")}
                           </span>
                           <span className="text-[10px] font-bold bg-brand-subtle text-brand px-1.5 py-0.5 rounded border border-brand-subtle">
-                            {FONT_FAMILIES.length} Fonts
+                            {FONT_FAMILIES.length} {tr("Fonts", "Polices")}
                           </span>
                         </div>
                         <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                          Select your font with live preview and pixel-perfect size adjustment
+                          {tr(
+                            "Select your font with live preview and pixel-perfect size adjustment",
+                            "Sélectionnez votre police avec aperçu en direct et taille au pixel près"
+                          )}
                         </p>
                       </div>
                     </div>
@@ -2368,10 +2516,10 @@ export function QRGenerator() {
                       type="button"
                       onClick={handleResetTypography}
                       className="btn-hover-scale text-[11px] font-semibold text-neutral-700 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer self-start sm:self-auto bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 px-2.5 py-1.5 rounded-[6px] border border-neutral-200 dark:border-[#27272a]"
-                      title="Reset typography to default"
+                      title={tr("Reset typography to default", "Réinitialiser la typographie")}
                     >
                       <RotateCcw className="w-3.5 h-3.5 text-brand" />
-                      <span>Reset</span>
+                      <span>{tr("Reset", "Réinitialiser")}</span>
                     </button>
                   </div>
 
@@ -2408,14 +2556,14 @@ export function QRGenerator() {
                     {/* Weight / Style */}
                     <div>
                       <span className="block text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                        Style & Weight
+                        {tr("Style & Weight", "Style & Graisse")}
                       </span>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
                           { id: "normal" as const, label: "Normal 500" },
-                          { id: "bold" as const, label: "Bold" },
-                          { id: "900" as const, label: "Extra Bold 900" },
-                          { id: "italic" as const, label: "Italic" },
+                          { id: "bold" as const, label: tr("Bold", "Gras") },
+                          { id: "900" as const, label: tr("Extra Bold 900", "Extra Gras 900") },
+                          { id: "italic" as const, label: tr("Italic", "Italique") },
                         ].map((w) => (
                           <button
                             key={w.id}
@@ -2439,13 +2587,13 @@ export function QRGenerator() {
                     {/* Text Transform */}
                     <div>
                       <span className="block text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                        Text Case
+                        {tr("Text Case", "Casse du texte")}
                       </span>
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { id: "uppercase" as const, label: "UPPERCASE" },
+                          { id: "uppercase" as const, label: tr("UPPERCASE", "MAJUSCULES") },
                           { id: "none" as const, label: "Standard" },
-                          { id: "lowercase" as const, label: "lowercase" },
+                          { id: "lowercase" as const, label: tr("lowercase", "minuscules") },
                         ].map((c) => (
                           <button
                             key={c.id}
@@ -2478,9 +2626,14 @@ export function QRGenerator() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">QR Code Customization Studio</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide">
+            {tr("QR Code Customization Studio", "Studio de personnalisation QR Code")}
+          </h1>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Customize pixel patterns, eye corner shapes, gradient colors, official brand logos, and CTA frames.
+            {tr(
+              "Customize pixel patterns, eye corner shapes, gradient colors, official brand logos, and CTA frames.",
+              "Personnalisez les motifs de pixels, les angles, les dégradés, les logos officiels et les cadres CTA."
+            )}
           </p>
         </div>
 
@@ -2495,12 +2648,12 @@ export function QRGenerator() {
             {isSavingCustomization ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Saving...</span>
+                <span>{tr("Saving...", "Enregistrement...")}</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                <span>Save</span>
+                <span>{tr("Save", "Enregistrer")}</span>
               </>
             )}
           </Button>
@@ -2508,10 +2661,10 @@ export function QRGenerator() {
           <button
             onClick={copyConfigJSON}
             className="btn-hover-scale px-3.5 py-2 rounded-[10px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-2 cursor-pointer w-fit"
-            title="Copy JSON for Backend API"
+            title={tr("Copy JSON for Backend API", "Copier le JSON pour l'API backend")}
           >
             <Save className="w-3.5 h-3.5 text-brand" />
-            <span>Export V3 JSON</span>
+            <span>{tr("Export V3 JSON", "Exporter JSON V3")}</span>
           </button>
         </div>
       </div>
@@ -2524,13 +2677,12 @@ export function QRGenerator() {
           className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold flex items-center justify-center gap-2.5 shadow-md cursor-pointer transition-all"
         >
           <Sliders className="w-4 h-4" />
-          <span>Configurer les paramètres du QR Code</span>
+          <span>{tr("Configure QR Code settings", "Configurer les paramètres du QR Code")}</span>
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Customization Controls (7 cols) */}
-                {/* Left Column: Customization Controls (7 cols) - desktop only */}
+        {/* Left Column: Customization Controls (7 cols) - desktop only */}
         {!isMobile && (
           <div className="hidden lg:flex lg:col-span-7 flex-col gap-6">
             {controlsContent}
@@ -2539,7 +2691,9 @@ export function QRGenerator() {
         {/* Right Column: Live Interactive Preview (5 cols on desktop, full width on mobile) */}
         <div className={cn("flex flex-col gap-4", isMobile ? "w-full" : "lg:col-span-5 sticky top-24")}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Live Preview</span>
+            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              {tr("Live Preview", "Aperçu en direct")}
+            </span>
             {isAnimatedFrame(selectedFrame) && (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
@@ -2550,10 +2704,14 @@ export function QRGenerator() {
                   type="button"
                   onClick={() => setIsPlayingAnimation(!isPlayingAnimation)}
                   className="btn-hover-scale px-2 py-1 rounded-[6px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 text-[10px] font-semibold cursor-pointer"
-                  title={isPlayingAnimation ? "Pause animation" : "Play animation"}
+                  title={
+                    isPlayingAnimation
+                      ? tr("Pause animation", "Mettre l'animation en pause")
+                      : tr("Play animation", "Lire l'animation")
+                  }
                 >
                   {isPlayingAnimation ? <Pause className="w-3 h-3 text-amber-500 dark:text-amber-400" /> : <Play className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />}
-                  <span>{isPlayingAnimation ? "Pause" : "Play"}</span>
+                  <span>{isPlayingAnimation ? tr("Pause", "Pause") : tr("Play", "Lire")}</span>
                 </button>
               </div>
             )}
@@ -2586,12 +2744,12 @@ export function QRGenerator() {
             {isSavingCustomization ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Saving in progress...</span>
+                <span>{tr("Saving in progress...", "Enregistrement en cours...")}</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Save customization</span>
+                <span>{tr("Save customization", "Enregistrer la personnalisation")}</span>
                 {matchedLink && (
                   <span className="text-[10px] opacity-90 font-mono bg-black/25 px-1.5 py-0.5 rounded">
                     /{matchedLink.slug}
@@ -2601,7 +2759,7 @@ export function QRGenerator() {
             )}
           </Button>
 
-          {/* Action Buttons: PNG, SVG, GIF, Partager */}
+          {/* Action Buttons: PNG, SVG, GIF, Share */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               onClick={downloadPNG}
@@ -2627,7 +2785,14 @@ export function QRGenerator() {
                   ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300"
                   : "bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-purple-500/10 hover:from-amber-500/25 hover:to-purple-500/20 dark:from-amber-500/15 dark:via-orange-500/15 dark:to-purple-500/15 dark:hover:from-amber-500/25 dark:hover:to-purple-500/25 border-amber-500/40 hover:border-amber-500 text-amber-800 dark:text-amber-300 shadow-amber-500/10"
               }`}
-              title={isProPlan ? "Download QR Code in high-resolution animated GIF format" : "GIF export reserved for Pro plan"}
+              title={
+                isProPlan
+                  ? tr(
+                      "Download QR Code in high-resolution animated GIF format",
+                      "Télécharger le QR Code au format GIF animé haute résolution"
+                    )
+                  : tr("GIF export reserved for Pro plan", "Export GIF réservé au forfait Pro")
+              }
             >
               {isGeneratingGif ? (
                 <>
@@ -2647,15 +2812,18 @@ export function QRGenerator() {
               type="button"
               onClick={() => setIsShareModalOpen(true)}
               className="btn-hover-scale flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-white dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 border border-neutral-200 dark:border-[#27272a] hover:border-brand dark:hover:border-brand text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white text-xs font-semibold cursor-pointer shadow-xs"
-              title="Share Link & QR Code"
+              title={tr("Share Link & QR Code", "Partager le lien et le QR Code")}
             >
               <Share2 className="w-3.5 h-3.5 text-brand" />
-              <span>Share</span>
+              <span>{tr("Share", "Partager")}</span>
             </button>
           </div>
 
           <p className="text-center text-[11px] text-neutral-500 dark:text-neutral-400">
-            Export as PNG for web, vector SVG for HD printing, or GIF for animated frames.
+            {tr(
+              "Export as PNG for web, vector SVG for HD printing, or GIF for animated frames.",
+              "Exportez en PNG pour le web, en SVG vectoriel pour l'impression HD ou en GIF pour les cadres animés."
+            )}
           </p>
         </div>
       </div>
@@ -2668,7 +2836,7 @@ export function QRGenerator() {
           className="w-full h-12 rounded-[10px] bg-brand hover:bg-brand-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xl border border-white/20 backdrop-blur-md cursor-pointer transition-transform active:scale-[0.98]"
         >
           <Sliders className="w-4 h-4" />
-          <span>Ouvrir les Paramètres du QR Code</span>
+          <span>{tr("Open QR Code Settings", "Ouvrir les paramètres du QR Code")}</span>
         </button>
       </div>
 
@@ -2679,10 +2847,13 @@ export function QRGenerator() {
             <DrawerHeader className="flex flex-row items-center justify-between border-b border-neutral-200 dark:border-[#222225] px-4 py-3 bg-white dark:bg-[#141416]">
               <div>
                 <DrawerTitle className="text-sm font-bold text-neutral-900 dark:text-white">
-                  Paramètres du QR Code
+                  {tr("QR Code Settings", "Paramètres du QR Code")}
                 </DrawerTitle>
                 <DrawerDescription className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Styles, couleurs, logo, cadre et typographie
+                  {tr(
+                    "Styles, colors, logo, frame, and typography",
+                    "Styles, couleurs, logo, cadre et typographie"
+                  )}
                 </DrawerDescription>
               </div>
               <DrawerClose />
@@ -2696,7 +2867,7 @@ export function QRGenerator() {
                 variant="primary"
                 className="w-full h-11 text-xs font-bold rounded-[10px] shadow-sm cursor-pointer"
               >
-                Appliquer et voir le résultat
+                {tr("Apply and preview", "Appliquer et voir le résultat")}
               </Button>
             </div>
           </DrawerContent>

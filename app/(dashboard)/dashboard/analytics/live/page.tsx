@@ -43,24 +43,26 @@ import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { showToast } from "@/components/ui/toast-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 import { ActiveEdgeStreamChart } from "@/components/dashboard/analytics/active-edge-stream";
+import { useI18n } from "@/components/providers/i18n-provider";
 
-const STREAM_COLUMNS: ColumnDefinition[] = [
-  { key: "timestamp", label: "Timestamp", defaultVisible: true },
-  { key: "slug", label: "Short Link", defaultVisible: true },
-  { key: "customer", label: "Customer / Buyer", defaultVisible: true },
-  { key: "city", label: "City", defaultVisible: true },
-  { key: "location", label: "Country", defaultVisible: true },
-  { key: "referrer", label: "Referrer Source", defaultVisible: true },
-  { key: "device", label: "Device & Browser", defaultVisible: true },
-  { key: "status", label: "Edge Status", defaultVisible: true },
-];
+const STREAM_COLUMN_KEYS = [
+  "timestamp",
+  "slug",
+  "customer",
+  "city",
+  "location",
+  "referrer",
+  "device",
+  "status",
+] as const;
 
 /** Formateur de temps relatif réactif qui recalcule les minutes en direct */
 function formatLiveRelativeTime(
   timestamp: string | number | Date,
   nowMs: number,
+  isFr = false,
 ): string {
-  if (!timestamp) return "Just now";
+  if (!timestamp) return isFr ? "À l'instant" : "Just now";
   let timeMs = 0;
   if (typeof timestamp === "number") {
     timeMs = timestamp < 1e11 ? timestamp * 1000 : timestamp;
@@ -75,25 +77,41 @@ function formatLiveRelativeTime(
     timeMs = isNaN(parsed) ? new Date(timestamp).getTime() : parsed;
   }
 
-  if (isNaN(timeMs) || timeMs <= 0) return "Just now";
+  if (isNaN(timeMs) || timeMs <= 0) return isFr ? "À l'instant" : "Just now";
   const diffSec = Math.floor((nowMs - timeMs) / 1000);
-  if (diffSec < 60) return "Just now";
+  if (diffSec < 60) return isFr ? "À l'instant" : "Just now";
   const mins = Math.floor(diffSec / 60);
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} mins ago`;
+  if (mins === 1) return isFr ? "Il y a 1 min" : "1 min ago";
+  if (mins < 60) return isFr ? `Il y a ${mins} min` : `${mins} mins ago`;
   const hours = Math.floor(mins / 60);
-  if (hours === 1) return "1 hour ago";
-  if (hours < 24) return `${hours} hours ago`;
+  if (hours === 1) return isFr ? "Il y a 1 heure" : "1 hour ago";
+  if (hours < 24) return isFr ? `Il y a ${hours} heures` : `${hours} hours ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  if (days === 1) return isFr ? "Hier" : "Yesterday";
+  return isFr ? `Il y a ${days} jours` : `${days} days ago`;
 }
 
 function LiveClickStreamContent() {
+  const { locale, tr } = useI18n();
+  const isFr = locale === "fr";
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const userId = session?.user?.id || "";
   const effectiveUserId = userId;
+
+  const streamColumns = useMemo<ColumnDefinition[]>(
+    () => [
+      { key: "timestamp", label: tr("Timestamp", "Horodatage"), defaultVisible: true },
+      { key: "slug", label: tr("Short Link", "Lien court"), defaultVisible: true },
+      { key: "customer", label: tr("Customer / Buyer", "Client / Acheteur"), defaultVisible: true },
+      { key: "city", label: tr("City", "Ville"), defaultVisible: true },
+      { key: "location", label: tr("Country", "Pays"), defaultVisible: true },
+      { key: "referrer", label: tr("Referrer Source", "Source référente"), defaultVisible: true },
+      { key: "device", label: tr("Device & Browser", "Appareil & Navigateur"), defaultVisible: true },
+      { key: "status", label: tr("Edge Status", "Statut Edge"), defaultVisible: true },
+    ],
+    [tr]
+  );
 
   // Déclaration de tous les hooks au sommet
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
@@ -119,7 +137,7 @@ function LiveClickStreamContent() {
   }, []);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(STREAM_COLUMNS.map((c) => c.key)),
+    new Set(STREAM_COLUMN_KEYS),
   );
 
   const toggleColumn = (key: string) => {
@@ -135,7 +153,7 @@ function LiveClickStreamContent() {
   };
 
   const resetColumns = () => {
-    setVisibleColumns(new Set(STREAM_COLUMNS.map((c) => c.key)));
+    setVisibleColumns(new Set(STREAM_COLUMN_KEYS));
   };
 
   const hasLoadedOnceRef = useRef(false);
@@ -416,23 +434,36 @@ function LiveClickStreamContent() {
     currentPage * pageSize,
   );
 
+  const formatUnknownVal = (val?: string) => {
+    if (!val || val === "Inconnu" || val.toLowerCase() === "unknown") {
+      return tr("Unknown", "Inconnu");
+    }
+    return val;
+  };
+
   const handleExportStreamCSV = () => {
     try {
       exportToExcelWorkbook({
         filename: `lshorter_live_click_stream_${selectedRange}_${new Date().toISOString().split("T")[0]}.xls`,
-        reportTitle: `LShorter — Live Edge Click Stream Ledger (${selectedRange.toUpperCase()})`,
-        reportSubtitle: `Real-time resolution events across global Cloudflare edge PoPs`,
+        reportTitle: tr(
+          `LShorter — Live Edge Click Stream Ledger (${selectedRange.toUpperCase()})`,
+          `LShorter — Journal des clics Edge en direct (${selectedRange.toUpperCase()})`
+        ),
+        reportSubtitle: tr(
+          "Real-time resolution events across global Cloudflare edge PoPs",
+          "Événements de résolution en temps réel sur les PoPs Edge Cloudflare mondiaux"
+        ),
         columns: [
-          { header: "Event ID", width: 160, align: "left" },
-          { header: "Timestamp (UTC)", width: 190, align: "left" },
-          { header: "Short Link URL", width: 260, align: "left" },
-          { header: "City", width: 160, align: "left" },
-          { header: "Country Code", width: 110, align: "center" },
-          { header: "Country Name", width: 190, align: "left" },
-          { header: "Device Type", width: 130, align: "center" },
-          { header: "Operating System", width: 150, align: "left" },
-          { header: "Browser Agent", width: 150, align: "left" },
-          { header: "Referrer Source", width: 220, align: "left" },
+          { header: tr("Event ID", "ID Événement"), width: 160, align: "left" },
+          { header: tr("Timestamp (UTC)", "Horodatage (UTC)"), width: 190, align: "left" },
+          { header: tr("Short Link URL", "URL du lien court"), width: 260, align: "left" },
+          { header: tr("City", "Ville"), width: 160, align: "left" },
+          { header: tr("Country Code", "Code Pays"), width: 110, align: "center" },
+          { header: tr("Country Name", "Nom du pays"), width: 190, align: "left" },
+          { header: tr("Device Type", "Type d'appareil"), width: 130, align: "center" },
+          { header: tr("Operating System", "Système d'exploitation"), width: 150, align: "left" },
+          { header: tr("Browser Agent", "Navigateur"), width: 150, align: "left" },
+          { header: tr("Referrer Source", "Source référente"), width: 220, align: "left" },
         ],
         rows: filteredEvents.map((ev) => [
           ev.id || "—",
@@ -441,15 +472,22 @@ function LiveClickStreamContent() {
           ev.city || "—",
           ev.countryCode || "XX",
           ev.countryName || "—",
-          ev.device || "Inconnu",
-          ev.os || "Inconnu",
-          ev.browser || "Inconnu",
+          formatUnknownVal(ev.device),
+          formatUnknownVal(ev.os),
+          formatUnknownVal(ev.browser),
           ev.referrer || "Direct",
         ]),
       });
-      showToast.success("Live click stream exported to Excel with formatted columns!");
+      showToast.success(
+        tr(
+          "Live click stream exported to Excel with formatted columns!",
+          "Flux de clics en direct exporté vers Excel avec colonnes formatées !"
+        )
+      );
     } catch {
-      showToast.error("Error exporting Excel file.");
+      showToast.error(
+        tr("Error exporting Excel file.", "Erreur lors de l'export du fichier Excel.")
+      );
     }
   };
 
@@ -476,23 +514,25 @@ function LiveClickStreamContent() {
               className="inline-flex items-center gap-1.5 text-xs ds-text-muted hover:text-[#0066FF] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Analytics Overview</span>
+              <span>{tr("Back to Analytics Overview", "Retour à l'aperçu analytique")}</span>
             </Link>
             <span className="ds-text-muted">/</span>
             <span className="text-xs font-semibold text-[#0066FF] flex items-center gap-1">
               <Activity className="w-3.5 h-3.5" />
-              <span>Live Click Stream</span>
+              <span>{tr("Live Click Stream", "Flux de clics en direct")}</span>
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-bold ds-text-primary tracking-tight">
-              Real-Time Edge Click Stream
+              {tr("Real-Time Edge Click Stream", "Flux de clics Edge en temps réel")}
             </h1>
           </div>
           <p className="text-xs sm:text-sm ds-text-muted mt-1 leading-relaxed">
-            Inspect every incoming HTTP 302 edge redirect event with country
-            geolocation, device OS, referrer, and customer attribution.
+            {tr(
+              "Inspect every incoming HTTP 302 edge redirect event with country geolocation, device OS, referrer, and customer attribution.",
+              "Inspectez chaque événement de redirection Edge HTTP 302 entrant avec géolocalisation par pays, OS, référent et attribution client."
+            )}
           </p>
         </div>
 
@@ -504,10 +544,12 @@ function LiveClickStreamContent() {
               onChange={(e) => handleLinkChange(e.target.value)}
               className="h-9 pl-3 pr-8 rounded-[8px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] text-xs font-semibold text-[#101828] dark:text-[#fafafa] appearance-none cursor-pointer focus:outline-none focus:border-[#0066FF] transition-colors"
             >
-              <option value="all">All short links ({links.length})</option>
+              <option value="all">
+                {tr(`All short links (${links.length})`, `Tous les liens courts (${links.length})`)}
+              </option>
               {links.map((l: any) => (
                 <option key={l.id} value={l.id}>
-                  /{l.slug} ({l.clicks_count || l.clicksCount || 0} clicks)
+                  /{l.slug} ({l.clicks_count || l.clicksCount || 0} {tr("clicks", "clics")})
                 </option>
               ))}
             </select>
@@ -531,8 +573,8 @@ function LiveClickStreamContent() {
             {(
               [
                 { id: "day", label: "24h" },
-                { id: "week", label: "7d" },
-                { id: "month", label: "30d" },
+                { id: "week", label: tr("7d", "7j") },
+                { id: "month", label: tr("30d", "30j") },
                 { id: "year", label: "12m" },
               ] as const
             ).map((opt) => (
@@ -557,14 +599,14 @@ function LiveClickStreamContent() {
               setIsRefreshing(true);
               cfInvalidateCache();
               await loadStreamData(selectedRange, selectedLinkId, true);
-              showToast.success("Live stream refreshed!");
+              showToast.success(tr("Live stream refreshed!", "Flux en direct actualisé !"));
             }}
             className="inline-flex h-9 items-center justify-center gap-1.5 px-3.5 rounded-[8px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] hover:bg-zinc-50 dark:hover:bg-[#1c1c20] text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#0066FF]" : ""}`}
             />
-            <span>Refresh</span>
+            <span>{tr("Refresh", "Actualiser")}</span>
           </button>
 
           <button
@@ -573,7 +615,7 @@ function LiveClickStreamContent() {
             className="inline-flex h-9 items-center justify-center gap-1.5 px-3.5 rounded-[8px] bg-[#0066FF] hover:bg-[#0055d4] text-xs font-semibold !text-white transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <Download className="w-3.5 h-3.5 !text-white" />
-            <span className="!text-white">Export Excel</span>
+            <span className="!text-white">{tr("Export Excel", "Exporter Excel")}</span>
           </button>
         </div>
       </div>
@@ -583,7 +625,7 @@ function LiveClickStreamContent() {
         <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Captured Events
+              {tr("Captured Events", "Événements capturés")}
             </span>
             <MousePointerClick className="w-4 h-4 text-[#0066FF]" />
           </div>
@@ -591,9 +633,9 @@ function LiveClickStreamContent() {
             {formatNumber(filteredEvents.length)}
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border text-xs">
-            <span className="ds-text-muted">HTTP 302 Redirects</span>
+            <span className="ds-text-muted">{tr("HTTP 302 Redirects", "Redirections HTTP 302")}</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-              100% Logged
+              {tr("100% Logged", "100 % Journalisées")}
             </span>
           </div>
         </div>
@@ -601,7 +643,7 @@ function LiveClickStreamContent() {
         <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Active Countries
+              {tr("Active Countries", "Pays actifs")}
             </span>
             <Globe2 className="w-4 h-4 text-[#0066FF]" />
           </div>
@@ -610,16 +652,20 @@ function LiveClickStreamContent() {
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border text-xs">
             <span className="ds-text-muted truncate max-w-[140px]">
-              {filteredEvents[0]?.countryCode ? `${filteredEvents[0].countryCode} (${filteredEvents[0].countryName})` : "Global Edge"}
+              {filteredEvents[0]?.countryCode
+                ? `${filteredEvents[0].countryCode} (${filteredEvents[0].countryName})`
+                : tr("Global Edge", "Edge mondial")}
             </span>
-            <span className="text-[#0066FF] font-semibold">{filteredEvents.length > 0 ? "Verified" : "Idle"}</span>
+            <span className="text-[#0066FF] font-semibold">
+              {filteredEvents.length > 0 ? tr("Verified", "Vérifié") : tr("Idle", "En veille")}
+            </span>
           </div>
         </div>
 
         <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Unique Visitors
+              {tr("Unique Visitors", "Visiteurs uniques")}
             </span>
             <Zap className="w-4 h-4 text-amber-500" />
           </div>
@@ -627,9 +673,9 @@ function LiveClickStreamContent() {
             {formatNumber(uniqueVisitorsCount)}
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border text-xs">
-            <span className="ds-text-muted">Distinct IP hashes</span>
+            <span className="ds-text-muted">{tr("Distinct IP hashes", "Empreintes IP distinctes")}</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-              {liveEvents24hCount} in 24h
+              {tr(`${liveEvents24hCount} in 24h`, `${liveEvents24hCount} en 24h`)}
             </span>
           </div>
         </div>
@@ -637,7 +683,7 @@ function LiveClickStreamContent() {
         <div className="p-4 rounded-[10px] ds-card flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Attributed Conversions
+              {tr("Attributed Conversions", "Conversions attribuées")}
             </span>
             <Sparkles className="w-4 h-4 text-emerald-500" />
           </div>
@@ -645,12 +691,12 @@ function LiveClickStreamContent() {
             {conversionsCount}
           </div>
           <div className="flex items-center justify-between pt-2 border-t ds-border text-xs">
-            <span className="ds-text-muted">Matched clickId</span>
+            <span className="ds-text-muted">{tr("Matched clickId", "clickId associé")}</span>
             <Link
               href="/dashboard/analytics/revenue"
               className="text-[#0066FF] font-semibold hover:underline"
             >
-              View Revenue →
+              {tr("View Revenue →", "Voir les revenus →")}
             </Link>
           </div>
         </div>
@@ -677,7 +723,10 @@ function LiveClickStreamContent() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search by slug, country, browser, or customer..."
+              placeholder={tr(
+                "Search by slug, country, browser, or customer...",
+                "Rechercher par slug, pays, navigateur ou client..."
+              )}
               className="w-full h-9 pl-9 pr-3 rounded-[8px] ds-input text-xs focus:outline-none"
             />
           </div>
@@ -685,7 +734,7 @@ function LiveClickStreamContent() {
           <div className="flex items-center gap-3">
             {/* Display limit control (limitation d'affichage) */}
             <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <span className="text-[11.5px]">Show</span>
+              <span className="text-[11.5px]">{tr("Show", "Afficher")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -699,11 +748,11 @@ function LiveClickStreamContent() {
                 <option value={25}>25</option>
                 <option value={50}>50</option>
               </select>
-              <span className="text-[11.5px]">entries</span>
+              <span className="text-[11.5px]">{tr("entries", "entrées")}</span>
             </div>
 
             <ColumnMaskToggle
-              columns={STREAM_COLUMNS}
+              columns={streamColumns}
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onResetColumns={resetColumns}
@@ -717,34 +766,36 @@ function LiveClickStreamContent() {
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("timestamp") && (
                   <th className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap">
-                    Timestamp
+                    {tr("Timestamp", "Horodatage")}
                   </th>
                 )}
                 {visibleColumns.has("slug") && (
-                  <th className="py-3.5 px-3 whitespace-nowrap">Short Link</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">{tr("Short Link", "Lien court")}</th>
                 )}
                 {visibleColumns.has("customer") && (
                   <th className="py-3.5 px-3 whitespace-nowrap">
-                    Customer / Buyer
+                    {tr("Customer / Buyer", "Client / Acheteur")}
                   </th>
                 )}
                 {visibleColumns.has("city") && (
-                  <th className="py-3.5 px-3 whitespace-nowrap">City</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">{tr("City", "Ville")}</th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-3.5 px-3 whitespace-nowrap">Country</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap">{tr("Country", "Pays")}</th>
                 )}
                 {visibleColumns.has("referrer") && (
-                  <th className="py-3.5 px-3 whitespace-nowrap text-center">Referrer Source</th>
+                  <th className="py-3.5 px-3 whitespace-nowrap text-center">
+                    {tr("Referrer Source", "Source référente")}
+                  </th>
                 )}
                 {visibleColumns.has("device") && (
                   <th className="py-3.5 px-3 whitespace-nowrap">
-                    Device & Browser
+                    {tr("Device & Browser", "Appareil & Navigateur")}
                   </th>
                 )}
                 {visibleColumns.has("status") && (
                   <th className="py-3.5 px-3 text-right whitespace-nowrap">
-                    Edge Status
+                    {tr("Edge Status", "Statut Edge")}
                   </th>
                 )}
                 <th className="py-3.5 pl-3 pr-5 sm:pr-6 text-right whitespace-nowrap">
@@ -759,7 +810,10 @@ function LiveClickStreamContent() {
                     colSpan={visibleColumns.size + 1}
                     className="py-12 px-5 text-center ds-text-muted text-xs"
                   >
-                    No live redirect events recorded for this period yet.
+                    {tr(
+                      "No live redirect events recorded for this period yet.",
+                      "Aucun événement de redirection en direct enregistré sur cette période."
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -776,6 +830,7 @@ function LiveClickStreamContent() {
                           {formatLiveRelativeTime(
                             ev.timestamp,
                             currentTimeTick,
+                            isFr,
                           )}
                         </td>
                       )}
@@ -789,7 +844,7 @@ function LiveClickStreamContent() {
                           {ev.customerName || ev.customerEmail ? (
                             <div className="flex flex-col">
                               <span className="font-semibold ds-text-primary text-xs">
-                                {ev.customerName || "Customer"}
+                                {ev.customerName || tr("Customer", "Client")}
                               </span>
                               <span className="text-[10.5px] font-mono ds-text-muted">
                                 {ev.customerEmail}
@@ -797,7 +852,7 @@ function LiveClickStreamContent() {
                             </div>
                           ) : (
                             <span className="ds-text-muted font-mono text-[11px]">
-                              Anonymous Visitor
+                              {tr("Anonymous Visitor", "Visiteur anonyme")}
                             </span>
                           )}
                         </td>
@@ -839,9 +894,9 @@ function LiveClickStreamContent() {
                       )}
                       {visibleColumns.has("device") && (
                         <td className="py-3.5 px-3 ds-text-secondary whitespace-nowrap text-[11px]">
-                          <span className="font-medium">{ev.device}</span> (
-                          {ev.os}) ·{" "}
-                          <span className="ds-text-muted">{ev.browser}</span>
+                          <span className="font-medium">{formatUnknownVal(ev.device)}</span> (
+                          {formatUnknownVal(ev.os)}) ·{" "}
+                          <span className="ds-text-muted">{formatUnknownVal(ev.browser)}</span>
                         </td>
                       )}
                       {visibleColumns.has("status") && (
@@ -856,10 +911,10 @@ function LiveClickStreamContent() {
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(shortLinkUrl);
-                            showToast.success("Short link copied!");
+                            showToast.success(tr("Short link copied!", "Lien court copié !"));
                           }}
                           className="p-1.5 rounded-[6px] text-zinc-500 hover:text-[#0066FF] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                          title="Copy link"
+                          title={tr("Copy link", "Copier le lien")}
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
@@ -875,13 +930,16 @@ function LiveClickStreamContent() {
           <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedEvents.length === 0 ? (
               <div className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                No live redirect events recorded for this period yet.
+                {tr(
+                  "No live redirect events recorded for this period yet.",
+                  "Aucun événement de redirection en direct enregistré sur cette période."
+                )}
               </div>
             ) : (
               paginatedEvents.map((ev) => {
                 const cleanSlug = String(ev.slug || "").replace(/^\//, "");
                 const shortLinkUrl = `https://lsho.cc/${cleanSlug}`;
-                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick);
+                const relTime = formatLiveRelativeTime(ev.timestamp, currentTimeTick, isFr);
 
                 return (
                   <div
@@ -901,7 +959,7 @@ function LiveClickStreamContent() {
                           <Globe2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         )}
                         <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
-                          {ev.countryName || ev.countryCode || "Global"}
+                          {ev.countryName || ev.countryCode || tr("Global", "Mondial")}
                           {ev.city && ev.city !== "—" ? ` • ${ev.city}` : ""}
                         </span>
                       </div>
@@ -931,7 +989,7 @@ function LiveClickStreamContent() {
                     {/* Bottom Row: Device/OS + Edge Status + Copy Button */}
                     <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
                       <span className="truncate">
-                        {ev.device} · {ev.os} ({ev.browser})
+                        {formatUnknownVal(ev.device)} · {formatUnknownVal(ev.os)} ({formatUnknownVal(ev.browser)})
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="px-1.5 py-0.5 rounded-[4px] bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] text-[10px] font-medium font-mono">
@@ -941,11 +999,11 @@ function LiveClickStreamContent() {
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(shortLinkUrl);
-                            showToast.success("Link copied!");
+                            showToast.success(tr("Link copied!", "Lien copié !"));
                           }}
                           className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
                         >
-                          Copy
+                          {tr("Copy", "Copier")}
                         </button>
                       </div>
                     </div>
@@ -959,9 +1017,9 @@ function LiveClickStreamContent() {
         {/* Pagination */}
         <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 mt-auto">
           <span>
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredEvents.length)} of{" "}
-            {filteredEvents.length} events
+            {isFr
+              ? `Affichage de ${filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} à ${Math.min(currentPage * pageSize, filteredEvents.length)} sur ${filteredEvents.length} événements`
+              : `Showing ${filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredEvents.length)} of ${filteredEvents.length} events`}
           </span>
           <div className="flex items-center gap-2">
             <button

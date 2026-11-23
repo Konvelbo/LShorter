@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface WebhookModalData {
   id?: string;
@@ -17,12 +18,12 @@ export interface WebhookModalData {
 }
 
 export const ALL_WEBHOOK_EVENTS = [
-  { id: "click.created", label: "click.created", desc: "Nouveau clic enregistré sur un lien court" },
-  { id: "conversion.created", label: "conversion.created", desc: "Enregistrement d'une vente ou conversion" },
-  { id: "link.created", label: "link.created", desc: "Création d'un nouveau lien court" },
-  { id: "link.updated", label: "link.updated", desc: "Modification des paramètres d'un lien" },
-  { id: "link.deleted", label: "link.deleted", desc: "Suppression définitive d'un lien" },
-  { id: "qr.scanned", label: "qr.scanned", desc: "Scan d'un QR code généré" },
+  { id: "click.created", label: "click.created", desc: "New click recorded on a short link", descFr: "Nouveau clic enregistré sur un lien court" },
+  { id: "conversion.created", label: "conversion.created", desc: "Sale or conversion recorded", descFr: "Enregistrement d'une vente ou conversion" },
+  { id: "link.created", label: "link.created", desc: "New short link created", descFr: "Création d'un nouveau lien court" },
+  { id: "link.updated", label: "link.updated", desc: "Link settings updated", descFr: "Modification des paramètres d'un lien" },
+  { id: "link.deleted", label: "link.deleted", desc: "Link permanently deleted", descFr: "Suppression définitive d'un lien" },
+  { id: "qr.scanned", label: "qr.scanned", desc: "Generated QR code scanned", descFr: "Scan d'un QR code généré" },
 ] as const;
 
 export const ALL_EVENT_IDS = ALL_WEBHOOK_EVENTS.map((e) => e.id);
@@ -42,6 +43,7 @@ export function WebhookModal({
   onSave,
   isSaving,
 }: WebhookModalProps) {
+  const { tr } = useI18n();
   const isEdit = Boolean(webhookToEdit?.id);
 
   const [name, setName] = useState("");
@@ -94,10 +96,10 @@ export function WebhookModal({
     try {
       await navigator.clipboard.writeText(secretKey);
       setCopiedSecret(true);
-      showToast.success("Clé secrète HMAC copiée dans le presse-papiers.");
+      showToast.success(tr("HMAC secret key copied to clipboard.", "Clé secrète HMAC copiée dans le presse-papiers."));
       setTimeout(() => setCopiedSecret(false), 2000);
     } catch {
-      showToast.error("Impossible de copier la clé secrète.");
+      showToast.error(tr("Unable to copy secret key.", "Impossible de copier la clé secrète."));
     }
   };
 
@@ -117,7 +119,7 @@ export function WebhookModal({
 
     if (selectedEvents.includes(eventId)) {
       if (selectedEvents.length === 1) {
-        setErrorMsg("Veuillez sélectionner au moins un événement.");
+        setErrorMsg(tr("Please select at least one event.", "Veuillez sélectionner au moins un événement."));
         return;
       }
       setErrorMsg(null);
@@ -136,41 +138,41 @@ export function WebhookModal({
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setErrorMsg("Veuillez saisir un nom pour identifier ce webhook.");
+      setErrorMsg(tr("Please enter a name to identify this webhook.", "Veuillez saisir un nom pour identifier ce webhook."));
       return;
     }
     if (trimmedName.length > 100) {
-      setErrorMsg("Le nom du webhook ne doit pas dépasser 100 caractères.");
+      setErrorMsg(tr("Webhook name must not exceed 100 characters.", "Le nom du webhook ne doit pas dépasser 100 caractères."));
       return;
     }
     if (/[<>]/.test(trimmedName)) {
-      setErrorMsg("Le nom du webhook ne peut pas contenir de caractères HTML (< ou >).");
+      setErrorMsg(tr("Webhook name cannot contain HTML characters (< or >).", "Le nom du webhook ne peut pas contenir de caractères HTML (< ou >)."));
       return;
     }
 
     if (!url || !url.trim()) {
-      setErrorMsg("Veuillez renseigner l'URL du webhook.");
+      setErrorMsg(tr("Please enter the webhook URL.", "Veuillez renseigner l'URL du webhook."));
       return;
     }
 
     try {
       const parsedUrl = new URL(url.trim());
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-        setErrorMsg("L'URL doit commencer par https:// ou http://.");
+        setErrorMsg(tr("URL must start with https:// or http://.", "L'URL doit commencer par https:// ou http://."));
         return;
       }
       if (!parsedUrl.hostname.includes(".") || parsedUrl.hostname === "localhost") {
-        setErrorMsg("Veuillez saisir un nom de domaine public complet (ex. https://mon-serveur.com/api/webhook).");
+        setErrorMsg(tr("Please enter a full public domain name (e.g. https://my-server.com/api/webhook).", "Veuillez saisir un nom de domaine public complet (ex. https://mon-serveur.com/api/webhook)."));
         return;
       }
     } catch {
-      setErrorMsg("L'URL saisie est invalide (doit commencer par https:// ou http://).");
+      setErrorMsg(tr("Invalid URL (must start with https:// or http://).", "L'URL saisie est invalide (doit commencer par https:// ou http://)."));
       return;
     }
 
     const eventsToSubmit = isGlobal ? [...ALL_EVENT_IDS] : selectedEvents;
     if (eventsToSubmit.length === 0) {
-      setErrorMsg("Veuillez sélectionner au moins un événement à écouter.");
+      setErrorMsg(tr("Please select at least one event to listen for.", "Veuillez sélectionner au moins un événement à écouter."));
       return;
     }
 
@@ -202,19 +204,19 @@ export function WebhookModal({
             </div>
             <div>
               <h3 className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                {isEdit ? "Modifier le webhook" : "Nouveau webhook"}
+                {isEdit ? tr("Edit webhook", "Modifier le webhook") : tr("New webhook", "Nouveau webhook")}
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {isEdit
-                  ? "Mettez à jour le nom, l'endpoint et les événements écoutés"
-                  : "Recevez les événements en temps réel sur votre serveur"}
+                  ? tr("Update the name, endpoint, and subscribed events", "Mettez à jour le nom, l'endpoint et les événements écoutés")
+                  : tr("Receive real-time events on your server", "Recevez les événements en temps réel sur votre serveur")}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={tr("Close", "Fermer")}
             disabled={isSaving}
             className="p-1.5 rounded-[8px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
           >
@@ -233,41 +235,47 @@ export function WebhookModal({
           {/* Webhook Name Input */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="webhook-name-input" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-              Nom du webhook <span className="text-red-500">*</span>
+              {tr("Webhook name", "Nom du webhook")} <span className="text-red-500">*</span>
             </label>
             <Input
               id="webhook-name-input"
               required
               type="text"
               maxLength={100}
-              placeholder="Ex. CRM Production, Alertes Slack, Synchronisation Zapier"
+              placeholder={tr("e.g. Production CRM, Slack Alerts, Zapier Sync", "Ex. CRM Production, Alertes Slack, Synchronisation Zapier")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isSaving}
               className="h-10 rounded-[8px] bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 text-[13px] font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              Un libellé clair pour identifier facilement ce point de terminaison dans votre liste.
+              {tr(
+                "A clear label to easily identify this endpoint in your list.",
+                "Un libellé clair pour identifier facilement ce point de terminaison dans votre liste."
+              )}
             </span>
           </div>
 
           {/* URL Input */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="webhook-endpoint-url" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-              URL du endpoint <span className="text-red-500">*</span>
+              {tr("Endpoint URL", "URL du endpoint")} <span className="text-red-500">*</span>
             </label>
             <Input
               id="webhook-endpoint-url"
               required
               type="url"
-              placeholder="https://votre-serveur.com/api/webhooks/lshorter"
+              placeholder={tr("https://your-server.com/api/webhooks/lshorter", "https://votre-serveur.com/api/webhooks/lshorter")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isSaving}
               className="h-10 rounded-[8px] bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 text-[13px] font-mono font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              Compatible avec Make, Zapier, n8n, Supabase ou votre propre serveur backend.
+              {tr(
+                "Compatible with Make, Zapier, n8n, Supabase, or your own backend server.",
+                "Compatible avec Make, Zapier, n8n, Supabase ou votre propre serveur backend."
+              )}
             </span>
           </div>
 
@@ -276,7 +284,7 @@ export function WebhookModal({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-                <span>Événements à diffuser</span>
+                <span>{tr("Events to broadcast", "Événements à diffuser")}</span>
               </label>
 
               {/* Globalité Toggle Button */}
@@ -290,7 +298,7 @@ export function WebhookModal({
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>Tous les événements</span>
+                <span>{tr("All events", "Tous les événements")}</span>
                 {isGlobal && <Check className="w-3 h-3" />}
               </button>
             </div>
@@ -326,7 +334,7 @@ export function WebhookModal({
                         {ev.label}
                       </span>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
-                        {ev.desc}
+                        {tr(ev.desc, ev.descFr)}
                       </span>
                     </div>
                   </button>
@@ -344,10 +352,10 @@ export function WebhookModal({
                   className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5"
                 >
                   <Shield className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-                  <span>Clé Secrète HMAC (Signature de sécurité)</span>
+                  <span>{tr("HMAC Secret Key (Security Signature)", "Clé Secrète HMAC (Signature de sécurité)")}</span>
                 </label>
                 <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                  Lecture seule
+                  {tr("Read only", "Lecture seule")}
                 </span>
               </div>
 
@@ -372,18 +380,21 @@ export function WebhookModal({
                   {copiedSecret ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>Copié</span>
+                      <span>{tr("Copied", "Copié")}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copier</span>
+                      <span>{tr("Copy", "Copier")}</span>
                     </>
                   )}
                 </Button>
               </div>
               <span className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Utilisez cette clé pour vérifier l&apos;authenticité des requêtes via l&apos;en-tête{" "}
+                {tr(
+                  "Use this key to verify request authenticity via the ",
+                  "Utilisez cette clé pour vérifier l'authenticité des requêtes via l'en-tête "
+                )}
                 <code className="font-mono text-[11.5px] text-zinc-700 dark:text-zinc-300">
                   X-LShorter-Signature
                 </code>{" "}
@@ -402,7 +413,7 @@ export function WebhookModal({
               onClick={onClose}
               className="h-9 px-4 rounded-[8px] text-[13px] font-medium cursor-pointer border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70"
             >
-              Annuler
+              {tr("Cancel", "Annuler")}
             </Button>
             <Button
               type="submit"
@@ -413,12 +424,12 @@ export function WebhookModal({
               {isSaving ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                  <span>Enregistrement...</span>
+                  <span>{tr("Saving...", "Enregistrement...")}</span>
                 </>
               ) : isEdit ? (
-                "Enregistrer les modifications"
+                tr("Save changes", "Enregistrer les modifications")
               ) : (
-                "Créer le webhook"
+                tr("Create webhook", "Créer le webhook")
               )}
             </Button>
           </div>

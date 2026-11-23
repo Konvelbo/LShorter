@@ -23,12 +23,13 @@ import {
   cfGetLinks,
   cfInvalidateCache,
 } from "@/lib/cloudflare-api";
-import { formatNumber, isLinkActive } from "@/lib/utils";
+import { isLinkActive } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { showToast } from "@/components/ui/toast-provider";
 import { exportToExcelWorkbook } from "@/lib/export-excel";
 import { ActiveEdgeStreamChart } from "@/components/dashboard/analytics/active-edge-stream";
 
-const MONTH_LABELS = [
+const MONTH_LABELS_EN = [
   "Jan",
   "Feb",
   "Mar",
@@ -43,9 +44,25 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
+const MONTH_LABELS_FR = [
+  "Jan",
+  "Fév",
+  "Mar",
+  "Avr",
+  "Mai",
+  "Juin",
+  "Juil",
+  "Août",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Déc",
+];
+
 export default function AnalyticsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { locale, tr, formatNumber, formatDate } = useI18n();
   const userId = session?.user?.id || "";
 
   const [range, setRange] = useState<"12m" | "30d" | "7d" | "24h">("30d");
@@ -267,41 +284,63 @@ export default function AnalyticsPage() {
     return (totalClicks / links.length).toFixed(1);
   }, [totalClicks, links.length]);
 
+  const rangeShort = useMemo(() => {
+    if (range === "24h") return tr("24h", "24 h");
+    if (range === "7d") return tr("7d", "7 j");
+    if (range === "12m") return tr("12m", "12 m");
+    return tr("30d", "30 j");
+  }, [range, tr]);
+
   const topKpis = useMemo(
     () => [
       {
-        label: "Unique Visitors",
+        label: tr("Unique Visitors", "Visiteurs uniques"),
         value: formatNumber(uniqueVisitors),
-        delta: uniqueVisitors > 0 ? "Verified" : "0%",
+        delta: uniqueVisitors > 0 ? tr("Verified", "Vérifiés") : "0%",
         positive: true,
-        caption: `Period: ${range}`,
+        caption: tr(`Period: ${rangeShort}`, `Période : ${rangeShort}`),
         href: "/dashboard/analytics/geo",
       },
       {
-        label: "Total Link Clicks",
+        label: tr("Total Link Clicks", "Total des clics"),
         value: formatNumber(totalClicks),
-        delta: `${links.length} links`,
+        delta: tr(
+          `${formatNumber(links.length)} ${links.length === 1 ? "link" : "links"}`,
+          `${formatNumber(links.length)} ${links.length === 1 ? "lien" : "liens"}`,
+        ),
         positive: true,
-        caption: `Period: ${range}`,
+        caption: tr(`Period: ${rangeShort}`, `Période : ${rangeShort}`),
         href: "/dashboard/links",
       },
       {
-        label: "Active Short Links",
-        value: `${formatNumber(activeLinksCount)} / ${links.length}`,
+        label: tr("Active Short Links", "Liens courts actifs"),
+        value: `${formatNumber(activeLinksCount)} / ${formatNumber(links.length)}`,
         delta:
           links.length > 0
-            ? `${Math.round((activeLinksCount / links.length) * 100)}% active`
-            : "0% active",
+            ? tr(
+                `${Math.round((activeLinksCount / links.length) * 100)}% active`,
+                `${Math.round((activeLinksCount / links.length) * 100)} % actifs`,
+              )
+            : tr("0% active", "0 % actif"),
         positive: true,
-        caption: `${links.length - activeLinksCount > 0 ? `${links.length - activeLinksCount} inactive` : "All active"}`,
+        caption:
+          links.length - activeLinksCount > 0
+            ? tr(
+                `${links.length - activeLinksCount} inactive`,
+                `${links.length - activeLinksCount} ${links.length - activeLinksCount === 1 ? "inactif" : "inactifs"}`,
+              )
+            : tr("All active", "Tous actifs"),
         href: "/dashboard/links",
       },
       {
-        label: "Avg. Clicks / Link",
-        value: avgClicksPerLink,
-        delta: totalClicks > 0 ? "HTTP 302" : "Ready",
+        label: tr("Avg. Clicks / Link", "Moy. clics / lien"),
+        value: formatNumber(Number(avgClicksPerLink), {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }),
+        delta: totalClicks > 0 ? "HTTP 302" : tr("Ready", "Prêt"),
         positive: true,
-        caption: `Period: ${range}`,
+        caption: tr(`Period: ${rangeShort}`, `Période : ${rangeShort}`),
         href: "/dashboard/analytics/live",
       },
     ],
@@ -311,7 +350,9 @@ export default function AnalyticsPage() {
       links.length,
       activeLinksCount,
       avgClicksPerLink,
-      range,
+      rangeShort,
+      tr,
+      formatNumber,
     ],
   );
 
@@ -349,15 +390,19 @@ export default function AnalyticsPage() {
           uniqueClicks: 0,
         }));
       } else if (mappedRange === "week") {
-        timeline = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-          (d) => ({
-            label: d,
-            clicks: 0,
-            uniqueClicks: 0,
-          }),
-        );
+        const weekDays =
+          locale === "fr"
+            ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        timeline = weekDays.map((d) => ({
+          label: d,
+          clicks: 0,
+          uniqueClicks: 0,
+        }));
       } else if (mappedRange === "year") {
-        timeline = MONTH_LABELS.map((m) => ({
+        const monthLabels =
+          locale === "fr" ? MONTH_LABELS_FR : MONTH_LABELS_EN;
+        timeline = monthLabels.map((m) => ({
           label: m,
           clicks: 0,
           uniqueClicks: 0,
@@ -371,24 +416,36 @@ export default function AnalyticsPage() {
       }
     }
 
-
-
     return timeline.map((entry, i) => {
       const val = Number(entry?.clicks ?? 0);
       const uniq = Number(entry?.uniqueClicks ?? (val > 0 ? val : 0));
       const sharePct =
         totalClicks > 0 ? ((val / totalClicks) * 100).toFixed(1) : "0.0";
+      const parsedDate = entry?.date ? new Date(String(entry.date)) : null;
+      const formattedDateStr =
+        parsedDate && !isNaN(parsedDate.getTime())
+          ? formatDate(parsedDate, {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : entry?.date
+            ? String(entry.date).slice(0, 10)
+            : "";
       return {
         label: entry?.label || `#${i + 1}`,
-        fullDate: entry?.date
-          ? `${entry.label} (${String(entry.date).slice(0, 10)})`
+        fullDate: formattedDateStr
+          ? `${entry.label} (${formattedDateStr})`
           : entry?.label || `#${i + 1}`,
-        extraLabel: `${sharePct}% of period traffic`,
+        extraLabel: tr(
+          `${sharePct}% of period traffic`,
+          `${sharePct} % du trafic sur la période`,
+        ),
         primary: val,
         secondary: val > 0 ? (uniq > 0 ? uniq : val) : 0,
       };
     });
-  }, [analytics, range, totalClicks, uniqueVisitors]);
+  }, [analytics, range, totalClicks, uniqueVisitors, locale, tr, formatDate]);
 
   const allLiveEvents = useMemo(() => {
     const raw =
@@ -425,15 +482,19 @@ export default function AnalyticsPage() {
           totalClicks > 0
             ? Math.min(100, Math.round((cnt / totalClicks) * 100))
             : 0;
+        const rawSource = r.source || r.referrer || r.name || "Direct";
         return {
-          source: r.source || r.referrer || r.name || "Direct",
+          source:
+            String(rawSource).toLowerCase() === "direct"
+              ? tr("Direct", "Direct")
+              : rawSource,
           visitors: formatNumber(cnt),
           share,
         };
       });
     }
     return [];
-  }, [analytics, totalClicks]);
+  }, [analytics, totalClicks, formatNumber, tr]);
 
   const topShortLinks = useMemo(() => {
     return [...links]
@@ -455,49 +516,73 @@ export default function AnalyticsPage() {
       })
       .sort((a, b) => b.clicksNum - a.clicksNum)
       .slice(0, 5);
-  }, [links, totalClicks]);
+  }, [links, totalClicks, formatNumber]);
 
   const handleExportOverviewCSV = () => {
     try {
       exportToExcelWorkbook({
         filename: `lshorter_analytics_overview_${range}_${new Date().toISOString().split("T")[0]}.xls`,
-        reportTitle: `LShorter — Analytics Overview Report (${range.toUpperCase()})`,
-        reportSubtitle: `Real-time edge telemetry, referral channel attribution & top performing links`,
+        reportTitle: tr(
+          `LShorter — Analytics Overview Report (${range.toUpperCase()})`,
+          `LShorter — Rapport d'aperçu analytique (${range.toUpperCase()})`,
+        ),
+        reportSubtitle: tr(
+          "Real-time edge telemetry, referral channel attribution & top performing links",
+          "Télémétrie edge en temps réel, attribution des canaux référents et liens les plus performants",
+        ),
         columns: [
-          { header: "Category", width: 180, align: "left" },
-          { header: "Item / Metric", width: 340, align: "left" },
-          { header: "Value", width: 140, align: "right" },
-          { header: "Share / Delta", width: 180, align: "center" },
-          { header: "Period", width: 120, align: "center" },
+          { header: tr("Category", "Catégorie"), width: 180, align: "left" },
+          {
+            header: tr("Item / Metric", "Élément / Indicateur"),
+            width: 340,
+            align: "left",
+          },
+          { header: tr("Value", "Valeur"), width: 140, align: "right" },
+          {
+            header: tr("Share / Delta", "Part / Évolution"),
+            width: 180,
+            align: "center",
+          },
+          { header: tr("Period", "Période"), width: 120, align: "center" },
         ],
         rows: [
           ...topKpis.map((k) => [
-            "KPI",
+            tr("KPI", "Indicateur"),
             k.label,
             k.value,
             k.delta,
-            range,
+            rangeShort,
           ]),
           ...topChannels.map((c) => [
-            "Top Channel",
+            tr("Top Channel", "Canal principal"),
             c.source,
             c.visitors,
             `${c.share}%`,
-            range,
+            rangeShort,
           ]),
           ...topShortLinks.map((l) => [
-            "Top Short Link",
+            tr("Top Short Link", "Meilleur lien court"),
             l.slug,
             l.pageviews,
             `${l.share}%`,
-            range,
+            rangeShort,
           ]),
         ],
       });
       setOpenCardMenu(null);
-      showToast.success("Analytics overview exported to Excel with formatted columns!");
+      showToast.success(
+        tr(
+          "Analytics overview exported to Excel with formatted columns!",
+          "Aperçu analytique exporté vers Excel avec colonnes formatées !",
+        ),
+      );
     } catch {
-      showToast.error("Error exporting Excel file.");
+      showToast.error(
+        tr(
+          "Error exporting Excel file.",
+          "Erreur lors de l'exportation du fichier Excel.",
+        ),
+      );
     }
   };
 
@@ -507,23 +592,25 @@ export default function AnalyticsPage() {
 
   const rangeLabel =
     range === "24h"
-      ? "Last 24 Hours"
+      ? tr("Last 24 Hours", "Dernières 24 heures")
       : range === "7d"
-        ? "Last 7 Days"
+        ? tr("Last 7 Days", "7 derniers jours")
         : range === "12m"
-          ? "Last 12 Months"
-          : "Last 30 Days";
+          ? tr("Last 12 Months", "12 derniers mois")
+          : tr("Last 30 Days", "30 derniers jours");
 
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-bold ds-text-primary tracking-tight">
-            Traffic & Analytics Overview
+            {tr("Traffic & Analytics Overview", "Aperçu du trafic et des analyses")}
           </h1>
           <p className="text-[13px] ds-text-muted mt-0.5">
-            Real-time edge redirect telemetry, channel attribution, and
-            geographic breakdown
+            {tr(
+              "Real-time edge redirect telemetry, channel attribution, and geographic breakdown",
+              "Télémétrie des redirections edge en temps réel, attribution des canaux et répartition géographique",
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -541,10 +628,10 @@ export default function AnalyticsPage() {
             {isRangeDropdownOpen && (
               <div className="absolute right-0 mt-1.5 w-44 rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-1.5 shadow-xl z-50">
                 {[
-                  { id: "24h", label: "Last 24 Hours" },
-                  { id: "7d", label: "Last 7 Days" },
-                  { id: "30d", label: "Last 30 Days" },
-                  { id: "12m", label: "Last 12 Months" },
+                  { id: "24h", label: tr("Last 24 Hours", "Dernières 24 heures") },
+                  { id: "7d", label: tr("Last 7 Days", "7 derniers jours") },
+                  { id: "30d", label: tr("Last 30 Days", "30 derniers jours") },
+                  { id: "12m", label: tr("Last 12 Months", "12 derniers mois") },
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -572,14 +659,14 @@ export default function AnalyticsPage() {
               setIsRefreshing(true);
               cfInvalidateCache();
               await loadAnalytics(range, true, true);
-              showToast.success("Analytics refreshed");
+              showToast.success(tr("Analytics refreshed", "Analyses actualisées"));
             }}
             className="inline-flex items-center gap-2 rounded-[10px] ds-card px-3.5 py-2 text-[13px] font-medium ds-text-secondary hover:bg-[#F2F4F7] dark:hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <RefreshCw
               className={`w-4 h-4 ${isRefreshing ? "animate-spin text-[#0066FF]" : ""}`}
             />
-            <span>Refresh</span>
+            <span>{tr("Refresh", "Actualiser")}</span>
           </button>
 
           <button
@@ -588,7 +675,7 @@ export default function AnalyticsPage() {
             className="inline-flex items-center gap-2 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] px-4 py-2 text-[13px] font-semibold !text-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <Download className="w-4 h-4 !text-white" />
-            <span className="!text-white">Export Excel</span>
+            <span className="!text-white">{tr("Export Excel", "Exporter en Excel")}</span>
           </button>
         </div>
       </div>
@@ -628,20 +715,22 @@ export default function AnalyticsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-[18px] font-semibold text-[#101828] dark:text-[#fafafa]">
-              Analytics ({rangeLabel})
+              {tr(`Analytics (${rangeLabel})`, `Analyses (${rangeLabel})`)}
             </h2>
             <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa] mt-0.5">
-              Hover over any interval bar to inspect clicks, unique visitors,
-              and share of traffic
+              {tr(
+                "Hover over any interval bar to inspect clicks, unique visitors, and share of traffic",
+                "Survolez une barre d'intervalle pour consulter les clics, visiteurs uniques et la part du trafic",
+              )}
             </p>
           </div>
 
           <div className="inline-flex rounded-lg bg-[#F2F4F7] dark:bg-[#18181b] p-1">
             {[
-              { id: "12m", label: "12 months" },
-              { id: "30d", label: "30 days" },
-              { id: "7d", label: "7 days" },
-              { id: "24h", label: "24 hours" },
+              { id: "12m", label: tr("12 months", "12 mois") },
+              { id: "30d", label: tr("30 days", "30 jours") },
+              { id: "7d", label: tr("7 days", "7 jours") },
+              { id: "24h", label: tr("24 hours", "24 heures") },
             ].map((tab) => {
               const active = range === tab.id;
               return (
@@ -665,8 +754,8 @@ export default function AnalyticsPage() {
         <div className="w-full pt-3">
           <ReuiBarChart5
             data={chartBars}
-            primaryLabel="Total Clicks"
-            secondaryLabel="Unique Visitors"
+            primaryLabel={tr("Total Clicks", "Total des clics")}
+            secondaryLabel={tr("Unique Visitors", "Visiteurs uniques")}
             primaryColorLight="#0066FF"
             primaryColorDark="#0066FF"
             secondaryColorLight="#0BA5EC"
@@ -684,7 +773,7 @@ export default function AnalyticsPage() {
           <div>
             <div className="flex items-center justify-between mb-5 relative">
               <h3 className="text-[16px] font-semibold text-[#101828] dark:text-[#fafafa]">
-                Top Channels
+                {tr("Top Channels", "Principaux canaux")}
               </h3>
               <div className="relative">
                 <button
@@ -709,7 +798,7 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] cursor-pointer"
                     >
                       <Globe2 className="w-3.5 h-3.5 text-[#0066FF]" />
-                      <span>Geography & Sources</span>
+                      <span>{tr("Geography & Sources", "Géographie & Sources")}</span>
                     </button>
                     <button
                       type="button"
@@ -717,7 +806,7 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5 text-[#667085]" />
-                      <span>Export Channels CSV</span>
+                      <span>{tr("Export Channels CSV", "Exporter les canaux CSV")}</span>
                     </button>
                   </div>
                 )}
@@ -725,13 +814,16 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="flex items-center justify-between text-[12px] font-medium text-[#667085] dark:text-[#a1a1aa] border-b border-[#F2F4F7] dark:border-[#222225] pb-2.5 mb-3">
-              <span>Source</span>
-              <span>Visitors</span>
+              <span>{tr("Source", "Source")}</span>
+              <span>{tr("Visitors", "Visiteurs")}</span>
             </div>
 
             {topChannels.length === 0 ? (
               <div className="py-10 text-center text-xs text-[#667085] dark:text-[#a1a1aa]">
-                No referrer channels recorded in this period yet.
+                {tr(
+                  "No referrer channels recorded in this period yet.",
+                  "Aucun canal référent enregistré sur cette période pour le moment.",
+                )}
               </div>
             ) : (
               <div className="space-y-3">
@@ -760,7 +852,7 @@ export default function AnalyticsPage() {
             onClick={() => router.push("/dashboard/analytics/geo")}
             className="mt-6 w-full rounded-xl border border-[#D0D5DD] dark:border-[#2e2e33] py-2.5 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>Geography & Sources Report</span>
+            <span>{tr("Geography & Sources Report", "Rapport Géographie & Sources")}</span>
             <span>→</span>
           </button>
         </div>
@@ -769,7 +861,7 @@ export default function AnalyticsPage() {
           <div>
             <div className="flex items-center justify-between mb-5 relative">
               <h3 className="text-[16px] font-semibold text-[#101828] dark:text-[#fafafa]">
-                Top Short Links
+                {tr("Top Short Links", "Meilleurs liens courts")}
               </h3>
               <div className="relative">
                 <button
@@ -794,7 +886,7 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] cursor-pointer"
                     >
                       <Link2 className="w-3.5 h-3.5 text-[#0066FF]" />
-                      <span>Manage Short Links</span>
+                      <span>{tr("Manage Short Links", "Gérer les liens courts")}</span>
                     </button>
                     <button
                       type="button"
@@ -802,7 +894,7 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5 text-[#667085]" />
-                      <span>Export Top Links CSV</span>
+                      <span>{tr("Export Top Links CSV", "Exporter les liens CSV")}</span>
                     </button>
                   </div>
                 )}
@@ -810,13 +902,13 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="flex items-center justify-between text-[12px] font-medium text-[#667085] dark:text-[#a1a1aa] border-b border-[#F2F4F7] dark:border-[#222225] pb-2.5 mb-3">
-              <span>Short Link</span>
-              <span>Clicks</span>
+              <span>{tr("Short Link", "Lien court")}</span>
+              <span>{tr("Clicks", "Clics")}</span>
             </div>
 
             {topShortLinks.length === 0 ? (
               <div className="py-10 text-center text-xs text-[#667085] dark:text-[#a1a1aa]">
-                No short links created yet.
+                {tr("No short links created yet.", "Aucun lien court créé pour le moment.")}
               </div>
             ) : (
               <div className="space-y-3">
@@ -853,7 +945,7 @@ export default function AnalyticsPage() {
             onClick={() => router.push("/dashboard/links")}
             className="mt-6 w-full rounded-xl border border-[#D0D5DD] dark:border-[#2e2e33] py-2.5 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>Manage All Links</span>
+            <span>{tr("Manage All Links", "Gérer tous les liens")}</span>
             <span>→</span>
           </button>
         </div>
@@ -863,7 +955,7 @@ export default function AnalyticsPage() {
           <div>
             <div className="flex items-center justify-between mb-3 relative">
               <h3 className="text-[16px] font-semibold text-[#101828] dark:text-[#fafafa]">
-                Active Edge Stream
+                {tr("Active Edge Stream", "Flux Edge actif")}
               </h3>
               <div className="relative">
                 <button
@@ -886,7 +978,9 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] dark:hover:bg-[#18181b] cursor-pointer"
                     >
                       <Activity className="w-3.5 h-3.5 text-[#0066FF]" />
-                      <span>Open Live Click Stream</span>
+                      <span>
+                        {tr("Open Live Click Stream", "Ouvrir le flux en direct")}
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -894,7 +988,9 @@ export default function AnalyticsPage() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#344054] dark:text-gray-200 hover:bg-[#F2F4F7] dark:hover:bg-[#18181b] cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5 text-[#667085]" />
-                      <span>Export Telemetry CSV</span>
+                      <span>
+                        {tr("Export Telemetry CSV", "Exporter la télémétrie CSV")}
+                      </span>
                     </button>
                   </div>
                 )}
@@ -907,7 +1003,7 @@ export default function AnalyticsPage() {
                 {formatNumber(liveEvents24hCount)}
               </span>
               <span className="text-[13px] text-[#667085] dark:text-[#a1a1aa]">
-                Live events (last 24h)
+                {tr("Live events (last 24h)", "Événements en direct (24 h)")}
               </span>
             </div>
 
@@ -927,7 +1023,7 @@ export default function AnalyticsPage() {
                   {formatNumber(totalClicks)}
                 </div>
                 <div className="text-[11px] text-[#667085] dark:text-[#a1a1aa]">
-                  Total Clicks
+                  {tr("Total Clicks", "Total clics")}
                 </div>
               </div>
               <div>
@@ -935,15 +1031,15 @@ export default function AnalyticsPage() {
                   {formatNumber(uniqueVisitors)}
                 </div>
                 <div className="text-[11px] text-[#667085] dark:text-[#a1a1aa]">
-                  Unique
+                  {tr("Unique", "Uniques")}
                 </div>
               </div>
               <div>
                 <div className="text-[15px] font-bold text-[#101828] dark:text-[#fafafa]">
-                  {links.length}
+                  {formatNumber(links.length)}
                 </div>
                 <div className="text-[11px] text-[#667085] dark:text-[#a1a1aa]">
-                  Links
+                  {tr("Links", "Liens")}
                 </div>
               </div>
             </div>
@@ -954,7 +1050,7 @@ export default function AnalyticsPage() {
             onClick={() => router.push("/dashboard/analytics/live")}
             className="mt-6 w-full rounded-xl border border-[#D0D5DD] dark:border-[#2e2e33] py-2.5 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F9FAFB] dark:hover:bg-[#18181b] transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>Open Live Click Stream</span>
+            <span>{tr("Open Live Click Stream", "Ouvrir le flux de clics en direct")}</span>
             <span>→</span>
           </button>
         </div>

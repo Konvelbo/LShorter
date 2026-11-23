@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 function formatTime(sec: number) {
   const s = Math.max(0, Math.floor(sec));
@@ -26,16 +27,37 @@ const PATHLOCK_SOURCES: Record<VideoLang, { src: string; poster: string; default
 };
 
 export function PathLockCartoonPanel() {
+  const { locale, tr } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pendingResumeRef = useRef<{ ratio: number; shouldPlay: boolean } | null>(null);
-  const [lang, setLang] = useState<VideoLang>("en");
+  const prevLocaleRef = useRef<VideoLang>(locale);
+  const [lang, setLang] = useState<VideoLang>(locale);
   const [shouldLoad, setShouldLoad] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(PATHLOCK_SOURCES.en.defaultDuration);
+  const [duration, setDuration] = useState(PATHLOCK_SOURCES[locale].defaultDuration);
+
+  // Sync video language when global site locale changes without forcing premature video load
+  useEffect(() => {
+    if (prevLocaleRef.current === locale) return;
+    prevLocaleRef.current = locale;
+    if (lang === locale) return;
+    if (shouldLoad) {
+      const video = videoRef.current;
+      const curDuration =
+        video && Number.isFinite(video.duration) && video.duration > 0
+          ? video.duration
+          : duration;
+      const ratio = video && curDuration > 0 ? video.currentTime / curDuration : 0;
+      const shouldPlay = video ? !video.paused : false;
+      pendingResumeRef.current = { ratio, shouldPlay };
+    }
+    setLang(locale);
+    setDuration(PATHLOCK_SOURCES[locale].defaultDuration);
+  }, [locale, lang, shouldLoad, duration]);
 
   const handleSwitchLang = (nextLang: VideoLang, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -165,7 +187,10 @@ export function PathLockCartoonPanel() {
         loop
         playsInline
         preload={shouldLoad ? "metadata" : "none"}
-        aria-label="Animated cartoon explaining LShorter PathLock URL perimeter security"
+        aria-label={tr(
+          "Animated cartoon explaining LShorter PathLock URL perimeter security",
+          "Animation explicative sur la sécurité périmétrique PathLock™ de LShorter"
+        )}
         onClick={handleTogglePlay}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -188,7 +213,7 @@ export function PathLockCartoonPanel() {
       {/* Sleek EN / FR Language Switcher */}
       <div
         role="group"
-        aria-label="Video language"
+        aria-label={tr("Video language", "Langue de la vidéo")}
         onClick={(e) => e.stopPropagation()}
         className="absolute right-3 top-3 z-20 inline-flex items-center rounded-full border border-white/20 bg-black/65 p-0.5 backdrop-blur-md shadow-md"
       >
@@ -214,7 +239,10 @@ export function PathLockCartoonPanel() {
         <button
           type="button"
           onClick={handleTogglePlay}
-          aria-label="Play PathLock cartoon explainer"
+          aria-label={tr(
+            "Play PathLock cartoon explainer",
+            "Lire l'animation explicative PathLock™"
+          )}
           className="absolute inset-0 m-auto flex size-14 items-center justify-center rounded-full bg-[#0066FF] text-white shadow-[0_10px_28px_rgba(0,102,255,0.45)] transition-transform hover:scale-105 cursor-pointer"
         >
           <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -231,7 +259,11 @@ export function PathLockCartoonPanel() {
           <button
             type="button"
             onClick={handleTogglePlay}
-            aria-label={isPlaying ? "Pause cartoon" : "Play cartoon"}
+            aria-label={
+              isPlaying
+                ? tr("Pause cartoon", "Mettre en pause l'animation")
+                : tr("Play cartoon", "Lire l'animation")
+            }
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             {isPlaying ? (
@@ -243,7 +275,7 @@ export function PathLockCartoonPanel() {
 
           <div
             role="slider"
-            aria-label="Video timeline"
+            aria-label={tr("Video timeline", "Barre de progression de la vidéo")}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration)}
             aria-valuenow={Math.round(currentTime)}
@@ -264,7 +296,11 @@ export function PathLockCartoonPanel() {
           <button
             type="button"
             onClick={handleToggleMute}
-            aria-label={isMuted ? "Unmute cartoon audio" : "Mute cartoon audio"}
+            aria-label={
+              isMuted
+                ? tr("Unmute cartoon audio", "Activer le son de l'animation")
+                : tr("Mute cartoon audio", "Couper le son de l'animation")
+            }
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             {isMuted ? (
@@ -277,7 +313,10 @@ export function PathLockCartoonPanel() {
           <button
             type="button"
             onClick={handleFullscreen}
-            aria-label="Fullscreen cartoon video"
+            aria-label={tr(
+              "Fullscreen cartoon video",
+              "Afficher l'animation en plein écran"
+            )}
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             <Maximize2 className="w-3.5 h-3.5" />

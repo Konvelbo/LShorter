@@ -443,7 +443,7 @@ function SettingsPageContent() {
   
   // Formatage précis du pourcentage pour la page Billing (ex: 0.12%, 4.56%, 105.20%)
   const formatPrecisePercentage = (used: number, limit: number): string => {
-    if (limit === -1) return "Unlimited";
+    if (limit === -1) return tr("Unlimited", "Illimité");
     if (used <= 0) return "0.00%";
     const ratio = (used / limit) * 100;
     if (ratio < 0.01) {
@@ -611,7 +611,10 @@ function SettingsPageContent() {
               const confirmedPlan = data.plan.toUpperCase();
               await syncClientPlanState(confirmedPlan);
               showToast.success(
-                `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
+                tr(
+                  `${confirmedPlan} subscription activated and synced successfully!`,
+                  `Abonnement ${confirmedPlan} activé et synchronisé avec succès !`
+                )
               );
             }
           })
@@ -620,12 +623,17 @@ function SettingsPageContent() {
           });
       }
     }
-  }, [userId, loadRealInvoices, loadSubscriptionDetails, updateSession]);
+  }, [userId, loadRealInvoices, loadSubscriptionDetails, updateSession, tr]);
 
   const handleDownloadInvoice = (inv: any) => {
     const downloadUrl = inv.downloadUrl || `/api/billing/invoices/${inv.id}/download`;
     window.open(downloadUrl, "_blank");
-    showToast.success(`Téléchargement de la facture officielle (${inv.number})...`);
+    showToast.success(
+      tr(
+        `Downloading official invoice (${inv.number})...`,
+        `Téléchargement de la facture officielle (${inv.number})...`
+      )
+    );
   };
 
   const isCanceledAtPeriodEnd =
@@ -640,17 +648,20 @@ function SettingsPageContent() {
 
   const displayPeriodEnd = useMemo(() => {
     if (currentPeriodEndTimestamp) {
-      return new Date(currentPeriodEndTimestamp).toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
+      return new Date(currentPeriodEndTimestamp).toLocaleDateString(
+        locale === "fr" ? "fr-FR" : "en-US",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }
+      );
     }
     if (subDetails?.formattedPeriodEnd) {
       return subDetails.formattedPeriodEnd;
     }
     return "—";
-  }, [currentPeriodEndTimestamp, subDetails?.formattedPeriodEnd]);
+  }, [currentPeriodEndTimestamp, subDetails?.formattedPeriodEnd, locale]);
 
   const subCycle = (
     convexSubscription?.cycle ||
@@ -671,19 +682,31 @@ function SettingsPageContent() {
       const data = await res.json();
       if (data.success) {
         showToast.success(
-          "Renouvellement automatique annulé. Vos services restent actifs jusqu'au terme de la période payée."
+          tr(
+            "Auto-renewal canceled. Your services remain active until the end of the paid period.",
+            "Renouvellement automatique annulé. Vos services restent actifs jusqu'au terme de la période payée."
+          )
         );
         setIsCancelSubModalOpen(false);
         loadSubscriptionDetails();
         window.dispatchEvent(new Event("lshorter_notifications_sync"));
       } else {
         showToast.error(
-          data.error || "Impossible d'annuler le renouvellement automatique pour le moment."
+          data.error ||
+            tr(
+              "Unable to cancel auto-renewal at the moment.",
+              "Impossible d'annuler le renouvellement automatique pour le moment."
+            )
         );
       }
     } catch (err: any) {
       console.error("[Cancel Subscription Error]", err);
-      showToast.error("Une erreur réseau est survenue. Veuillez réessayer.");
+      showToast.error(
+        tr(
+          "A network error occurred. Please try again.",
+          "Une erreur réseau est survenue. Veuillez réessayer."
+        )
+      );
     } finally {
       setCancelingSub(false);
     }
@@ -698,17 +721,31 @@ function SettingsPageContent() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast.success("Renouvellement automatique réactivé avec succès !");
+        showToast.success(
+          tr(
+            "Auto-renewal resumed successfully!",
+            "Renouvellement automatique réactivé avec succès !"
+          )
+        );
         loadSubscriptionDetails();
         window.dispatchEvent(new Event("lshorter_notifications_sync"));
       } else {
         showToast.error(
-          data.error || "Impossible de réactiver le renouvellement automatique."
+          data.error ||
+            tr(
+              "Unable to resume auto-renewal.",
+              "Impossible de réactiver le renouvellement automatique."
+            )
         );
       }
     } catch (err: any) {
       console.error("[Resume Subscription Error]", err);
-      showToast.error("Une erreur réseau est survenue. Veuillez réessayer.");
+      showToast.error(
+        tr(
+          "A network error occurred. Please try again.",
+          "Une erreur réseau est survenue. Veuillez réessayer."
+        )
+      );
     } finally {
       setResumingSub(false);
     }
@@ -1191,16 +1228,27 @@ console.log("Top Countries:", topAudience.topCountries);`,
       if (!alert.id.startsWith("global_")) {
         await cfUpdateTargetAlert(alert.id, { status: nextStatus });
       }
-      showToast.success(nextStatus === "paused" ? "Alert paused" : "Alert resumed");
+      showToast.success(
+        nextStatus === "paused"
+          ? tr("Alert paused", "Alerte mise en pause")
+          : tr("Alert resumed", "Alerte réactivée")
+      );
     } catch {
-      showToast.error("Failed to update status");
+      showToast.error(
+        tr("Failed to update status", "Échec de la mise à jour du statut")
+      );
       loadTargetAlerts();
     }
   };
 
   const handleDeleteTarget = (alertId: string) => {
     if (alertId.startsWith("global_")) {
-      showToast.error("Global workspace target cannot be deleted");
+      showToast.error(
+        tr(
+          "Global workspace target cannot be deleted",
+          "L'objectif global de l'espace de travail ne peut pas être supprimé"
+        )
+      );
       return;
     }
     setOpenRowMenuId(null);
@@ -1215,7 +1263,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     triggerUndoDelete({
       id: alertId,
       itemType: "other",
-      title: "Alerte supprimée",
+      title: tr("Alert deleted", "Alerte supprimée"),
       description: linked?.slug ? `/${linked.slug}` : label,
       confirmText: label,
       onExecute: async () => {
@@ -1223,7 +1271,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
         try {
           await cfDeleteTargetAlert(alertId);
         } catch {
-          showToast.error("Failed to delete alert");
+          showToast.error(
+            tr("Failed to delete alert", "Échec de la suppression de l'alerte")
+          );
           loadTargetAlerts();
           return false;
         }
@@ -1278,12 +1328,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
     e.preventDefault();
     if (alertMetricType === "both") {
       if (alertTargetClicks <= 0 || alertTargetRevenue <= 0) {
-        showToast.error("Please enter a valid threshold (> 0) for both clicks and revenue");
+        showToast.error(
+          tr(
+            "Please enter a valid threshold (> 0) for both clicks and revenue",
+            "Veuillez saisir un seuil valide (> 0) pour les clics et les revenus"
+          )
+        );
         return;
       }
     } else {
       if (alertTargetValue <= 0) {
-        showToast.error("Please enter a valid target threshold greater than 0");
+        showToast.error(
+          tr(
+            "Please enter a valid target threshold greater than 0",
+            "Veuillez saisir un seuil cible valide supérieur à 0"
+          )
+        );
         return;
       }
     }
@@ -1324,7 +1384,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyBell: alertNotifyBell,
             }),
           ]);
-          showToast.success("Global clicks and revenue targets saved");
+          showToast.success(
+            tr(
+              "Global clicks and revenue targets saved",
+              "Objectifs globaux de clics et revenus enregistrés"
+            )
+          );
         } else if (alertMetricType === "revenue") {
           localStorage.setItem("lshorter_target_revenue", String(alertTargetValue));
           window.dispatchEvent(
@@ -1342,7 +1407,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
             notifyEmail: alertNotifyEmail,
             notifyBell: alertNotifyBell,
           });
-          showToast.success("Global revenue target saved");
+          showToast.success(
+            tr("Global revenue target saved", "Objectif global de revenus enregistré")
+          );
         } else {
           localStorage.setItem("lshorter_target_clicks", String(alertTargetValue));
           window.dispatchEvent(
@@ -1360,7 +1427,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
             notifyEmail: alertNotifyEmail,
             notifyBell: alertNotifyBell,
           });
-          showToast.success("Global clicks target saved");
+          showToast.success(
+            tr("Global clicks target saved", "Objectif global de clics enregistré")
+          );
         }
       } else {
         const effectiveLinkId = (!alertLinkId || alertLinkId === "global" || !isPremium)
@@ -1393,7 +1462,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyBell: alertNotifyBell,
             });
           }
-          showToast.success("Alert updated successfully");
+          showToast.success(
+            tr("Alert updated successfully", "Alerte mise à jour avec succès")
+          );
         } else {
           if (alertMetricType === "both") {
             await Promise.all([
@@ -1418,7 +1489,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 notifyBell: alertNotifyBell,
               }),
             ]);
-            showToast.success("Clicks and revenue alerts created successfully");
+            showToast.success(
+              tr(
+                "Clicks and revenue alerts created successfully",
+                "Alertes clics et revenus créées avec succès"
+              )
+            );
           } else {
             await cfCreateTargetAlert({
               userId,
@@ -1430,7 +1506,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
               notifyEmail: alertNotifyEmail,
               notifyBell: alertNotifyBell,
             });
-            showToast.success("Alert created successfully");
+            showToast.success(
+              tr("Alert created successfully", "Alerte créée avec succès")
+            );
           }
         }
       }
@@ -1438,7 +1516,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setIsAlertModalOpen(false);
       await loadTargetAlerts();
     } catch (err: any) {
-      showToast.error(err?.message || "Failed to save alert");
+      showToast.error(
+        err?.message || tr("Failed to save alert", "Échec de l'enregistrement de l'alerte")
+      );
     } finally {
       setIsSavingAlert(false);
     }
@@ -1446,7 +1526,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   const handleTestTarget = async (alert: TargetAlert) => {
     setOpenRowMenuId(null);
-    showToast.info("Sending test alert...");
+    showToast.info(tr("Sending test alert...", "Envoi de l'alerte de test..."));
     try {
       const isGlobal = !alert.linkId;
       const res = await fetch("/api/targets/notify", {
@@ -1466,12 +1546,21 @@ console.log("Top Countries:", topAudience.topCountries);`,
       });
       const data = await res.json();
       if (data.success) {
-        showToast.success("Test alert sent! Notification added to bell & test email dispatched.");
+        showToast.success(
+          tr(
+            "Test alert sent! Notification added to bell & test email dispatched.",
+            "Alerte de test envoyée ! Notification ajoutée à la cloche et e-mail de test envoyé."
+          )
+        );
       } else {
-        showToast.error("Failed to send test alert");
+        showToast.error(
+          tr("Failed to send test alert", "Échec de l'envoi de l'alerte de test")
+        );
       }
     } catch {
-      showToast.error("Error sending test alert");
+      showToast.error(
+        tr("Error sending test alert", "Erreur lors de l'envoi de l'alerte de test")
+      );
     }
   };
 
@@ -1622,12 +1711,27 @@ console.log("Top Countries:", topAudience.topCountries);`,
           );
         }
 
-        showToast.success("Photo de profil mise à jour avec succès !");
+        showToast.success(
+          tr(
+            "Profile picture updated successfully!",
+            "Photo de profil mise à jour avec succès !"
+          )
+        );
       } else {
-        showToast.error("Échec du téléversement de la photo de profil");
+        showToast.error(
+          tr(
+            "Failed to upload profile picture",
+            "Échec du téléversement de la photo de profil"
+          )
+        );
       }
     } catch {
-      showToast.error("Erreur lors de l'envoi de la photo de profil");
+      showToast.error(
+        tr(
+          "Error uploading profile picture",
+          "Erreur lors de l'envoi de la photo de profil"
+        )
+      );
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -1683,19 +1787,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
       }
 
       setProfileSuccess(true);
-      showToast.success("Profile updated successfully!");
+      showToast.success(
+        tr("Profile updated successfully!", "Profil mis à jour avec succès !")
+      );
       setTimeout(() => setProfileSuccess(false), 2500);
     } catch (err) {
-      showToast.error("Error updating profile.");
+      showToast.error(
+        tr("Error updating profile.", "Erreur lors de la mise à jour du profil.")
+      );
     }
   };
 
   const promptRevokeKeyWithUndo = (k: ApiKeyItem) => {
-    const label = k.name || k.prefix || "Clé API";
+    const label = k.name || k.prefix || tr("API Key", "Clé API");
     triggerUndoDelete({
       id: k.id,
       itemType: "api_key",
-      title: "Clé API révoquée",
+      title: tr("API key revoked", "Clé API révoquée"),
       description: label,
       confirmText: label,
       onExecute: async () => {
@@ -1705,7 +1813,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
           cfInvalidateCache("/api/keys");
         } catch {
           loadApiKeys();
-          showToast.error("Erreur lors de la révocation de la clé API.");
+          showToast.error(
+            tr(
+              "Error revoking API key.",
+              "Erreur lors de la révocation de la clé API."
+            )
+          );
           return false;
         }
       },
@@ -1716,8 +1829,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
         featureName: "Webhooks",
-        reason:
+        reason: tr(
           "Webhooks and real-time event streaming are reserved for PRO and BUSINESS plans.",
+          "Les webhooks et le streaming d'événements en temps réel sont réservés aux forfaits PRO et BUSINESS."
+        ),
         targetPlan: "PRO",
       });
       return;
@@ -1743,12 +1858,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
     try {
       await navigator.clipboard.writeText(wh.secretKey);
       setCopiedWebhookSecretId(wh.id);
-      showToast.success("Clé secrète HMAC copiée dans le presse-papiers.");
+      showToast.success(
+        tr(
+          "HMAC secret key copied to clipboard.",
+          "Clé secrète HMAC copiée dans le presse-papiers."
+        )
+      );
       setTimeout(() => {
         setCopiedWebhookSecretId((cur) => (cur === wh.id ? null : cur));
       }, 2000);
     } catch {
-      showToast.error("Impossible de copier la clé secrète.");
+      showToast.error(
+        tr("Unable to copy secret key.", "Impossible de copier la clé secrète.")
+      );
     }
   };
 
@@ -1765,7 +1887,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
           events: data.events,
           isActive: data.isActive,
         });
-        showToast.success("Webhook mis à jour avec succès !");
+        showToast.success(
+          tr("Webhook updated successfully!", "Webhook mis à jour avec succès !")
+        );
       } else {
         await cfCreateWebhook({
           userId,
@@ -1775,12 +1899,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
           secretKey: data.secretKey,
           isActive: true,
         });
-        showToast.success("Webhook créé avec succès !");
+        showToast.success(
+          tr("Webhook created successfully!", "Webhook créé avec succès !")
+        );
       }
       setIsWebhookModalOpen(false);
       await loadWebhooks();
     } catch (err: any) {
-      showToast.error(err?.message || "Échec de l'enregistrement du webhook");
+      showToast.error(
+        err?.message ||
+          tr("Failed to save webhook", "Échec de l'enregistrement du webhook")
+      );
     } finally {
       setIsSavingWebhookModal(false);
       setIsCreatingWebhook(false);
@@ -1792,7 +1921,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     triggerUndoDelete({
       id: wh.id,
       itemType: "webhook",
-      title: "Webhook supprimé",
+      title: tr("Webhook deleted", "Webhook supprimé"),
       description: label,
       confirmText: label,
       onExecute: async () => {
@@ -1802,7 +1931,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
           cfInvalidateCache("/api/webhooks");
         } catch {
           loadWebhooks();
-          showToast.error("Échec de suppression du webhook");
+          showToast.error(
+            tr("Failed to delete webhook", "Échec de suppression du webhook")
+          );
           return false;
         }
       },
@@ -1818,10 +1949,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
         prev.map((w) => (w.id === id ? { ...w, isActive: nextActive } : w)),
       );
       await cfUpdateWebhook(id, { userId, isActive: nextActive });
-      showToast.success(nextActive ? "Webhook activé" : "Webhook mis en pause");
+      showToast.success(
+        nextActive
+          ? tr("Webhook activated", "Webhook activé")
+          : tr("Webhook paused", "Webhook mis en pause")
+      );
     } catch {
       loadWebhooks();
-      showToast.error("Échec de mise à jour du webhook");
+      showToast.error(
+        tr("Failed to update webhook", "Échec de mise à jour du webhook")
+      );
     }
   };
 
@@ -1834,8 +1971,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
         featureName: "Webhooks",
-        reason:
+        reason: tr(
           "Webhook testing simulator is reserved for PRO and BUSINESS plans.",
+          "Le simulateur de test webhook est réservé aux forfaits PRO et BUSINESS."
+        ),
         targetPlan: "PRO",
       });
       return;
@@ -1857,11 +1996,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setWebhookTestResponse(JSON.stringify(data, null, 2));
       if (res.ok && data?.success) {
         showToast.success(
-          `Ping envoyé (HTTP ${data.status || 200}) en ${data.durationMs ?? 0} ms`,
+          tr(
+            `Ping sent (HTTP ${data.status || 200}) in ${data.durationMs ?? 0} ms`,
+            `Ping envoyé (HTTP ${data.status || 200}) en ${data.durationMs ?? 0} ms`
+          ),
         );
         loadWebhooks();
       } else {
-        showToast.error(data?.error || "Échec du test webhook");
+        showToast.error(
+          data?.error || tr("Webhook test failed", "Échec du test webhook")
+        );
       }
     } catch (err) {
       setWebhookTestResponse(
@@ -1871,7 +2015,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
           2,
         ),
       );
-      showToast.error("Échec du test webhook");
+      showToast.error(tr("Webhook test failed", "Échec du test webhook"));
     } finally {
       setIsTestingWebhook(false);
     }
@@ -1882,7 +2026,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
     triggerUndoDelete({
       id: px.id,
       itemType: "pixel",
-      title: "Pixel supprimé",
+      title: tr("Pixel deleted", "Pixel supprimé"),
       description: label,
       confirmText: label,
       onExecute: async () => {
@@ -1892,7 +2036,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
           cfInvalidateCache("/api/pixels");
         } catch {
           loadPixels();
-          showToast.error("Échec de la suppression du pixel.");
+          showToast.error(
+            tr("Failed to delete pixel.", "Échec de la suppression du pixel.")
+          );
           return false;
         }
       },
@@ -1908,10 +2054,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
         prev.map((p) => (p.id === id ? { ...p, isActive: nextActive } : p)),
       );
       await cfUpdatePixel(id, { userId, isActive: nextActive });
-      showToast.success(nextActive ? "Pixel activated" : "Pixel paused");
+      showToast.success(
+        nextActive
+          ? tr("Pixel activated", "Pixel activé")
+          : tr("Pixel paused", "Pixel mis en pause")
+      );
     } catch {
       loadPixels();
-      showToast.error("Failed to update pixel");
+      showToast.error(
+        tr("Failed to update pixel", "Échec de mise à jour du pixel")
+      );
     }
   };
 
@@ -1940,7 +2092,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const handleDisable2FA = async () => {
     if (
       confirm(
-        "Are you sure you want to disable Two-Factor Authentication (2FA)? Your account will be less protected.",
+        tr(
+          "Are you sure you want to disable Two-Factor Authentication (2FA)? Your account will be less protected.",
+          "Voulez-vous vraiment désactiver l'authentification à deux facteurs (2FA) ? Votre compte sera moins protégé."
+        ),
       )
     ) {
       try {
@@ -1949,16 +2104,28 @@ console.log("Top Countries:", topAudience.topCountries);`,
           enabled: false,
         });
         setIs2FAEnabled(false);
-        showToast.info("Two-Factor Authentication disabled.");
+        showToast.info(
+          tr(
+            "Two-Factor Authentication disabled.",
+            "Authentification à deux facteurs désactivée."
+          )
+        );
       } catch {
-        showToast.error("Error disabling 2FA.");
+        showToast.error(
+          tr("Error disabling 2FA.", "Erreur lors de la désactivation de la 2FA.")
+        );
       }
     }
   };
 
   const handleChangePassword = async () => {
     if (!newPassword.trim() || newPassword.length < 8) {
-      showToast.error("New password must be at least 8 characters long.");
+      showToast.error(
+        tr(
+          "New password must be at least 8 characters long.",
+          "Le nouveau mot de passe doit contenir au moins 8 caractères."
+        )
+      );
       return;
     }
 
@@ -1972,9 +2139,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
       setCurrentPassword("");
       setNewPassword("");
       setPasswordStrength(0);
-      showToast.success("Password updated successfully!");
+      showToast.success(
+        tr("Password updated successfully!", "Mot de passe mis à jour avec succès !")
+      );
     } catch {
-      showToast.error("Error updating password.");
+      showToast.error(
+        tr(
+          "Error updating password.",
+          "Erreur lors de la mise à jour du mot de passe."
+        )
+      );
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -1988,7 +2162,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
         const res = await fetch(
           `/api/analytics/export?format=${type}&userId=${encodeURIComponent(userId)}`,
         );
-        if (!res.ok) throw new Error("Erreur lors de la génération de l'archive");
+        if (!res.ok)
+          throw new Error(
+            tr("Error generating archive", "Erreur lors de la génération de l'archive")
+          );
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -2001,8 +2178,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
         URL.revokeObjectURL(url);
         showToast.success(
           type === "zip"
-            ? "Archive ZIP complète (sous-dossiers & CSV) téléchargée !"
-            : "Données CSV exportées avec succès !",
+            ? tr(
+                "Complete ZIP archive (subfolders & CSV) downloaded!",
+                "Archive ZIP complète (sous-dossiers & CSV) téléchargée !"
+              )
+            : tr(
+                "CSV data exported successfully!",
+                "Données CSV exportées avec succès !"
+              ),
         );
         return;
       }
@@ -2031,9 +2214,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast.success("JSON archive exported successfully!");
+      showToast.success(
+        tr(
+          "JSON archive exported successfully!",
+          "Archive JSON exportée avec succès !"
+        )
+      );
     } catch (err) {
-      showToast.error("Erreur lors de l'exportation des données.");
+      showToast.error(
+        tr(
+          "Error exporting data.",
+          "Erreur lors de l'exportation des données."
+        )
+      );
     } finally {
       setIsExportingArchive(false);
     }
@@ -2041,32 +2234,41 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmationText !== "DELETE") {
-      showToast.error("Please type DELETE to confirm.");
+      showToast.error(
+        tr("Please type DELETE to confirm.", "Veuillez saisir DELETE pour confirmer.")
+      );
       return;
     }
 
     setIsDeletingAccount(true);
     try {
       await deleteAccountMutation({ userId });
-      showToast.success("Account and data permanently deleted.");
+      showToast.success(
+        tr(
+          "Account and data permanently deleted.",
+          "Compte et données définitivement supprimés."
+        )
+      );
       await signOut({ callbackUrl: "/" });
     } catch (err) {
-      showToast.error("Error deleting account.");
+      showToast.error(
+        tr("Error deleting account.", "Erreur lors de la suppression du compte.")
+      );
       setIsDeletingAccount(false);
     }
   };
 
   const tabs = [
-    { id: "profile", label: "Profile & Account", icon: User },
-    { id: "billing", label: "Billing & Invoices", icon: CreditCard },
-    { id: "api", label: "API & Keys", icon: KeyRound },
-    { id: "domains", label: "Domains", icon: Globe2 },
+    { id: "profile", label: tr("Profile & Account", "Profil & Compte"), icon: User },
+    { id: "billing", label: tr("Billing & Invoices", "Facturation & Factures"), icon: CreditCard },
+    { id: "api", label: tr("API & Keys", "API & Clés"), icon: KeyRound },
+    { id: "domains", label: tr("Domains", "Domaines"), icon: Globe2 },
     { id: "webhooks", label: "Webhooks", icon: Webhook, isPro: true },
-    { id: "pixels", label: "Retargeting Pixels", icon: Target, isPro: true },
-    { id: "security", label: "Security & 2FA", icon: Shield },
+    { id: "pixels", label: tr("Retargeting Pixels", "Pixels de retargeting"), icon: Target, isPro: true },
+    { id: "security", label: tr("Security & 2FA", "Sécurité & 2FA"), icon: Shield },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "data", label: "Data & GDPR", icon: Database },
-    { id: "about", label: "About", icon: Info },
+    { id: "data", label: tr("Data & GDPR", "Données & RGPD"), icon: Database },
+    { id: "about", label: tr("About", "À propos"), icon: Info },
   ] as const;
 
   if (status === "loading") {
@@ -2082,13 +2284,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
             <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                  Profile &amp; Account
+                  {tr("Profile & Account", "Profil & Compte")}
                 </h1>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                  Personal information, edge infrastructure quotas, and display preferences.
+                  {tr(
+                    "Personal information, edge infrastructure quotas, and display preferences.",
+                    "Informations personnelles, quotas d'infrastructure edge et préférences d'affichage."
+                  )}
                 </p>
               </div>
-              <Badge variant="orange">Plan {plan}</Badge>
+              <Badge variant="orange">
+                {tr(`Plan ${plan}`, `Forfait ${plan}`)}
+              </Badge>
             </div>
 
             {/* Quota gauges */}
@@ -2096,17 +2303,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
-                    Monthly Click Volume
+                    {tr("Monthly Click Volume", "Volume mensuel de clics")}
                   </span>
                   <span
                     className="text-xs text-[#0066FF] dark:text-[#5294FF] font-semibold"
                     data-testid="billing-monthly-clicks-percent"
                   >
                     {plan === "ENTERPRISE" || clicksLimit === -1
-                      ? "Unlimited clicks included"
+                      ? tr("Unlimited clicks included", "Clics illimités inclus")
                       : isOverage
-                        ? `${billingClicksPercentLabel} (Overage active)`
-                        : `${billingClicksPercentLabel} used`}
+                        ? tr(
+                            `${billingClicksPercentLabel} (Overage active)`,
+                            `${billingClicksPercentLabel} (Dépassement actif)`
+                          )
+                        : tr(
+                            `${billingClicksPercentLabel} used`,
+                            `${billingClicksPercentLabel} utilisé`
+                          )}
                   </span>
                 </div>
                 <p
@@ -2114,9 +2327,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   data-testid="billing-monthly-clicks-count"
                 >
                   {(accountStats?.clicksThisMonth ?? 0).toLocaleString(
-                    "en-US",
+                    locale === "fr" ? "fr-FR" : "en-US",
                   )}{" "}
-                  / {clicksLimit === -1 ? "Unlimited" : (clicksLimit ?? 10000).toLocaleString("en-US")}
+                  / {clicksLimit === -1 ? tr("Unlimited", "Illimité") : (clicksLimit ?? 10000).toLocaleString(locale === "fr" ? "fr-FR" : "en-US")}
                 </p>
                 <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                   <div
@@ -2127,18 +2340,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500 pt-0.5">
                   <span>
                     {plan === "ENTERPRISE"
-                      ? "Unlimited clicks included ($0 extra)"
+                      ? tr("Unlimited clicks included ($0 extra)", "Clics illimités inclus (0 $ en sus)")
                       : plan === "BUSINESS"
-                        ? "Overage rate: $8 / 125,000 extra clicks"
+                        ? tr("Overage rate: $8 / 125,000 extra clicks", "Dépassement : 8 $ / 125 000 clics sup.")
                         : plan === "PRO"
-                          ? "Overage rate: $3 / 50,000 extra clicks"
-                          : "Hard limit at 10,000 clicks/month"}
+                          ? tr("Overage rate: $3 / 50,000 extra clicks", "Dépassement : 3 $ / 50 000 clics sup.")
+                          : tr("Hard limit at 10,000 clicks/month", "Limite stricte à 10 000 clics/mois")}
                   </span>
                   {isOverage && (
                     <span className="text-amber-600 dark:text-amber-400 font-semibold">
                       {plan === "ENTERPRISE"
-                        ? `+${(overageClicks ?? 0).toLocaleString()} clicks ($0 free overage)`
-                        : `+${(overageClicks ?? 0).toLocaleString()} clicks ($${overageAmount.toFixed(2)} overage)`}
+                        ? tr(
+                            `+${(overageClicks ?? 0).toLocaleString("en-US")} clicks ($0 free overage)`,
+                            `+${(overageClicks ?? 0).toLocaleString("fr-FR")} clics (0 $ offert)`
+                          )
+                        : tr(
+                            `+${(overageClicks ?? 0).toLocaleString("en-US")} clicks ($${overageAmount.toFixed(2)} overage)`,
+                            `+${(overageClicks ?? 0).toLocaleString("fr-FR")} clics (${overageAmount.toFixed(2)} $ dépassement)`
+                          )}
                     </span>
                   )}
                 </div>
@@ -2147,14 +2366,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-zinc-600 dark:text-neutral-400 font-semibold">
-                    Custom Domains
+                    {tr("Custom Domains", "Domaines personnalisés")}
                   </span>
                   <span className="text-xs text-zinc-600 dark:text-neutral-400 font-bold">
-                    {accountStats.domainsCount} of {domainsLimit === -1 ? "Unlimited" : domainsLimit}
+                    {accountStats.domainsCount} {tr("of", "sur")} {domainsLimit === -1 ? tr("Unlimited", "Illimité") : domainsLimit}
                   </span>
                 </div>
                 <p className="text-2xl font-bold font-bebas text-zinc-900 dark:text-white">
-                  {accountStats.domainsCount} / {domainsLimit === -1 ? "Unlimited" : domainsLimit}
+                  {accountStats.domainsCount} / {domainsLimit === -1 ? tr("Unlimited", "Illimité") : domainsLimit}
                 </p>
                 <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-[#27272a] overflow-hidden mt-1">
                   <div
@@ -2166,8 +2385,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 </div>
                 <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
                   {domainsLimit === -1
-                    ? "Unlimited custom domains included"
-                    : `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`}
+                    ? tr("Unlimited custom domains included", "Domaines personnalisés illimités inclus")
+                    : tr(
+                        `${Math.max(0, domainsLimit - accountStats.domainsCount)} domain(s) available`,
+                        `${Math.max(0, domainsLimit - accountStats.domainsCount)} domaine(s) disponible(s)`
+                      )}
                 </span>
               </div>
             </div>
@@ -2214,7 +2436,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="flex flex-col gap-2 flex-1 w-full">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
-                      Profile picture URL
+                      {tr("Profile picture URL", "URL de la photo de profil")}
                     </label>
                     <label className="cursor-pointer text-xs font-medium text-brand hover:underline flex items-center gap-1 transition-colors">
                       <input
@@ -2226,7 +2448,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       />
                       <Upload className="w-3.5 h-3.5" />
                       <span>
-                        {isUploadingAvatar ? "Uploading..." : "Change photo"}
+                        {isUploadingAvatar
+                          ? tr("Uploading...", "Téléversement...")
+                          : tr("Change photo", "Changer la photo")}
                       </span>
                     </label>
                   </div>
@@ -2333,14 +2557,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                      Plan &amp; Billing
+                      {tr("Plan & Billing", "Forfait & Facturation")}
                     </h1>
                     <span className="px-2.5 py-0.5 rounded-full bg-brand-subtle text-brand border border-brand-subtle text-[10px] font-extrabold uppercase tracking-wider">
                       {plan}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-                    Manage your subscription, auto-renewal, and download compliant official invoices.
+                    {tr(
+                      "Manage your subscription, auto-renewal, and download compliant official invoices.",
+                      "Gérez votre abonnement, votre renouvellement automatique et téléchargez vos factures officielles conformes."
+                    )}
                   </p>
                 </div>
                 <Button
@@ -2349,7 +2576,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   onClick={() => router.push("/pricing")}
                   className="cursor-pointer font-bold shrink-0"
                 >
-                  Change Plan
+                  {tr("Change Plan", "Changer de forfait")}
                 </Button>
               </div>
 
@@ -2363,24 +2590,30 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                          Abonnement &amp; Renouvellement Automatique
+                          {tr(
+                            "Subscription & Auto-Renewal",
+                            "Abonnement & Renouvellement Automatique"
+                          )}
                         </h3>
                         {isPaidPlan && (
                           isCanceledAtPeriodEnd ? (
                             <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              Annulation programmée
+                              {tr("Cancellation scheduled", "Annulation programmée")}
                             </span>
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
-                              Renouvellement actif
+                              {tr("Auto-renewal active", "Renouvellement actif")}
                             </span>
                           )
                         )}
                       </div>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                        Gérez la récurrence de vos paiements, votre date d&apos;échéance et vos options de résiliation.
+                        {tr(
+                          "Manage recurring billing, renewal date, and cancellation options.",
+                          "Gérez la récurrence de vos paiements, votre date d'échéance et vos options de résiliation."
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2400,7 +2633,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         ) : (
                           <RefreshCw className="w-3.5 h-3.5" />
                         )}
-                        <span>Réactiver le renouvellement</span>
+                        <span>{tr("Resume auto-renewal", "Réactiver le renouvellement")}</span>
                       </Button>
                     </div>
                   )}
@@ -2411,24 +2644,26 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
-                        Formule Actuelle
+                        {tr("Current Plan", "Formule Actuelle")}
                       </span>
                       <div className="flex items-baseline gap-2">
                         <span className="text-base font-bold text-zinc-900 dark:text-white">
                           LShorter {plan}
                         </span>
                         <span className="text-xs text-zinc-500 dark:text-neutral-400">
-                          ({subCycle === "YEARLY" ? "Annuel" : "Mensuel"})
+                          ({subCycle === "YEARLY" ? tr("Yearly", "Annuel") : tr("Monthly", "Mensuel")})
                         </span>
                       </div>
                       <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
-                        Facturation certifiée Dodo Payments
+                        {tr("Certified Dodo Payments billing", "Facturation certifiée Dodo Payments")}
                       </span>
                     </div>
 
                     <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
-                        {isCanceledAtPeriodEnd ? "Fin de la période payée" : "Prochaine échéance"}
+                        {isCanceledAtPeriodEnd
+                          ? tr("Paid period ends", "Fin de la période payée")
+                          : tr("Next renewal", "Prochaine échéance")}
                       </span>
                       <div className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-brand" />
@@ -2436,32 +2671,32 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       </div>
                       <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
                         {isCanceledAtPeriodEnd
-                          ? "Accès garanti jusqu'à cette date"
-                          : "Prélèvement automatique Dodo Payments"}
+                          ? tr("Access guaranteed until this date", "Accès garanti jusqu'à cette date")
+                          : tr("Dodo Payments automatic billing", "Prélèvement automatique Dodo Payments")}
                       </span>
                     </div>
 
                     <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-zinc-500 dark:text-neutral-400 uppercase tracking-wider">
-                        Statut du renouvellement
+                        {tr("Renewal status", "Statut du renouvellement")}
                       </span>
                       <div className="text-sm font-bold">
                         {isCanceledAtPeriodEnd ? (
                           <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                            Résiliation programmée
+                            {tr("Cancellation scheduled", "Résiliation programmée")}
                           </span>
                         ) : (
                           <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                            Renouvellement automatique actif
+                            {tr("Auto-renewal active", "Renouvellement automatique actif")}
                           </span>
                         )}
                       </div>
                       <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
                         {isCanceledAtPeriodEnd
-                          ? "Aucun prélèvement ultérieur"
-                          : "Annulable à tout moment en 1 clic"}
+                          ? tr("No further charges", "Aucun prélèvement ultérieur")
+                          : tr("Cancel anytime in 1 click", "Annulable à tout moment en 1 clic")}
                       </span>
                     </div>
                   </div>
@@ -2469,10 +2704,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <div className="p-4 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                        Vous utilisez actuellement la formule Gratuite (Freemium)
+                        {tr(
+                          "You are currently on the Free plan (Freemium)",
+                          "Vous utilisez actuellement la formule Gratuite (Freemium)"
+                        )}
                       </span>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                        Aucun abonnement récurrent ni carte bancaire n&apos;est enregistré. Vous n&apos;avez aucun prélèvement automatique.
+                        {tr(
+                          "No recurring subscription or payment card is on file. You will not be charged automatically.",
+                          "Aucun abonnement récurrent ni carte bancaire n'est enregistré. Vous n'avez aucun prélèvement automatique."
+                        )}
                       </p>
                     </div>
                     <Button
@@ -2481,7 +2722,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       onClick={() => router.push("/pricing")}
                       className="rounded-[8px] font-bold text-xs shrink-0 cursor-pointer"
                     >
-                      Découvrir les forfaits Pro
+                      {tr("Explore Pro plans", "Découvrir les forfaits Pro")}
                     </Button>
                   </div>
                 )}
@@ -2492,10 +2733,21 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                     <div className="flex flex-col gap-0.5">
                       <span className="font-bold">
-                        Votre renouvellement automatique est suspendu.
+                        {tr(
+                          "Your auto-renewal is paused.",
+                          "Votre renouvellement automatique est suspendu."
+                        )}
                       </span>
                       <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-relaxed">
-                        Conformément à nos conditions de vente pour les infrastructures numériques, vos services, liens, redirections edge et domaines restent <strong>100% actifs jusqu&apos;au {displayPeriodEnd}</strong>. Aucun autre prélèvement ne sera effectué sur votre moyen de paiement.
+                        {locale === "fr" ? (
+                          <>
+                            Conformément à nos conditions de vente pour les infrastructures numériques, vos services, liens, redirections edge et domaines restent <strong>100% actifs jusqu&apos;au {displayPeriodEnd}</strong>. Aucun autre prélèvement ne sera effectué sur votre moyen de paiement.
+                          </>
+                        ) : (
+                          <>
+                            Under our digital infrastructure terms of sale, your services, links, edge redirects, and domains remain <strong>100% active until {displayPeriodEnd}</strong>. No further charges will be made to your payment method.
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2507,7 +2759,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <span className="flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                       <span>
-                        L&apos;annulation empêche tout prélèvement automatique ultérieur et votre compte restera accessible jusqu&apos;à la fin de la période payée en cours.
+                        {tr(
+                          "Canceling stops all future automatic renewals, and your account remains accessible until the end of the current paid period.",
+                          "L'annulation empêche tout prélèvement automatique ultérieur et votre compte restera accessible jusqu'à la fin de la période payée en cours."
+                        )}
                       </span>
                     </span>
                     <button
@@ -2515,7 +2770,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       onClick={() => setIsCancelSubModalOpen(true)}
                       className="text-xs font-semibold text-red-500 hover:text-red-600 underline underline-offset-2 cursor-pointer transition-colors shrink-0 text-left sm:text-right"
                     >
-                      Annuler le renouvellement automatique
+                      {tr("Cancel auto-renewal", "Annuler le renouvellement automatique")}
                     </button>
                   </div>
                 )}
@@ -2528,39 +2783,53 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                       <FileCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                       <span>
-                        Factures Officielles (Dodo Payments)
+                        {tr(
+                          "Official Invoices (Dodo Payments)",
+                          "Factures Officielles (Dodo Payments)"
+                        )}
                       </span>
                     </h3>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
-                      Toutes vos transactions, reçus et factures certifiées conformes générées automatiquement.
+                      {tr(
+                        "All your transactions, receipts, and compliant certified invoices generated automatically.",
+                        "Toutes vos transactions, reçus et factures certifiées conformes générées automatiquement."
+                      )}
                     </p>
                   </div>
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
-                    Norme Fiscale HT / TVA / TTC • Reçus &amp; Factures Certifiés
+                    {tr(
+                      "Tax-Compliant Net / VAT / Total • Certified Receipts & Invoices",
+                      "Norme Fiscale HT / TVA / TTC • Reçus & Factures Certifiés"
+                    )}
                   </span>
                 </div>
                 {loadingInvoices ? (
                   <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand" />
-                    <span>Synchronisation des factures en cours...</span>
+                    <span>
+                      {tr("Syncing invoices...", "Synchronisation des factures en cours...")}
+                    </span>
                   </div>
                 ) : invoices.length === 0 ? (
                   <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-500 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
-                    Aucune facture disponible. Vos factures officielles apparaîtront ici dès votre premier paiement ou renouvellement.
+                    {tr(
+                      "No invoices available yet. Your official invoices will appear here after your first payment or renewal.",
+                      "Aucune facture disponible. Vos factures officielles apparaîtront ici dès votre premier paiement ou renouvellement."
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225]">
                     <table className="hidden sm:table w-full text-left text-xs text-zinc-600 dark:text-neutral-400">
                       <thead>
                         <tr className="border-b border-zinc-200 dark:border-[#27272a] text-[11px] uppercase tracking-wider text-zinc-500 dark:text-neutral-500">
-                          <th className="py-3 px-3.5">Réf. Facture</th>
-                          <th className="py-3 px-3.5">Date d&apos;émission</th>
-                          <th className="py-3 px-3.5">Net HT</th>
-                          <th className="py-3 px-3.5">TVA / Taxe</th>
-                          <th className="py-3 px-3.5">Total TTC</th>
-                          <th className="py-3 px-3.5">Statut</th>
+                          <th className="py-3 px-3.5">{tr("Invoice Ref.", "Réf. Facture")}</th>
+                          <th className="py-3 px-3.5">{tr("Issue Date", "Date d'émission")}</th>
+                          <th className="py-3 px-3.5">{tr("Subtotal", "Net HT")}</th>
+                          <th className="py-3 px-3.5">{tr("VAT / Tax", "TVA / Taxe")}</th>
+                          <th className="py-3 px-3.5">{tr("Total", "Total TTC")}</th>
+                          <th className="py-3 px-3.5">{tr("Status", "Statut")}</th>
                           <th className="py-3 px-3.5 text-right">
-                            Facture Officielle
+                            {tr("Official Invoice", "Facture Officielle")}
                           </th>
                         </tr>
                       </thead>
@@ -2586,7 +2855,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               {formatCurrencyDisplay(inv.totalAmount, inv.currency)}
                             </td>
                             <td className="py-3 px-3.5">
-                              <Badge variant="active">Paid (Acquittée)</Badge>
+                              <Badge variant="active">{tr("Paid", "Acquittée")}</Badge>
                             </td>
                             <td className="py-3 px-3.5 text-right">
                               <button
@@ -2594,7 +2863,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#465FFF]/10 hover:bg-[#465FFF] text-[#465FFF] hover:text-white border border-[#465FFF]/25 font-bold cursor-pointer transition-all text-xs"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Download Official PDF</span>
+                                <span>{tr("Download Official PDF", "Télécharger le PDF officiel")}</span>
                               </button>
                             </td>
                           </tr>
@@ -2613,7 +2882,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             <span className="font-mono font-bold text-zinc-900 dark:text-white">
                               {inv.number}
                             </span>
-                            <Badge variant="active">Payée</Badge>
+                            <Badge variant="active">{tr("Paid", "Payée")}</Badge>
                           </div>
                           <div className="flex items-center justify-between text-xs text-zinc-500">
                             <span>{inv.date}</span>
@@ -2622,7 +2891,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-500">
-                            <span>Net HT: {formatCurrencyDisplay(inv.netAmount, inv.currency)}</span>
+                            <span>
+                              {tr("Subtotal:", "Net HT :")} {formatCurrencyDisplay(inv.netAmount, inv.currency)}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleDownloadInvoice(inv)}
@@ -2648,10 +2919,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div>
                   <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
                     <KeyRound className="w-5 h-5 text-brand" />
-                    <span>Developer API Keys</span>
+                    <span>{tr("Developer API Keys", "Clés API développeur")}</span>
                   </h1>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-                    Generate secure <code className="text-brand">lsh_live_...</code> tokens with granular permissions to integrate your applications.
+                    {locale === "fr" ? (
+                      <>
+                        Générez des jetons sécurisés <code className="text-brand">lsh_live_...</code> avec permissions granulaires pour intégrer vos applications.
+                      </>
+                    ) : (
+                      <>
+                        Generate secure <code className="text-brand">lsh_live_...</code> tokens with granular permissions to integrate your applications.
+                      </>
+                    )}
                   </p>
                 </div>
                 <Button
@@ -2661,7 +2940,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   className="h-9 px-4 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Nouvelle Clé API</span>
+                  <span>{tr("New API Key", "Nouvelle Clé API")}</span>
                 </Button>
               </div>
 
@@ -2669,7 +2948,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-xs font-bold text-zinc-700 dark:text-neutral-300 uppercase tracking-wider">
-                    Active API Keys ({apiKeys.length})
+                    {tr("Active API Keys", "Clés API actives")} ({apiKeys.length})
                   </h3>
                 </div>
 
@@ -2705,10 +2984,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       <KeyRound className="w-5 h-5" />
                     </div>
                     <p className="text-xs font-semibold text-zinc-700 dark:text-neutral-300">
-                      Aucune clé API active pour le moment
+                      {tr("No active API keys yet", "Aucune clé API active pour le moment")}
                     </p>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-500 max-w-xs">
-                      Générez votre premier jeton d&apos;authentification pour intégrer vos applications.
+                      {tr(
+                        "Generate your first authentication token to integrate your applications.",
+                        "Générez votre premier jeton d'authentification pour intégrer vos applications."
+                      )}
                     </p>
                     <Button
                       size="sm"
@@ -2717,7 +2999,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="mt-2 h-8 px-4 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Générer une Clé API</span>
+                      <span>{tr("Generate API Key", "Générer une Clé API")}</span>
                     </Button>
                   </div>
                 ) : (
@@ -2733,12 +3015,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       const getScopeBadge = (scope?: string) => {
                         if (scope === "read")
                           return {
-                            label: "Read Only",
+                            label: tr("Read Only", "Lecture seule"),
                             color:
                               "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
                           };
                         return {
-                          label: "Read & Write",
+                          label: tr("Read & Write", "Lecture & Écriture"),
                           color:
                             "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
                         };
@@ -2767,9 +3049,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             </div>
 
                             <span className="text-[11px] text-zinc-500 dark:text-neutral-500">
-                              Created on{" "}
+                              {tr("Created on", "Créée le")}{" "}
                               {new Date(k.created_at).toLocaleDateString(
-                                "en-US",
+                                locale === "fr" ? "fr-FR" : "en-US",
                                 {
                                   day: "numeric",
                                   month: "short",
@@ -2793,20 +3075,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 type="button"
                                 onClick={() => toggleRevealKey(k.id)}
                                 className="h-8 px-2.5 rounded-[6px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                                title={isRevealed ? "Hide key" : "Reveal key"}
+                                title={
+                                  isRevealed
+                                    ? tr("Hide key", "Masquer la clé")
+                                    : tr("Reveal key", "Afficher la clé")
+                                }
                               >
                                 {isRevealed ? (
                                   <>
                                     <EyeOff className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                                     <span className="hidden sm:inline">
-                                      Hide
+                                      {tr("Hide", "Masquer")}
                                     </span>
                                   </>
                                 ) : (
                                   <>
                                     <Eye className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
                                     <span className="hidden sm:inline">
-                                      Reveal
+                                      {tr("Reveal", "Afficher")}
                                     </span>
                                   </>
                                 )}
@@ -2819,24 +3105,27 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   handleCopy(actualKey);
                                   setCopiedKeyId(k.id);
                                   showToast.success(
-                                    "API key copied to clipboard!",
+                                    tr(
+                                      "API key copied to clipboard!",
+                                      "Clé API copiée dans le presse-papiers !"
+                                    ),
                                   );
                                   setTimeout(() => setCopiedKeyId(null), 2000);
                                 }}
                                 className="h-8 px-2.5 rounded-[6px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                                title="Copy key"
+                                title={tr("Copy key", "Copier la clé")}
                               >
                                 {isCopied ? (
                                   <>
                                     <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                                     <span className="text-emerald-600 dark:text-emerald-400">
-                                      Copied
+                                      {tr("Copied", "Copié")}
                                     </span>
                                   </>
                                 ) : (
                                   <>
                                     <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
-                                    <span>Copy</span>
+                                    <span>{tr("Copy", "Copier")}</span>
                                   </>
                                 )}
                               </button>
@@ -2848,11 +3137,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   const cmd = `curl -X POST https://api.lsho.cc/v1/links \\\n  -H "Authorization: Bearer ${actualKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"targetUrl":"https://example.com"}'`;
                                   handleCopy(cmd);
                                   showToast.success(
-                                    "cURL example command copied!",
+                                    tr(
+                                      "cURL example command copied!",
+                                      "Exemple de commande cURL copié !"
+                                    ),
                                   );
                                 }}
                                 className="h-8 px-2.5 rounded-[6px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-[#25252c] border border-zinc-200 dark:border-[#2a2a30] text-zinc-600 hover:text-zinc-900 dark:text-neutral-400 dark:hover:text-white text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                                title="Copy cURL example"
+                                title={tr("Copy cURL example", "Copier l'exemple cURL")}
                               >
                                 <span>cURL</span>
                               </button>
@@ -2862,7 +3154,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 type="button"
                                 onClick={() => promptRevokeKeyWithUndo(k)}
                                 className="h-8 w-8 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 flex items-center justify-center transition-colors cursor-pointer"
-                                title="Révoquer cette clé API"
+                                title={tr("Revoke this API key", "Révoquer cette clé API")}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -2884,10 +3176,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-[#09090B] dark:text-white">
-                        Official TypeScript SDK (npm i lshorter-api)
+                        {tr(
+                          "Official TypeScript SDK (npm i lshorter-api)",
+                          "SDK TypeScript officiel (npm i lshorter-api)"
+                        )}
                       </h3>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                        Ready-to-use implementation examples
+                        {tr(
+                          "Ready-to-use implementation examples",
+                          "Exemples d'implémentation prêts à l'emploi"
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2901,7 +3199,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
                       }`}
                     >
-                      Create Link
+                      {tr("Create Link", "Créer un lien")}
                     </button>
                     <button
                       onClick={() => setActiveCodeTab("track")}
@@ -2911,7 +3209,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
                       }`}
                     >
-                      Track Conversion
+                      {tr("Track Conversion", "Suivre une conversion")}
                     </button>
                     <button
                       onClick={() => setActiveCodeTab("analytics")}
@@ -2921,7 +3219,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           : "text-zinc-600 dark:text-neutral-400 hover:text-[#09090B] dark:hover:text-white"
                       }`}
                     >
-                      Analytics
+                      {tr("Analytics", "Analytique")}
                     </button>
                   </div>
                 </div>
@@ -2954,11 +3252,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
                 <div>
                   <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                    White-Label Custom Domains
+                    {tr("White-Label Custom Domains", "Domaines personnalisés en marque blanche")}
                   </h2>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                    Redirect your short links through your own branded domain
-                    names.
+                    {tr(
+                      "Redirect your short links through your own branded domain names.",
+                      "Redirigez vos liens courts via vos propres noms de domaine de marque."
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2968,7 +3268,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     onClick={() => router.push("/dashboard/domains")}
                     className="h-8.5 text-xs font-medium cursor-pointer"
                   >
-                    Manage Domains
+                    {tr("Manage Domains", "Gérer les domaines")}
                   </Button>
                   <Button
                     size="sm"
@@ -2977,7 +3277,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     className="h-8.5 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Connecter un Domaine</span>
+                    <span>{tr("Connect a Domain", "Connecter un Domaine")}</span>
                   </Button>
                 </div>
               </div>
@@ -2987,11 +3287,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <Globe2 className="w-10 h-10 text-zinc-400 dark:text-neutral-600" />
                   <div>
                     <p className="text-sm font-bold text-zinc-900 dark:text-white">
-                      No custom domains connected
+                      {tr("No custom domains connected", "Aucun domaine personnalisé connecté")}
                     </p>
                     <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-                      Your links are currently using the default platform
-                      domain.
+                      {tr(
+                        "Your links are currently using the default platform domain.",
+                        "Vos liens utilisent actuellement le domaine par défaut de la plateforme."
+                      )}
                     </p>
                   </div>
                   <Button
@@ -3001,7 +3303,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     className="mt-2 h-8.5 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Connecter un Domaine</span>
+                    <span>{tr("Connect a Domain", "Connecter un Domaine")}</span>
                   </Button>
                 </div>
               ) : (
@@ -3018,7 +3320,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             {d.domain}
                           </p>
                           <p className="text-[11px] text-zinc-500 dark:text-neutral-400">
-                            DNS Target:{" "}
+                            {tr("DNS Target:", "Cible DNS :")}{" "}
                             <span className="font-mono text-zinc-700 dark:text-neutral-300">
                               {d.dns_target ||
                                 d.dnsTarget ||
@@ -3028,7 +3330,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant="active">SSL Active</Badge>
+                        <Badge variant="active">{tr("SSL Active", "SSL actif")}</Badge>
                         <span className="text-zinc-500 dark:text-neutral-500 text-[11px]">
                           Edge OK
                         </span>
@@ -3051,8 +3353,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 domainsLimit={domainsLimit}
                 onUpgrade={() =>
                   triggerPlanUpgrade({
-                    featureName: "Custom Domains",
-                    reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+                    featureName: tr("Custom Domains", "Domaines personnalisés"),
+                    reason: tr(
+                      `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+                      `Votre forfait ${plan} est limité à ${domainsLimit} domaines personnalisés. Passez au forfait supérieur pour en ajouter davantage.`
+                    ),
                     targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
                   })
                 }
@@ -3076,7 +3381,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}
                   </div>
                   <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                    Recevez des notifications HTTP (POST) signées en HMAC-SHA256 à chaque événement de vos liens courts.
+                    {tr(
+                      "Receive HMAC-SHA256 signed HTTP (POST) notifications for every event on your short links.",
+                      "Recevez des notifications HTTP (POST) signées en HMAC-SHA256 à chaque événement de vos liens courts."
+                    )}
                   </p>
                 </div>
 
@@ -3087,7 +3395,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   className="h-9 px-4 text-[13px] font-medium gap-1.5 shrink-0 rounded-[8px] bg-brand hover:bg-brand-hover text-white cursor-pointer shadow-xs"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Nouveau webhook</span>
+                  <span>{tr("New webhook", "Nouveau webhook")}</span>
                 </Button>
               </div>
 
@@ -3101,14 +3409,20 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                          API Webhooks &amp; événements temps réel
+                          {tr(
+                            "Webhooks API & real-time events",
+                            "API Webhooks & événements temps réel"
+                          )}
                         </h3>
                         <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                           PRO
                         </span>
                       </div>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                        Les webhooks, signatures HMAC-SHA256 et flux d&apos;événements temps réel sont inclus dès le forfait Pro.
+                        {tr(
+                          "Webhooks, HMAC-SHA256 signatures, and real-time event streams are included starting with the Pro plan.",
+                          "Les webhooks, signatures HMAC-SHA256 et flux d'événements temps réel sont inclus dès le forfait Pro."
+                        )}
                       </p>
                     </div>
                   </div>
@@ -3117,14 +3431,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     onClick={() =>
                       triggerPlanUpgrade({
                         featureName: "Webhooks",
-                        reason:
+                        reason: tr(
                           "Upgrade to PRO to unlock webhooks and the real-time simulator.",
+                          "Passez au forfait PRO pour débloquer les webhooks et le simulateur temps réel."
+                        ),
                         targetPlan: "PRO",
                       })
                     }
                     className="shrink-0 text-[13px] h-9 px-3.5 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                   >
-                    Passer au plan PRO
+                    {tr("Upgrade to PRO", "Passer au plan PRO")}
                   </button>
                 </div>
               )}
@@ -3133,10 +3449,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] bg-zinc-50/70 dark:bg-[#141417] border border-zinc-200/80 dark:border-zinc-800/80">
                 <div className="flex flex-col min-w-0">
                   <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                    Points de terminaison configurés ({webhooks.length})
+                    {tr(
+                      `Configured endpoints (${webhooks.length})`,
+                      `Points de terminaison configurés (${webhooks.length})`
+                    )}
                   </span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                    Nommez vos webhooks, sélectionnez vos événements et vérifiez vos signatures HMAC-SHA256.
+                    {tr(
+                      "Name your webhooks, select your events, and verify your HMAC-SHA256 signatures.",
+                      "Nommez vos webhooks, sélectionnez vos événements et vérifiez vos signatures HMAC-SHA256."
+                    )}
                   </span>
                 </div>
               </div>
@@ -3169,10 +3491,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
                     <div>
                       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        Aucun webhook configuré
+                        {tr("No webhooks configured", "Aucun webhook configuré")}
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1 leading-relaxed">
-                        Connectez votre premier endpoint pour recevoir vos événements de clics, conversions et liens en temps réel.
+                        {tr(
+                          "Connect your first endpoint to receive real-time click, conversion, and link events.",
+                          "Connectez votre premier endpoint pour recevoir vos événements de clics, conversions et liens en temps réel."
+                        )}
                       </p>
                     </div>
                     <Button
@@ -3182,7 +3507,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="mt-1 h-9 px-4 text-[13px] font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Créer un webhook</span>
+                      <span>{tr("Create a webhook", "Créer un webhook")}</span>
                     </Button>
                   </div>
                 ) : (
@@ -3234,7 +3559,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                         : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
                                     }`}
                                   >
-                                    {wh.isActive ? "Actif" : "En pause"}
+                                    {wh.isActive
+                                      ? tr("Active", "Actif")
+                                      : tr("Paused", "En pause")}
                                   </span>
                                 </div>
                                 <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
@@ -3252,13 +3579,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 className="h-8 px-2.5 text-xs font-medium gap-1.5 rounded-[6px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-transparent text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer"
                               >
                                 <Send className="w-3.5 h-3.5 text-zinc-400" />
-                                <span>{isTestingWebhook ? "Envoi..." : "Tester"}</span>
+                                <span>
+                                  {isTestingWebhook
+                                    ? tr("Sending...", "Envoi...")
+                                    : tr("Test", "Tester")}
+                                </span>
                               </Button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditWebhook(wh)}
-                                title="Modifier ce webhook"
-                                aria-label="Modifier ce webhook"
+                                title={tr("Edit this webhook", "Modifier ce webhook")}
+                                aria-label={tr("Edit this webhook", "Modifier ce webhook")}
                                 className="h-8 w-8 flex items-center justify-center rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -3266,17 +3597,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               <button
                                 type="button"
                                 onClick={() => handleToggleWebhook(wh.id)}
-                                title={wh.isActive ? "Mettre en pause" : "Activer"}
+                                title={
+                                  wh.isActive
+                                    ? tr("Pause", "Mettre en pause")
+                                    : tr("Activate", "Activer")
+                                }
                                 className="h-8 px-2.5 rounded-[6px] text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors"
                               >
-                                {wh.isActive ? "Pause" : "Activer"}
+                                {wh.isActive
+                                  ? tr("Pause", "Pause")
+                                  : tr("Activate", "Activer")}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteWebhookWithUndo(wh)}
                                 className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded-[6px] hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition-colors"
-                                title="Supprimer ce webhook"
-                                aria-label="Supprimer ce webhook"
+                                title={tr("Delete this webhook", "Supprimer ce webhook")}
+                                aria-label={tr("Delete this webhook", "Supprimer ce webhook")}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -3286,11 +3623,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-0.5">
-                                Événements :
+                                {tr("Events:", "Événements :")}
                               </span>
                               {isGlobal ? (
                                 <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-blue-50/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200/70 dark:border-blue-500/20">
-                                  Tous les événements
+                                  {tr("All events", "Tous les événements")}
                                 </span>
                               ) : (
                                 eventsList.map((ev: string) => (
@@ -3306,7 +3643,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                Clé HMAC :
+                                {tr("HMAC Key:", "Clé HMAC :")}
                               </span>
                               <code className="font-mono text-[11.5px] text-zinc-600 dark:text-zinc-300 bg-zinc-100/80 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[6px] max-w-[190px] truncate">
                                 {wh.secretKey || "—"}
@@ -3315,8 +3652,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 <button
                                   type="button"
                                   onClick={() => handleCopyWebhookSecret(wh)}
-                                  title="Copier la clé secrète HMAC"
-                                  aria-label="Copier la clé secrète HMAC"
+                                  title={tr("Copy HMAC secret key", "Copier la clé secrète HMAC")}
+                                  aria-label={tr("Copy HMAC secret key", "Copier la clé secrète HMAC")}
                                   className="p-1.5 rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
                                 >
                                   {isSecretCopied ? (
@@ -3348,18 +3685,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
               {webhookTestResponse && (
                 <div className="flex flex-col gap-2 animate-in fade-in">
                   <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400 font-medium px-1">
-                    <span>✓ Réponse du test webhook</span>
+                    <span>{tr("✓ Webhook test response", "✓ Réponse du test webhook")}</span>
                     <button
                       onClick={() => setWebhookTestResponse(null)}
                       className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                     >
-                      Fermer ✕
+                      {tr("Close ✕", "Fermer ✕")}
                     </button>
                   </div>
                   <CodeBlock
                     code={webhookTestResponse}
                     language="json"
-                    filename="Webhook HTTP Response"
+                    filename={tr("Webhook HTTP Response", "Réponse HTTP du webhook")}
                   />
                 </div>
               )}
@@ -3373,7 +3710,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div>
                   <div className="flex items-center gap-2.5">
                     <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                      Pixels de retargeting
+                      {tr("Retargeting Pixels", "Pixels de retargeting")}
                     </h1>
                     {plan === "FREEMIUM" && (
                       <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
@@ -3382,7 +3719,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}
                   </div>
                   <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                    Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads à vos liens courts.
+                    {tr(
+                      "Connect your Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat, and X Ads tags to your short links.",
+                      "Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads à vos liens courts."
+                    )}
                   </p>
                 </div>
 
@@ -3392,9 +3732,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   onClick={() => {
                     if (plan === "FREEMIUM" || plan === "STARTER") {
                       triggerPlanUpgrade({
-                        featureName: "Retargeting Pixels",
-                        reason:
+                        featureName: tr("Retargeting Pixels", "Pixels de retargeting"),
+                        reason: tr(
                           "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
+                          "Passez au forfait PRO pour débloquer le reciblage par pixels Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads."
+                        ),
                         targetPlan: "PRO",
                       });
                       return;
@@ -3404,7 +3746,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   className="h-9 px-4 text-[13px] font-medium gap-1.5 shrink-0 rounded-[8px] bg-brand hover:bg-brand-hover text-white cursor-pointer shadow-xs"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Nouveau pixel</span>
+                  <span>{tr("New pixel", "Nouveau pixel")}</span>
                 </Button>
               </div>
 
@@ -3418,14 +3760,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                          Pixels de reciblage publicitaire
+                          {tr("Ad retargeting pixels", "Pixels de reciblage publicitaire")}
                         </h3>
                         <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                           PRO
                         </span>
                       </div>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                        L&apos;injection de pixels publicitaires pour les 9 réseaux majeurs est incluse dès le forfait Pro.
+                        {tr(
+                          "Ad pixel injection across all 9 major networks is included starting with the Pro plan.",
+                          "L'injection de pixels publicitaires pour les 9 réseaux majeurs est incluse dès le forfait Pro."
+                        )}
                       </p>
                     </div>
                   </div>
@@ -3433,15 +3778,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     type="button"
                     onClick={() =>
                       triggerPlanUpgrade({
-                        featureName: "Retargeting Pixels",
-                        reason:
+                        featureName: tr("Retargeting Pixels", "Pixels de retargeting"),
+                        reason: tr(
                           "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
+                          "Passez au forfait PRO pour débloquer le reciblage par pixels Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads."
+                        ),
                         targetPlan: "PRO",
                       })
                     }
                     className="shrink-0 text-[13px] h-9 px-3.5 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                   >
-                    Passer au plan PRO
+                    {tr("Upgrade to PRO", "Passer au plan PRO")}
                   </button>
                 </div>
               )}
@@ -3450,10 +3797,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] bg-zinc-50/70 dark:bg-[#141417] border border-zinc-200/80 dark:border-zinc-800/80">
                 <div className="flex flex-col min-w-0">
                   <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                    Pixels connectés ({pixels.length})
+                    {tr(`Connected pixels (${pixels.length})`, `Pixels connectés (${pixels.length})`)}
                   </span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                    Activez ou mettez en pause vos tags publicitaires en un clic.
+                    {tr(
+                      "Enable or pause your ad tags in one click.",
+                      "Activez ou mettez en pause vos tags publicitaires en un clic."
+                    )}
                   </span>
                 </div>
               </div>
@@ -3461,7 +3811,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex flex-col gap-3">
                 {isLoadingPixels ? (
                   <div className="py-10 text-center text-[13px] text-zinc-500 dark:text-zinc-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200/90 dark:border-zinc-800/80">
-                    Chargement des pixels connectés...
+                    {tr("Loading connected pixels...", "Chargement des pixels connectés...")}
                   </div>
                 ) : pixels.length === 0 ? (
                   <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-3 bg-white dark:bg-[#111113] rounded-[10px] border border-dashed border-zinc-200 dark:border-zinc-800">
@@ -3470,10 +3820,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     </div>
                     <div>
                       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        Aucun pixel configuré
+                        {tr("No pixels configured", "Aucun pixel configuré")}
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1 leading-relaxed">
-                        Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat ou X Ads pour recibler vos visiteurs.
+                        {tr(
+                          "Connect your Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat, or X Ads tags to retarget your visitors.",
+                          "Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat ou X Ads pour recibler vos visiteurs."
+                        )}
                       </p>
                     </div>
                     <Button
@@ -3482,9 +3835,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       onClick={() => {
                         if (plan === "FREEMIUM" || plan === "STARTER") {
                           triggerPlanUpgrade({
-                            featureName: "Retargeting Pixels",
-                            reason:
+                            featureName: tr("Retargeting Pixels", "Pixels de retargeting"),
+                            reason: tr(
                               "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
+                              "Passez au forfait PRO pour débloquer le reciblage par pixels Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads."
+                            ),
                             targetPlan: "PRO",
                           });
                           return;
@@ -3494,7 +3849,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="mt-1 h-9 px-4 text-[13px] font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Connecter un pixel</span>
+                      <span>{tr("Connect a pixel", "Connecter un pixel")}</span>
                     </Button>
                   </div>
                 ) : (
@@ -3518,10 +3873,15 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                             <span className="font-mono text-[11.5px] text-zinc-600 dark:text-zinc-300">
-                              ID : {px.pixelId}
+                              {tr(`ID: ${px.pixelId}`, `ID : ${px.pixelId}`)}
                             </span>
                             <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                            <span>{px.eventsTrackedCount ?? 0} événements suivis</span>
+                            <span>
+                              {tr(
+                                `${px.eventsTrackedCount ?? 0} tracked events`,
+                                `${px.eventsTrackedCount ?? 0} événements suivis`
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -3536,14 +3896,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
                           }`}
                         >
-                          {px.isActive ? "Actif" : "En pause"}
+                          {px.isActive
+                            ? tr("Active", "Actif")
+                            : tr("Paused", "En pause")}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeletePixelWithUndo(px)}
                           className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded-[6px] hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition-colors"
-                          title="Supprimer ce pixel"
-                          aria-label="Supprimer ce pixel"
+                          title={tr("Delete this pixel", "Supprimer ce pixel")}
+                          aria-label={tr("Delete this pixel", "Supprimer ce pixel")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -3561,9 +3923,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 plan={plan}
                 onUpgrade={() =>
                   triggerPlanUpgrade({
-                    featureName: "Retargeting Pixels",
-                    reason:
+                    featureName: tr("Retargeting Pixels", "Pixels de retargeting"),
+                    reason: tr(
                       "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
+                      "Passez au forfait PRO pour débloquer le reciblage par pixels Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads."
+                    ),
                     targetPlan: "PRO",
                   })
                 }
@@ -3577,11 +3941,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
                 <div>
                   <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                    Security & Active Sessions
+                    {tr("Security & Active Sessions", "Sécurité & Sessions actives")}
                   </h2>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                    Protect your account with TOTP Two-Factor Authentication and
-                    manage connected devices.
+                    {tr(
+                      "Protect your account with TOTP Two-Factor Authentication and manage connected devices.",
+                      "Protégez votre compte avec l'authentification à deux facteurs TOTP et gérez vos appareils connectés."
+                    )}
                   </p>
                 </div>
               </div>
@@ -3605,22 +3971,27 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                        Two-Factor Authentication (2FA / TOTP)
+                        {tr(
+                          "Two-Factor Authentication (2FA / TOTP)",
+                          "Authentification à deux facteurs (2FA / TOTP)"
+                        )}
                       </p>
                       {is2FAEnabled ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                           <Check className="w-3 h-3" />
-                          <span>Enabled &amp; Secured (RFC 6238)</span>
+                          <span>{tr("Enabled & Secured (RFC 6238)", "Activée & Sécurisée (RFC 6238)")}</span>
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 text-[10px] font-semibold text-zinc-600 dark:text-neutral-400">
-                          Not configured
+                          {tr("Not configured", "Non configurée")}
                         </span>
                       )}
                     </div>
                     <p className="text-[11px] text-zinc-500 dark:text-neutral-400 mt-0.5">
-                      Compatible with Google Authenticator, Apple Passwords,
-                      Microsoft Authenticator, Authy, and 1Password.
+                      {tr(
+                        "Compatible with Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy, and 1Password.",
+                        "Compatible avec Google Authenticator, Mots de passe Apple, Microsoft Authenticator, Authy et 1Password."
+                      )}
                     </p>
                   </div>
                 </div>
@@ -3635,7 +4006,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         className="text-xs h-9 border-zinc-200 dark:border-[#222225] gap-1.5 cursor-pointer"
                       >
                         <KeyRound className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                        <span>Recovery codes</span>
+                        <span>{tr("Recovery codes", "Codes de secours")}</span>
                       </Button>
                       <Button
                         size="sm"
@@ -3643,7 +4014,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         onClick={handleDisable2FA}
                         className="text-xs h-9 border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/10 cursor-pointer"
                       >
-                        Disable
+                        {tr("Disable", "Désactiver")}
                       </Button>
                     </>
                   ) : (
@@ -3654,7 +4025,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       className="text-xs h-9 px-4 font-bold gap-1.5 cursor-pointer shadow-xs rounded-[8px]"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Enable 2FA</span>
+                      <span>{tr("Enable 2FA", "Activer la 2FA")}</span>
                     </Button>
                   )}
                 </div>
@@ -3663,19 +4034,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
               {/* Change Password */}
               <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col gap-3 shadow-xs">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Change password
+                  {tr("Change password", "Modifier le mot de passe")}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
                     type="password"
-                    placeholder="Current password"
+                    placeholder={tr("Current password", "Mot de passe actuel")}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a]"
                   />
                   <Input
                     type="password"
-                    placeholder="New password (min 8 chars)"
+                    placeholder={tr("New password (min 8 chars)", "Nouveau mot de passe (min 8 caract.)")}
                     value={newPassword}
                     onChange={(e) => handlePasswordInput(e.target.value)}
                     className="bg-white dark:bg-[#161619] border-zinc-200 dark:border-[#27272a]"
@@ -3685,7 +4056,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 {newPassword && (
                   <div className="flex flex-col gap-1 text-[11px]">
                     <div className="flex justify-between text-zinc-500 dark:text-neutral-400">
-                      <span>Password strength</span>
+                      <span>{tr("Password strength", "Force du mot de passe")}</span>
                       <span className="text-zinc-900 dark:text-white font-bold">
                         {passwordStrength}%
                       </span>
@@ -3712,14 +4083,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   onClick={handleChangePassword}
                   className="w-fit text-xs rounded-[8px]"
                 >
-                  {isUpdatingPassword ? "Updating..." : "Update password"}
+                  {isUpdatingPassword
+                    ? tr("Updating...", "Mise à jour...")
+                    : tr("Update password", "Mettre à jour le mot de passe")}
                 </Button>
               </div>
 
               {/* Real Live Active Session */}
               <div className="flex flex-col gap-3">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                  Active Session &amp; Hardware Detection
+                  {tr(
+                    "Active Session & Hardware Detection",
+                    "Session active & détection matérielle"
+                  )}
                 </p>
                 <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
@@ -3730,25 +4106,42 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-zinc-900 dark:text-white text-xs truncate">
                           {currentSessionInfo.device} ·{" "}
-                          {currentSessionInfo.browser}
+                          {currentSessionInfo.browser === "Navigateur" ||
+                          currentSessionInfo.browser === "Navigateur Web"
+                            ? tr("Web Browser", "Navigateur Web")
+                            : currentSessionInfo.browser}
                         </span>
                         <Badge
                           variant="active"
                           className="shrink-0 text-[10px]"
                         >
-                          Current Session
+                          {tr("Current Session", "Session actuelle")}
                         </Badge>
                       </div>
                       <p className="text-[11px] text-zinc-500 dark:text-neutral-500 mt-0.5">
-                        Network: {currentSessionInfo.ip} ·{" "}
-                        {currentSessionInfo.location}
+                        {tr("Network:", "Réseau :")}{" "}
+                        {currentSessionInfo.ip === "Connexion sécurisée" ||
+                        currentSessionInfo.ip === "Secure Active Session"
+                          ? tr("Secure Active Session", "Session active sécurisée")
+                          : currentSessionInfo.ip}{" "}
+                        ·{" "}
+                        {currentSessionInfo.location === "En ligne" ||
+                        currentSessionInfo.location === "Active Connection"
+                          ? tr("Active Connection", "Connexion active")
+                          : currentSessionInfo.location ===
+                              "Cloudflare Edge Network (SSL/TLS)"
+                            ? tr(
+                                "Cloudflare Edge Network (SSL/TLS)",
+                                "Réseau Edge Cloudflare (SSL/TLS)"
+                              )
+                            : currentSessionInfo.location}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 self-start sm:self-center shrink-0 pl-11 sm:pl-0">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium text-[11px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Online
+                      {tr("Online", "En ligne")}
                     </span>
                   </div>
                 </div>
@@ -3800,12 +4193,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                   ? 1
                   : Math.min(100, Math.round(rawGlobalRatio));
 
+            const numLocale = locale === "fr" ? "fr-FR" : "en-US";
             const globalCurrentFormatted = isRevenue
-              ? `$${globalCurrent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : globalCurrent.toLocaleString("en-US");
+              ? `$${globalCurrent.toLocaleString(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : globalCurrent.toLocaleString(numLocale);
             const globalTargetFormatted = isRevenue
-              ? `$${globalTarget.toLocaleString("en-US")}`
-              : globalTarget.toLocaleString("en-US");
+              ? `$${globalTarget.toLocaleString(numLocale)}`
+              : globalTarget.toLocaleString(numLocale);
 
             return (
               <div className="flex flex-col gap-6">
@@ -3813,10 +4207,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-200 dark:border-[#222225]">
                   <div>
                     <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                      Target &amp; Limit Alerts
+                      {tr("Target & Limit Alerts", "Alertes d'objectifs & de limites")}
                     </h2>
                     <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-1">
-                      Set custom click or revenue limits per link or workspace-wide, with real-time tracking and automated notifications.
+                      {tr(
+                        "Set custom click or revenue limits per link or workspace-wide, with real-time tracking and automated notifications.",
+                        "Définissez des limites personnalisées de clics ou de revenus par lien ou sur tout l'espace de travail, avec suivi en temps réel et notifications automatiques."
+                      )}
                     </p>
                   </div>
                   <Button
@@ -3825,8 +4222,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     onClick={() => {
                       if (!isPremium) {
                         triggerPlanUpgrade({
-                          featureName: "Link Alerts",
-                          reason: "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
+                          featureName: tr("Link Alerts", "Alertes par lien"),
+                          reason: tr(
+                            "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
+                            "Passez au forfait Pro pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels."
+                          ),
                           targetPlan: "PRO",
                         });
                         return;
@@ -3836,7 +4236,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     className="h-9 px-4 text-xs font-semibold gap-2 self-start sm:self-auto cursor-pointer shadow-sm shrink-0 rounded-[8px]"
                   >
                     {!isPremium ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : <Plus className="w-3.5 h-3.5" />}
-                    <span>New Link Alert</span>
+                    <span>{tr("New Link Alert", "Nouvelle alerte de lien")}</span>
                     {!isPremium && (
                       <span className="ml-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                         PRO
@@ -3854,10 +4254,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       </div>
                       <div>
                         <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-white">
-                          Global Workspace Target (Monthly)
+                          {tr(
+                            "Global Workspace Target (Monthly)",
+                            "Objectif global de l'espace de travail (Mensuel)"
+                          )}
                         </h3>
                         <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                          Synchronized with your main dashboard Monthly Target. Locked to monthly tracking.
+                          {tr(
+                            "Synchronized with your main dashboard Monthly Target. Locked to monthly tracking.",
+                            "Synchronisé avec l'objectif mensuel de votre tableau de bord principal. Verrouillé sur un suivi mensuel."
+                          )}
                         </p>
                       </div>
                     </div>
@@ -3873,7 +4279,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                           }`}
                         >
-                          Clicks
+                          {tr("Clicks", "Clics")}
                         </button>
                         <button
                           type="button"
@@ -3884,7 +4290,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                           }`}
                         >
-                          Revenue
+                          {tr("Revenue", "Revenus")}
                         </button>
                       </div>
 
@@ -3896,7 +4302,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <span className={`w-1.5 h-1.5 rounded-full ${
                           globalAlert?.status === "paused" ? "bg-amber-500" : "bg-emerald-500 animate-pulse"
                         }`} />
-                        {globalAlert?.status === "paused" ? "Paused" : "Active"}
+                        {globalAlert?.status === "paused"
+                          ? tr("Paused", "En pause")
+                          : tr("Active", "Active")}
                       </span>
 
                       {/* 3-dots menu button */}
@@ -3907,7 +4315,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           setOpenRowMenuId(openRowMenuId === (globalAlert?.id || "global") ? null : (globalAlert?.id || "global"));
                         }}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                        aria-label="Actions menu"
+                        aria-label={tr("Actions menu", "Menu d'actions")}
                         aria-haspopup="menu"
                         aria-expanded={openRowMenuId === (globalAlert?.id || "global")}
                       >
@@ -3925,12 +4333,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             {globalAlert?.status === "paused" ? (
                               <>
                                 <Play className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Resume Alert</span>
+                                <span>{tr("Resume Alert", "Réactiver l'alerte")}</span>
                               </>
                             ) : (
                               <>
                                 <Pause className="w-3.5 h-3.5 text-amber-600" />
-                                <span>Pause Alert</span>
+                                <span>{tr("Pause Alert", "Mettre en pause")}</span>
                               </>
                             )}
                           </button>
@@ -3940,7 +4348,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
                           >
                             <Sliders className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Edit Target</span>
+                            <span>{tr("Edit Target", "Modifier l'objectif")}</span>
                           </button>
                           <button
                             type="button"
@@ -3948,7 +4356,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-violet-600" />
-                            <span>Send Test Alert</span>
+                            <span>{tr("Send Test Alert", "Envoyer une alerte test")}</span>
                           </button>
                         </div>
                       )}
@@ -3960,10 +4368,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                          Monthly Progress
+                          {tr("Monthly Progress", "Progression mensuelle")}
                         </span>
                         <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                          {isRevenue ? "Revenue ($)" : "Total Clicks"}
+                          {isRevenue
+                            ? tr("Revenue ($)", "Revenus ($)")
+                            : tr("Total Clicks", "Clics totaux")}
                         </span>
                       </div>
                       <div className="flex items-baseline gap-2">
@@ -3986,11 +4396,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px] text-zinc-500 dark:text-zinc-400">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                        Period: <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">Monthly (Workspace locked)</strong>
+                        {tr("Period:", "Période :")}{" "}
+                        <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">
+                          {tr("Monthly (Workspace locked)", "Mensuel (Verrouillé espace de travail)")}
+                        </strong>
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-zinc-400" />
-                        Channels: <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">Email + Bell Notification</strong>
+                        {tr("Channels:", "Canaux :")}{" "}
+                        <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">
+                          {tr("Email + Bell Notification", "E-mail + Notification cloche")}
+                        </strong>
                       </span>
                     </div>
                   </div>
@@ -4002,16 +4418,19 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                          Individual Link Alerts
+                          {tr("Individual Link Alerts", "Alertes sur liens individuels")}
                         </h3>
                         {!isPremium && (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
-                            RESERVED FOR PRO PLANS
+                            {tr("RESERVED FOR PRO PLANS", "RÉSERVÉ AUX FORFAITS PRO")}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                        Custom thresholds per short link with automated notifications
+                        {tr(
+                          "Custom thresholds per short link with automated notifications",
+                          "Seuils personnalisés par lien court avec notifications automatiques"
+                        )}
                       </p>
                     </div>
 
@@ -4019,10 +4438,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-lg text-xs font-medium self-start sm:self-auto">
                       {(
                         [
-                          { id: "all", label: `All (${individualAlerts.length})` },
-                          { id: "active", label: `Active (${activeCount})` },
-                          { id: "paused", label: `Paused (${pausedCount})` },
-                          { id: "reached", label: `Reached (${reachedCount})` },
+                          { id: "all", label: `${tr("All", "Toutes")} (${individualAlerts.length})` },
+                          { id: "active", label: `${tr("Active", "Actives")} (${activeCount})` },
+                          { id: "paused", label: `${tr("Paused", "En pause")} (${pausedCount})` },
+                          { id: "reached", label: `${tr("Reached", "Atteintes")} (${reachedCount})` },
                         ] as const
                       ).map((tab) => (
                         <button
@@ -4051,14 +4470,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <h4 className="text-xs font-bold text-zinc-900 dark:text-white">
-                              Individual Link Alerts
+                              {tr("Individual Link Alerts", "Alertes sur liens individuels")}
                             </h4>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
-                              PRO PLAN
+                              {tr("PRO PLAN", "FORFAIT PRO")}
                             </span>
                           </div>
                           <p className="text-xs text-zinc-500 dark:text-neutral-400 leading-relaxed max-w-xl">
-                            Configuring custom per-link alerts (click thresholds, attributed revenue, and real-time expiration warnings) is reserved for Pro subscribers. Your Starter plan already includes full access to the <strong>Global Workspace Target</strong> above.
+                            {locale === "fr" ? (
+                              <>
+                                La configuration d&apos;alertes personnalisées par lien (seuils de clics, revenus attribués et alertes d&apos;expiration en temps réel) est réservée aux abonnés Pro. Votre formule Starter inclut déjà un accès complet à l&apos;<strong>Objectif global de l&apos;espace de travail</strong> ci-dessus.
+                              </>
+                            ) : (
+                              <>
+                                Configuring custom per-link alerts (click thresholds, attributed revenue, and real-time expiration warnings) is reserved for Pro subscribers. Your Starter plan already includes full access to the <strong>Global Workspace Target</strong> above.
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -4067,15 +4494,18 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         variant="glow"
                         onClick={() =>
                           triggerPlanUpgrade({
-                            featureName: "Link Alerts",
-                            reason: "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
+                            featureName: tr("Link Alerts", "Alertes par lien"),
+                            reason: tr(
+                              "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
+                              "Passez au forfait Pro pour configurer des alertes de clics, de revenus et d'expiration sur vos liens individuels."
+                            ),
                             targetPlan: "PRO",
                           })
                         }
                         className="h-8 px-4 text-xs font-semibold shrink-0 self-start sm:self-auto cursor-pointer shadow-sm rounded-[8px]"
                       >
                         <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                        <span>Unlock with PRO</span>
+                        <span>{tr("Unlock with PRO", "Débloquer avec PRO")}</span>
                       </Button>
                     </div>
                   ) : isLoadingTargets && !isSavingAlert ? (
@@ -4110,10 +4540,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <div className="p-8 text-center border border-dashed border-zinc-200 dark:border-[#222225] rounded-[10px] bg-white dark:bg-[#111113] shadow-xs">
                       <Sliders className="w-7 h-7 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
                       <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                        No alerts match the selected filter
+                        {tr(
+                          "No alerts match the selected filter",
+                          "Aucune alerte ne correspond au filtre sélectionné"
+                        )}
                       </h4>
                       <p className="text-[11px] text-zinc-500 mt-1 max-w-sm mx-auto">
-                        Create an alert on any of your short links to get notified as soon as a click limit or revenue target is reached.
+                        {tr(
+                          "Create an alert on any of your short links to get notified as soon as a click limit or revenue target is reached.",
+                          "Créez une alerte sur n'importe lequel de vos liens courts pour être averti dès qu'une limite de clics ou un objectif de revenus est atteint."
+                        )}
                       </p>
                       <Button
                         type="button"
@@ -4122,7 +4558,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         className="mt-4 h-8 px-4 text-xs font-medium cursor-pointer"
                       >
                         <Plus className="w-3 h-3 mr-1.5" />
-                        Create Alert
+                        {tr("Create Alert", "Créer une alerte")}
                       </Button>
                     </div>
                   ) : (
@@ -4164,10 +4600,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
 
                         const periodLabel =
                           alert.period === "day"
-                            ? "Day"
+                            ? tr("Day", "Jour")
                             : alert.period === "week"
-                              ? "Week"
-                              : "Month";
+                              ? tr("Week", "Semaine")
+                              : tr("Month", "Mois");
 
                         return (
                           <div
@@ -4178,7 +4614,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-bold text-xs text-zinc-900 dark:text-white truncate max-w-xs">
-                                  {alert.linkTitle || (alert.slug ? `lsho.cc/${alert.slug}` : "Custom Alert")}
+                                  {alert.linkTitle ||
+                                    (alert.slug
+                                      ? `lsho.cc/${alert.slug}`
+                                      : tr("Custom Alert", "Alerte personnalisée"))}
                                 </span>
                                 {alert.slug && (
                                   <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200/50 dark:border-blue-900/30">
@@ -4192,7 +4631,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   {periodLabel}
                                 </span>
                                 <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800/80 font-medium">
-                                  {isRev ? "Revenue ($)" : "Clicks"}
+                                  {isRev ? tr("Revenue ($)", "Revenus ($)") : tr("Clicks", "Clics")}
                                 </span>
                                 <span
                                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold text-[10px] border ${
@@ -4213,14 +4652,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     }`}
                                   />
                                   {alert.status === "reached"
-                                    ? "Reached"
+                                    ? tr("Reached", "Atteinte")
                                     : alert.status === "paused"
-                                      ? "Paused"
-                                      : "Active"}
+                                      ? tr("Paused", "En pause")
+                                      : tr("Active", "Active")}
                                 </span>
                                 {alert.notifyExpired && Boolean(alert.linkId) && (
                                   <span className="text-[10px] text-zinc-400">
-                                    · Alert on exact expiration
+                                    · {tr("Alert on exact expiration", "Alerte à l'expiration exacte")}
                                   </span>
                                 )}
                               </div>
@@ -4234,8 +4673,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 </span>
                                 <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono font-medium">
                                   {isRev
-                                    ? `$${current.toLocaleString("en-US", { minimumFractionDigits: 0 })} / $${target.toLocaleString("en-US")}`
-                                    : `${current.toLocaleString()} / ${target.toLocaleString()}`}
+                                    ? `$${current.toLocaleString(numLocale, { minimumFractionDigits: 0 })} / $${target.toLocaleString(numLocale)}`
+                                    : `${current.toLocaleString(numLocale)} / ${target.toLocaleString(numLocale)}`}
                                 </span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden mt-1.5">
@@ -4261,7 +4700,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   setOpenRowMenuId(openRowMenuId === alert.id ? null : alert.id);
                                 }}
                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                                aria-label="Open menu"
+                                aria-label={tr("Open menu", "Ouvrir le menu")}
                                 aria-haspopup="menu"
                                 aria-expanded={openRowMenuId === alert.id}
                               >
@@ -4279,12 +4718,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     {alert.status === "paused" ? (
                                       <>
                                         <Play className="w-3.5 h-3.5 text-emerald-600" />
-                                        <span>Resume Alert</span>
+                                        <span>{tr("Resume Alert", "Réactiver l'alerte")}</span>
                                       </>
                                     ) : (
                                       <>
                                         <Pause className="w-3.5 h-3.5 text-amber-600" />
-                                        <span>Pause Alert</span>
+                                        <span>{tr("Pause Alert", "Mettre en pause")}</span>
                                       </>
                                     )}
                                   </button>
@@ -4294,7 +4733,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
                                   >
                                     <Sliders className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Edit Alert</span>
+                                    <span>{tr("Edit Alert", "Modifier l'alerte")}</span>
                                   </button>
                                   <button
                                     type="button"
@@ -4302,7 +4741,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer text-left"
                                   >
                                     <Sparkles className="w-3.5 h-3.5 text-violet-600" />
-                                    <span>Send Test Alert</span>
+                                    <span>{tr("Send Test Alert", "Envoyer une alerte test")}</span>
                                   </button>
                                   <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                                   <button
@@ -4311,7 +4750,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer text-left"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Delete Alert</span>
+                                    <span>{tr("Delete Alert", "Supprimer l'alerte")}</span>
                                   </button>
                                 </div>
                               )}
@@ -4343,22 +4782,28 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <div>
                           <h3 className="text-base font-bold text-zinc-950 dark:text-white">
                             {isEditingGlobalAlert
-                              ? "Edit Monthly Global Target"
+                              ? tr("Edit Monthly Global Target", "Modifier l'objectif mensuel global")
                               : editingAlert
-                                ? "Edit Alert"
-                                : "New Performance Alert"}
+                                ? tr("Edit Alert", "Modifier l'alerte")
+                                : tr("New Performance Alert", "Nouvelle alerte de performance")}
                           </h3>
                           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mt-0.5">
                             {isEditingGlobalAlert
-                              ? "Configure your workspace monthly click or revenue target"
-                              : "Set click thresholds, revenue limits, or both combined"}
+                              ? tr(
+                                  "Configure your workspace monthly click or revenue target",
+                                  "Configurez l'objectif mensuel de clics ou de revenus de votre espace de travail"
+                                )
+                              : tr(
+                                  "Set click thresholds, revenue limits, or both combined",
+                                  "Définissez des seuils de clics, des limites de revenus ou les deux combinés"
+                                )}
                           </p>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsAlertModalOpen(false)}
-                        aria-label="Close drawer"
+                        aria-label={tr("Close drawer", "Fermer le panneau")}
                         className="p-1.5 rounded-[8px] text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
                       >
                         <X className="w-4 h-4" />
@@ -4371,7 +4816,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {!isEditingGlobalAlert && (
                         <div className="flex flex-col gap-1.5 text-xs">
                           <label htmlFor="target-link-select" className="font-bold text-zinc-950 dark:text-white">
-                            Alert Target (Link or Global)
+                            {tr("Alert Target (Link or Global)", "Cible de l'alerte (Lien ou Global)")}
                           </label>
                           <select
                             id="target-link-select"
@@ -4380,8 +4825,11 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               const val = e.target.value;
                               if (!isPremium && val !== "global") {
                                 triggerPlanUpgrade({
-                                  featureName: "Link Alerts",
-                                  reason: "Configuring alerts on individual links requires the Pro plan.",
+                                  featureName: tr("Link Alerts", "Alertes par lien"),
+                                  reason: tr(
+                                    "Configuring alerts on individual links requires the Pro plan.",
+                                    "La configuration d'alertes sur des liens individuels nécessite le forfait Pro."
+                                  ),
                                   targetPlan: "PRO",
                                 });
                                 return;
@@ -4394,7 +4842,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                             className="h-10 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-medium text-zinc-950 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             <option value="global">
-                              🌐 Global (All workspace links)
+                              {tr("🌐 Global (All workspace links)", "🌐 Global (Tous les liens de l'espace)")}
                             </option>
                             {userLinksList.map((link: any) => (
                               <option key={link.id || link.slug} value={String(link.id || link.slug)}>
@@ -4408,7 +4856,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {/* Metric Type Selector with 3 Options: Clicks, Revenue, or Both */}
                       <div className="flex flex-col gap-1.5 text-xs">
                         <label className="font-bold text-zinc-950 dark:text-white">
-                          Metric to Monitor
+                          {tr("Metric to Monitor", "Métrique à surveiller")}
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           <button
@@ -4420,7 +4868,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
-                            Total Clicks
+                            {tr("Total Clicks", "Clics totaux")}
                           </button>
                           <button
                             type="button"
@@ -4431,7 +4879,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
-                            Revenue ($)
+                            {tr("Revenue ($)", "Revenus ($)")}
                           </button>
                           <button
                             type="button"
@@ -4442,7 +4890,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 : "bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300"
                             }`}
                           >
-                            Both Metrics
+                            {tr("Both Metrics", "Les deux")}
                           </button>
                         </div>
                       </div>
@@ -4454,10 +4902,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                                Total Clicks Threshold
+                                {tr("Total Clicks Threshold", "Seuil de clics totaux")}
                               </span>
                               <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                {alertTargetClicks.toLocaleString()} clicks
+                                {alertTargetClicks.toLocaleString(numLocale)} {tr("clicks", "clics")}
                               </span>
                             </div>
                             <input
@@ -4469,7 +4917,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               className="h-8 px-3 rounded-[6px] bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-700 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
                             />
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-zinc-400">Presets:</span>
+                              <span className="text-[10px] text-zinc-400">{tr("Presets:", "Préréglages :")}</span>
                               {[500, 1000, 2500, 5000, 10000].map((preset) => (
                                 <button
                                   key={preset}
@@ -4477,7 +4925,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   onClick={() => setAlertTargetClicks(preset)}
                                   className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 cursor-pointer"
                                 >
-                                  {preset.toLocaleString()}
+                                  {preset.toLocaleString(numLocale)}
                                 </button>
                               ))}
                             </div>
@@ -4489,10 +4937,10 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
-                                Attributed Revenue Threshold ($)
+                                {tr("Attributed Revenue Threshold ($)", "Seuil de revenus attribués ($)")}
                               </span>
                               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
-                                ${alertTargetRevenue.toLocaleString()} USD
+                                ${alertTargetRevenue.toLocaleString(numLocale)} USD
                               </span>
                             </div>
                             <input
@@ -4504,7 +4952,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               className="h-8 px-3 rounded-[6px] bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-700 text-xs font-mono font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500"
                             />
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-zinc-400">Presets:</span>
+                              <span className="text-[10px] text-zinc-400">{tr("Presets:", "Préréglages :")}</span>
                               {[100, 500, 1000, 2500, 5000].map((preset) => (
                                 <button
                                   key={preset}
@@ -4512,7 +4960,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                   onClick={() => setAlertTargetRevenue(preset)}
                                   className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 cursor-pointer"
                                 >
-                                  ${preset.toLocaleString()}
+                                  ${preset.toLocaleString(numLocale)}
                                 </button>
                               ))}
                             </div>
@@ -4522,7 +4970,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         /* Single Metric Input */
                         <div className="flex flex-col gap-1.5 text-xs">
                           <label className="font-bold text-zinc-950 dark:text-white">
-                            Alert Threshold Value
+                            {tr("Alert Threshold Value", "Valeur du seuil d'alerte")}
                           </label>
                           <div className="flex items-center gap-2">
                             <input
@@ -4534,12 +4982,14 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               className="flex-1 h-9 px-3 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-950 dark:text-white focus:outline-none focus:border-blue-500"
                             />
                             <span className="font-bold text-xs text-blue-600 dark:text-blue-400 shrink-0">
-                              {alertMetricType === "revenue" ? "USD ($)" : "clicks"}
+                              {alertMetricType === "revenue" ? "USD ($)" : tr("clicks", "clics")}
                             </span>
                           </div>
                           {/* Quick presets */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold">Quick:</span>
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold">
+                              {tr("Quick:", "Rapide :")}
+                            </span>
                             {(alertMetricType === "revenue"
                               ? [100, 500, 1000, 2500, 5000]
                               : [500, 1000, 2500, 5000, 10000]
@@ -4550,7 +5000,9 @@ console.log("Top Countries:", topAudience.topCountries);`,
                                 onClick={() => setAlertTargetValue(preset)}
                                 className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
                               >
-                                {alertMetricType === "revenue" ? `$${preset.toLocaleString()}` : preset.toLocaleString()}
+                                {alertMetricType === "revenue"
+                                  ? `$${preset.toLocaleString(numLocale)}`
+                                  : preset.toLocaleString(numLocale)}
                               </button>
                             ))}
                           </div>
@@ -4560,24 +5012,24 @@ console.log("Top Countries:", topAudience.topCountries);`,
                       {/* Period Selection (Day, Week, Month) */}
                       <div className="flex flex-col gap-1.5 text-xs">
                         <label className="font-bold text-zinc-950 dark:text-white flex items-center justify-between">
-                          <span>Tracking Period</span>
+                          <span>{tr("Tracking Period", "Période de suivi")}</span>
                           {isEditingGlobalAlert && (
                             <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
-                              Locked to Monthly for workspace
+                              {tr("Locked to Monthly for workspace", "Verrouillé sur Mensuel pour l'espace")}
                             </span>
                           )}
                         </label>
                         {isEditingGlobalAlert ? (
                           <div className="h-9 px-3 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center">
-                            Monthly (Workspace Target)
+                            {tr("Monthly (Workspace Target)", "Mensuel (Objectif espace de travail)")}
                           </div>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
                             {(
                               [
-                                { id: "day", label: "Day" },
-                                { id: "week", label: "Week" },
-                                { id: "month", label: "Month" },
+                                { id: "day", label: tr("Day", "Jour") },
+                                { id: "week", label: tr("Week", "Semaine") },
+                                { id: "month", label: tr("Month", "Mois") },
                               ] as const
                             ).map((p) => (
                               <button
@@ -4613,24 +5065,30 @@ console.log("Top Countries:", topAudience.topCountries);`,
                               <div className="pr-3">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className={`font-bold ${isGlobalTarget ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-950 dark:text-white"}`}>
-                                    Link expiration alert
+                                    {tr("Link expiration alert", "Alerte d'expiration du lien")}
                                   </p>
                                   {isGlobalTarget && (
                                     <span className="px-1.5 py-0.5 rounded-[6px] text-[9px] font-semibold bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                                      Individual link required
+                                      {tr("Individual link required", "Lien individuel requis")}
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium mt-0.5">
                                   {isGlobalTarget
-                                    ? "Unavailable for a global target. Select a specific short link above to be alerted at its exact expiration time."
-                                    : "Receive an instant notification the exact moment the link expires."}
+                                    ? tr(
+                                        "Unavailable for a global target. Select a specific short link above to be alerted at its exact expiration time.",
+                                        "Indisponible pour un objectif global. Sélectionnez un lien court spécifique ci-dessus pour être alerté à son heure exacte d'expiration."
+                                      )
+                                    : tr(
+                                        "Receive an instant notification the exact moment the link expires.",
+                                        "Recevez une notification instantanée au moment exact où le lien expire."
+                                      )}
                                 </p>
                               </div>
                               <input
                                 id="drawer_alert_notify_expired"
                                 type="checkbox"
-                                aria-label="Link expiration alert"
+                                aria-label={tr("Link expiration alert", "Alerte d'expiration du lien")}
                                 disabled={isGlobalTarget}
                                 checked={isGlobalTarget ? false : alertNotifyExpired}
                                 onChange={(e) => {
@@ -4649,10 +5107,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
                             <p className="font-bold text-zinc-950 dark:text-white">
-                              Email Notification
+                              {tr("Email Notification", "Notification par e-mail")}
                             </p>
                             <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
-                              Transactional alert sent to your account email address
+                              {tr(
+                                "Transactional alert sent to your account email address",
+                                "Alerte transactionnelle envoyée à l'adresse e-mail de votre compte"
+                              )}
                             </p>
                           </div>
                           <input
@@ -4666,10 +5127,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         <label className="flex items-center justify-between p-2.5 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 cursor-pointer transition-colors">
                           <div>
                             <p className="font-bold text-zinc-950 dark:text-white">
-                              In-App Notification (Bell)
+                              {tr("In-App Notification (Bell)", "Notification dans l'application (Cloche)")}
                             </p>
                             <p className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
-                              Display a badge and notification in the top navigation bar
+                              {tr(
+                                "Display a badge and notification in the top navigation bar",
+                                "Afficher un badge et une notification dans la barre de navigation supérieure"
+                              )}
                             </p>
                           </div>
                           <input
@@ -4688,7 +5152,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           onClick={() => setIsAlertModalOpen(false)}
                           className="px-4 h-8 rounded-[8px] text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
                         >
-                          Cancel
+                          {tr("Cancel", "Annuler")}
                         </button>
                         <Button
                           type="submit"
@@ -4699,12 +5163,16 @@ console.log("Top Countries:", topAudience.topCountries);`,
                           {isSavingAlert ? (
                             <>
                               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              <span>Saving...</span>
+                              <span>{tr("Saving...", "Enregistrement...")}</span>
                             </>
                           ) : (
                             <>
                               <Check className="w-3.5 h-3.5" />
-                              <span>{editingAlert || isEditingGlobalAlert ? "Save Changes" : "Create Alert"}</span>
+                              <span>
+                                {editingAlert || isEditingGlobalAlert
+                                  ? tr("Save Changes", "Enregistrer les modifications")
+                                  : tr("Create Alert", "Créer l'alerte")}
+                              </span>
                             </>
                           )}
                         </Button>
@@ -4722,11 +5190,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#222225]">
                 <div>
                   <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                    Data, Export &amp; GDPR Privacy
+                    {tr("Data, Export & GDPR Privacy", "Données, Exportation & Confidentialité RGPD")}
                   </h2>
                   <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                    Export your complete archives or permanently delete your
-                    account.
+                    {tr(
+                      "Export your complete archives or permanently delete your account.",
+                      "Exportez vos archives complètes ou supprimez définitivement votre compte."
+                    )}
                   </p>
                 </div>
               </div>
@@ -4735,11 +5205,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
                 <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col justify-between gap-4 shadow-xs">
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
-                      Complete Archive (JSON)
+                      {tr("Complete Archive (JSON)", "Archive complète (JSON)")}
                     </h3>
                     <p className="text-[11px] text-zinc-600 dark:text-neutral-400 mt-1">
-                      Contains all your short links, tags, targeting rules, and
-                      aggregated metrics.
+                      {tr(
+                        "Contains all your short links, tags, targeting rules, and aggregated metrics.",
+                        "Contient tous vos liens courts, tags, règles de ciblage et métriques agrégées."
+                      )}
                     </p>
                   </div>
                   <button
@@ -4748,20 +5220,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#161619] dark:hover:bg-[#202024] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] text-xs font-semibold shadow-xs transition-all cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-brand" />
-                    <span>Download JSON Archive</span>
+                    <span>{tr("Download JSON Archive", "Télécharger l'archive JSON")}</span>
                   </button>
                 </div>
 
                 <div className="p-5 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col justify-between gap-4 shadow-xs">
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                      <span>Export Events &amp; Clicks (ZIP &amp; CSV)</span>
+                      <span>{tr("Export Events & Clicks (ZIP & CSV)", "Exporter événements & clics (ZIP & CSV)")}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium">
-                        Multi-pages
+                        {tr("Multi-page", "Multi-pages")}
                       </span>
                     </h3>
                     <p className="text-[11px] text-zinc-600 dark:text-neutral-400 mt-1 leading-relaxed">
-                      Archive ZIP complète avec sous-dossiers par page (liens, analytics, géographie, appareils, sources, conversions) et fichier CSV complet aéré.
+                      {tr(
+                        "Complete ZIP archive with per-page subfolders (links, analytics, geography, devices, sources, conversions) and a clean full CSV file.",
+                        "Archive ZIP complète avec sous-dossiers par page (liens, analytics, géographie, appareils, sources, conversions) et fichier CSV complet aéré."
+                      )}
                     </p>
                   </div>
                   <button
@@ -4777,8 +5252,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     )}
                     <span>
                       {isExportingArchive
-                        ? "Génération de l'archive ZIP..."
-                        : "Download ZIP & CSV Archive"}
+                        ? tr("Generating ZIP archive...", "Génération de l'archive ZIP...")
+                        : tr("Download ZIP & CSV Archive", "Télécharger l'archive ZIP & CSV")}
                     </span>
                   </button>
                 </div>
@@ -4787,16 +5262,17 @@ console.log("Top Countries:", topAudience.topCountries);`,
               {/* Danger Zone */}
               <div className="p-5 rounded-[10px] bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/25 flex flex-col gap-3 shadow-xs">
                 <h3 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
-                  Danger Zone
+                  {tr("Danger Zone", "Zone de danger")}
                 </h3>
                 <p className="text-xs text-slate-700 dark:text-neutral-300">
-                  Account deletion is immediate and irreversible. All your short
-                  links, metadata, and connected domains will be permanently
-                  erased.
+                  {tr(
+                    "Account deletion is immediate and irreversible. All your short links, metadata, and connected domains will be permanently erased.",
+                    "La suppression du compte est immédiate et irréversible. Tous vos liens courts, métadonnées et domaines connectés seront définitivement effacés."
+                  )}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
                   <Input
-                    placeholder="Type DELETE to confirm"
+                    placeholder={tr("Type DELETE to confirm", "Saisissez DELETE pour confirmer")}
                     value={deleteConfirmationText}
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
                     className="max-w-xs bg-white dark:bg-[#161619] text-slate-900 dark:text-white border-red-300 dark:border-red-500/30"
@@ -4812,8 +5288,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>
                       {isDeletingAccount
-                        ? "Deleting account..."
-                        : "Permanently delete my account"}
+                        ? tr("Deleting account...", "Suppression du compte...")
+                        : tr("Permanently delete my account", "Supprimer définitivement mon compte")}
                     </span>
                   </button>
                 </div>
@@ -4825,42 +5301,43 @@ console.log("Top Countries:", topAudience.topCountries);`,
           {activeTab === "about" && (
             <div className="flex flex-col gap-6 text-xs text-zinc-700 dark:text-neutral-300">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                About LShorter
+                {tr("About LShorter", "À propos de LShorter")}
               </h2>
               <p className="leading-relaxed text-zinc-600 dark:text-neutral-300">
-                LShorter is a high-performance Edge SaaS link infrastructure
-                platform powered globally by Cloudflare Workers, D1, and Convex
-                Realtime Database.
+                {tr(
+                  "LShorter is a high-performance Edge SaaS link infrastructure platform powered globally by Cloudflare Workers, D1, and Convex Realtime Database.",
+                  "LShorter est une plateforme SaaS d'infrastructure de liens Edge haute performance propulsée mondialement par Cloudflare Workers, D1 et Convex Realtime Database."
+                )}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
-                    Application Version
+                    {tr("Application Version", "Version de l'application")}
                   </span>
                   <p className="font-mono text-zinc-900 dark:text-white font-bold text-sm mt-0.5">
-                    v1.2.0 (Production)
+                    v1.2.0 ({tr("Production", "Production")})
                   </p>
                 </div>
                 <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
-                    Cloudflare Edge &amp; D1 Network
+                    {tr("Cloudflare Edge & D1 Network", "Réseau Cloudflare Edge & D1")}
                   </span>
                   <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center gap-1.5 mt-0.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Operational (&lt;0.8ms latency)
+                    {tr("Operational (<0.8ms latency)", "Opérationnel (latence <0,8 ms)")}
                   </p>
                 </div>
                 <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
-                    OpenGraph &amp; Social Previews
+                    {tr("OpenGraph & Social Previews", "OpenGraph & Aperçus sociaux")}
                   </span>
                   <p className="text-zinc-900 dark:text-white font-bold text-sm mt-0.5">
-                    Direct URL Metadata Injection
+                    {tr("Direct URL Metadata Injection", "Injection directe de métadonnées URL")}
                   </p>
                 </div>
                 <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
                   <span className="text-zinc-500 dark:text-neutral-500">
-                    Realtime Database
+                    {tr("Realtime Database", "Base de données temps réel")}
                   </span>
                   <p className="text-zinc-900 dark:text-white font-bold text-sm mt-0.5">
                     Convex Realtime Database

@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { Trash2, X, Check } from "lucide-react";
 import { showToast } from "./toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface UndoDeleteOptions {
   id: string;
@@ -67,100 +68,137 @@ export const commitGlobalUndoDelete = () => {
   globalCommitHandler?.();
 };
 
-function resolveModalCopy(item: UndoDeleteOptions) {
+function resolveModalCopy(item: UndoDeleteOptions, isFr: boolean) {
   const rawDesc = (item.description || "").trim();
   const cleanSlug = rawDesc.replace(/^\/+/, "").trim();
   const customConfirm = (item.confirmText || "").trim();
   const isBulk =
-    /liens supprimés/i.test(item.title || "") ||
-    /^\d+\s+liens/i.test(rawDesc) ||
+    /liens supprimés|links deleted/i.test(item.title || "") ||
+    /^\d+\s+(liens|links)/i.test(rawDesc) ||
     (item.id.startsWith("bulk_") && (!customConfirm || customConfirm === "DELETE"));
 
   switch (item.itemType) {
     case "domain":
       return {
-        modalTitle: item.modalTitle || "Delete domain",
+        modalTitle: item.modalTitle || (isFr ? "Supprimer le domaine" : "Delete domain"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to delete this domain?",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment supprimer ce domaine ?"
+            : "Are you sure you want to delete this domain?"),
         confirmText: customConfirm || rawDesc || "DELETE",
-        copyAriaLabel: "Copy domain name",
-        inputAriaLabel: "Domain name",
-        inputPlaceholder: item.inputPlaceholder || "Enter domain name",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete domain",
+        copyAriaLabel: isFr ? "Copier le nom de domaine" : "Copy domain name",
+        inputAriaLabel: isFr ? "Nom de domaine" : "Domain name",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir le nom de domaine" : "Enter domain name"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer le domaine" : "Delete domain"),
       };
     case "api_key":
       return {
-        modalTitle: item.modalTitle || "Delete API key",
+        modalTitle: item.modalTitle || (isFr ? "Révoquer la clé API" : "Delete API key"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to revoke this API key?",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment révoquer cette clé API ?"
+            : "Are you sure you want to revoke this API key?"),
         confirmText: customConfirm || rawDesc || "DELETE",
-        copyAriaLabel: "Copy API key name",
-        inputAriaLabel: "API key name",
-        inputPlaceholder: item.inputPlaceholder || "Enter API key name",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete API key",
+        copyAriaLabel: isFr ? "Copier le nom de la clé API" : "Copy API key name",
+        inputAriaLabel: isFr ? "Nom de la clé API" : "API key name",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir le nom de la clé API" : "Enter API key name"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer la clé API" : "Delete API key"),
       };
     case "webhook":
       return {
-        modalTitle: item.modalTitle || "Delete webhook",
+        modalTitle: item.modalTitle || (isFr ? "Supprimer le webhook" : "Delete webhook"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to delete this webhook?",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment supprimer ce webhook ?"
+            : "Are you sure you want to delete this webhook?"),
         confirmText: customConfirm || rawDesc || "DELETE",
-        copyAriaLabel: "Copy webhook URL",
-        inputAriaLabel: "Webhook URL",
-        inputPlaceholder: item.inputPlaceholder || "Enter webhook URL",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete webhook",
+        copyAriaLabel: isFr ? "Copier l'URL du webhook" : "Copy webhook URL",
+        inputAriaLabel: isFr ? "URL du webhook" : "Webhook URL",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir l'URL du webhook" : "Enter webhook URL"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer le webhook" : "Delete webhook"),
       };
     case "pixel":
       return {
-        modalTitle: item.modalTitle || "Delete pixel",
+        modalTitle: item.modalTitle || (isFr ? "Supprimer le pixel" : "Delete pixel"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to delete this pixel?",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment supprimer ce pixel ?"
+            : "Are you sure you want to delete this pixel?"),
         confirmText: customConfirm || rawDesc || "DELETE",
-        copyAriaLabel: "Copy pixel name",
-        inputAriaLabel: "Pixel name",
-        inputPlaceholder: item.inputPlaceholder || "Enter pixel name",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete pixel",
+        copyAriaLabel: isFr ? "Copier le nom du pixel" : "Copy pixel name",
+        inputAriaLabel: isFr ? "Nom du pixel" : "Pixel name",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir le nom du pixel" : "Enter pixel name"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer le pixel" : "Delete pixel"),
       };
     case "other":
       return {
-        modalTitle: item.modalTitle || "Delete alert",
+        modalTitle: item.modalTitle || (isFr ? "Supprimer l'alerte" : "Delete alert"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to delete this alert?",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment supprimer cette alerte ?"
+            : "Are you sure you want to delete this alert?"),
         confirmText: customConfirm || cleanSlug || "DELETE",
-        copyAriaLabel: "Copy name",
-        inputAriaLabel: "Confirmation name",
-        inputPlaceholder: item.inputPlaceholder || "Enter name to confirm",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete alert",
+        copyAriaLabel: isFr ? "Copier le nom" : "Copy name",
+        inputAriaLabel: isFr ? "Nom de confirmation" : "Confirmation name",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir le nom pour confirmer" : "Enter name to confirm"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer l'alerte" : "Delete alert"),
       };
     case "link":
     default:
       if (isBulk) {
         return {
-          modalTitle: item.modalTitle || "Delete links",
+          modalTitle: item.modalTitle || (isFr ? "Supprimer les liens" : "Delete links"),
           modalQuestion:
             item.modalQuestion ||
-            "Are you sure you want to delete the selected links?",
+            (isFr
+              ? "Voulez-vous vraiment supprimer les liens sélectionnés ?"
+              : "Are you sure you want to delete the selected links?"),
           confirmText: customConfirm || "DELETE",
-          copyAriaLabel: "Copy confirmation text",
-          inputAriaLabel: "Confirmation text",
-          inputPlaceholder: item.inputPlaceholder || "Enter DELETE to confirm",
-          confirmButtonLabel: item.confirmButtonLabel || "Delete links",
+          copyAriaLabel: isFr ? "Copier le texte de confirmation" : "Copy confirmation text",
+          inputAriaLabel: isFr ? "Texte de confirmation" : "Confirmation text",
+          inputPlaceholder:
+            item.inputPlaceholder ||
+            (isFr ? "Saisir DELETE pour confirmer" : "Enter DELETE to confirm"),
+          confirmButtonLabel:
+            item.confirmButtonLabel || (isFr ? "Supprimer les liens" : "Delete links"),
         };
       }
       return {
-        modalTitle: item.modalTitle || "Delete link",
+        modalTitle: item.modalTitle || (isFr ? "Supprimer le lien" : "Delete link"),
         modalQuestion:
-          item.modalQuestion || "Are you sure you want to delete this link?",
-        confirmText: customConfirm || cleanSlug || "Untitled",
-        copyAriaLabel: "Copy link name",
-        inputAriaLabel: "Link name",
-        inputPlaceholder: item.inputPlaceholder || "Enter link name",
-        confirmButtonLabel: item.confirmButtonLabel || "Delete link",
+          item.modalQuestion ||
+          (isFr
+            ? "Voulez-vous vraiment supprimer ce lien ?"
+            : "Are you sure you want to delete this link?"),
+        confirmText: customConfirm || cleanSlug || (isFr ? "Sans titre" : "Untitled"),
+        copyAriaLabel: isFr ? "Copier le nom du lien" : "Copy link name",
+        inputAriaLabel: isFr ? "Nom du lien" : "Link name",
+        inputPlaceholder:
+          item.inputPlaceholder || (isFr ? "Saisir le nom du lien" : "Enter link name"),
+        confirmButtonLabel:
+          item.confirmButtonLabel || (isFr ? "Supprimer le lien" : "Delete link"),
       };
   }
 }
 
 export function UndoDeleteProvider({ children }: { children: React.ReactNode }) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [pendingItem, setPendingItem] = useState<UndoDeleteOptions | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [copiedBadge, setCopiedBadge] = useState(false);
@@ -205,7 +243,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
       clearToastTimer();
       setCompletedToast({
         id: item.id,
-        title: item.title || "Lien supprimé",
+        title: item.title || (isFr ? "Lien supprimé" : "Link deleted"),
         description: item.description,
       });
       toastTimerRef.current = setTimeout(() => {
@@ -213,7 +251,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
         toastTimerRef.current = null;
       }, 4000);
     },
-    [clearToastTimer]
+    [clearToastTimer, isFr]
   );
 
   // Commit deletion after user confirms in the modal
@@ -235,9 +273,9 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
       }
     } catch (err) {
       console.error("Failed to execute deletion:", err);
-      showToast.error("Erreur lors de la suppression.");
+      showToast.error(isFr ? "Erreur lors de la suppression." : "Error during deletion.");
     }
-  }, [clearModalTimers, showPostDeleteToast]);
+  }, [clearModalTimers, showPostDeleteToast, isFr]);
 
   // Cancel modal without deleting
   const cancelUndoDelete = useCallback(() => {
@@ -296,8 +334,8 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
   }, [pendingItem]);
 
   const modalCopy = useMemo(
-    () => (pendingItem ? resolveModalCopy(pendingItem) : null),
-    [pendingItem]
+    () => (pendingItem ? resolveModalCopy(pendingItem, isFr) : null),
+    [pendingItem, isFr]
   );
 
   const isConfirmationMatched = useMemo(() => {
@@ -451,7 +489,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
               </h2>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={isFr ? "Fermer" : "Close"}
                 onClick={cancelUndoDelete}
                 className="inline-flex items-center justify-center w-[44px] h-[44px] -my-[10px] -mr-[10px] ml-0 sm:w-[32px] sm:h-[32px] sm:-mt-[4px] sm:-mr-[6px] sm:mb-0 sm:ml-0 p-0 border-0 rounded-[8px] bg-transparent text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#f4f4f5] dark:hover:bg-[#27272a]/60 hover:text-[#09090b] dark:hover:text-[#fafafa] transition-colors cursor-pointer"
               >
@@ -478,7 +516,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                 {modalCopy.modalQuestion}
               </p>
               <p className="m-0 text-[14px] leading-[1.5] font-semibold text-[#dc2626] dark:text-[#f87171]">
-                This cannot be undone.
+                {isFr ? "Cette action est irréversible." : "This cannot be undone."}
               </p>
             </div>
 
@@ -486,14 +524,16 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
             <p className="sm:hidden mt-3 mb-0 text-[14px] leading-[1.45] text-[#52525b] dark:text-[#a1a1aa]">
               {modalCopy.modalQuestion}{" "}
               <span className="font-semibold text-[#dc2626] dark:text-[#f87171]">
-                This cannot be undone.
+                {isFr ? "Cette action est irréversible." : "This cannot be undone."}
               </span>
             </p>
 
             {/* Type-to-confirm Prompt & Copy Badge OR Clean Single Link Confirmation */}
             {pendingItem.itemType === "link" && !pendingItem.id.startsWith("bulk_") ? (
               <div className="mt-3.5 mb-2 sm:mt-4 sm:mb-2 flex items-center gap-2 p-2.5 rounded-[8px] bg-red-50/70 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/40">
-                <span className="text-[13px] font-medium text-red-700 dark:text-red-400">Lien concerné :</span>
+                <span className="text-[13px] font-medium text-red-700 dark:text-red-400">
+                  {isFr ? "Lien concerné :" : "Selected link:"}
+                </span>
                 <span className="inline-flex items-center font-mono font-bold text-[13px] text-red-900 dark:text-red-300">
                   {modalCopy.confirmText.startsWith("/") ? modalCopy.confirmText : `/${modalCopy.confirmText}`}
                 </span>
@@ -504,7 +544,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                   id="delete-confirm-prompt"
                   className="mt-3 mb-2 sm:mt-4 sm:mb-[10px] text-[14px] leading-[1.45] sm:leading-[1.5] text-[#52525b] dark:text-[#a1a1aa]"
                 >
-                  Type{" "}
+                  {isFr ? "Tapez " : "Type "}
                   <span className="inline-flex items-center gap-[4px] sm:gap-[6px] align-middle bg-[#f4f4f5] dark:bg-[#27272a] border border-[#e4e4e7] dark:border-[#27272a] rounded-[6px] py-[1px] pr-[2px] pl-[8px] sm:py-[2px] sm:pr-[4px] sm:pl-[8px] text-[13px] font-medium text-[#09090b] dark:text-[#fafafa] max-w-full">
                     <span className="truncate max-w-[240px]">
                       {modalCopy.confirmText}
@@ -535,7 +575,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                       )}
                     </button>
                   </span>{" "}
-                  to confirm.
+                  {isFr ? "pour confirmer." : "to confirm."}
                 </p>
 
                 {/* Confirmation Input */}
@@ -578,7 +618,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                     "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
                 }}
               >
-                <span>Cancel</span>
+                <span>{isFr ? "Annuler" : "Cancel"}</span>
                 <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-[#f4f4f5] dark:bg-[#27272a] text-[#52525b] dark:text-[#a1a1aa] text-[11px] font-medium">
                   Esc
                 </span>
@@ -599,7 +639,7 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
               >
                 <span>{modalCopy.confirmButtonLabel}</span>
                 <span className="hidden sm:inline-flex items-center h-[18px] px-[5px] rounded-[4px] bg-black/20 text-white text-[11px] font-medium">
-                  Enter ↵
+                  {isFr ? "Entrée ↵" : "Enter ↵"}
                 </span>
               </button>
             </div>
@@ -639,8 +679,8 @@ export function UndoDeleteProvider({ children }: { children: React.ReactNode }) 
                   type="button"
                   onClick={dismissCompletedToast}
                   className="p-1 rounded-[6px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                  aria-label="Fermer"
-                  title="Fermer"
+                  aria-label={isFr ? "Fermer" : "Close"}
+                  title={isFr ? "Fermer" : "Close"}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

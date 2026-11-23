@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Download, ExternalLink, Copy, Check, Image as ImageIcon } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface BannerLightboxData {
   imageUrl: string;
@@ -35,6 +36,7 @@ export function BannerLightboxModal({
   shortUrl,
   targetUrl,
 }: BannerLightboxModalProps) {
+  const { tr } = useI18n();
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -109,7 +111,10 @@ export function BannerLightboxModal({
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-[#09090B] dark:text-white truncate">
-                {data.title || (data.slug ? `Banner • /${data.slug}` : "Link Banner Preview")}
+                {data.title ||
+                  (data.slug
+                    ? tr(`Banner • /${data.slug}`, `Bannière • /${data.slug}`)
+                    : tr("Link Banner Preview", "Aperçu de la bannière du lien"))}
               </h3>
               {data.shortUrl && (
                 <p className="text-xs font-mono text-[#52525B] dark:text-[#A1A1AA] truncate">
@@ -123,7 +128,7 @@ export function BannerLightboxModal({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-            aria-label="Close modal"
+            aria-label={tr("Close modal", "Fermer la fenêtre")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -134,7 +139,7 @@ export function BannerLightboxModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={data.imageUrl}
-            alt={data.title || "Link Banner"}
+            alt={data.title || tr("Link Banner", "Bannière du lien")}
             className="max-w-full max-h-[58vh] w-auto h-auto object-contain rounded-xl border border-black/[0.08] dark:border-white/[0.08] shadow-md bg-white dark:bg-[#141416]"
           />
         </div>
@@ -174,7 +179,7 @@ export function BannerLightboxModal({
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#465FFF]/10 hover:bg-[#465FFF]/20 text-[#465FFF] border border-[#465FFF]/25 transition-colors cursor-pointer"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Open Short Link</span>
+                <span>{tr("Open Short Link", "Ouvrir le lien court")}</span>
               </a>
             )}
 
@@ -186,12 +191,12 @@ export function BannerLightboxModal({
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Copied URL</span>
+                  <span>{tr("Copied URL", "URL copiée")}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copy URL</span>
+                  <span>{tr("Copy URL", "Copier l'URL")}</span>
                 </>
               )}
             </button>
@@ -203,7 +208,7 @@ export function BannerLightboxModal({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-[#09090B] dark:text-white border border-black/[0.08] dark:border-white/[0.08] transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Open Banner</span>
+              <span>{tr("Open Banner", "Ouvrir la bannière")}</span>
             </a>
 
             <button
@@ -213,7 +218,7 @@ export function BannerLightboxModal({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-[#3B82F6] hover:bg-[#2563EB] text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{downloading ? "Downloading..." : "Download"}</span>
+              <span>{downloading ? tr("Downloading...", "Téléchargement...") : tr("Download", "Télécharger")}</span>
             </button>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { Input } from "@/components/ui/input";
 import { type Tag as EmblorTag, TagInput } from "emblor";
 import { parsePathLockRoutes } from "@/lib/pathlock-routes";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SectionProtectionExpiryProps {
   isProPlan: boolean;
@@ -73,6 +74,8 @@ export function SectionProtectionExpiry({
   setFieldErrors,
   checkExpiresAtFormat,
 }: SectionProtectionExpiryProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [hasPassword, setHasPassword] = useState(Boolean(password));
   const [hasExpiry, setHasExpiry] = useState(Boolean(expiresAt));
   const hasPathLock = pathLockMode !== "off";
@@ -177,7 +180,9 @@ export function SectionProtectionExpiry({
     if (!isProPlan) {
       triggerPlanUpgrade({
         featureName,
-        reason: `Unlock ${featureName} by upgrading to the PRO plan.`,
+        reason: isFr
+          ? `Débloquez « ${featureName} » en passant au forfait PRO.`
+          : `Unlock ${featureName} by upgrading to the PRO plan.`,
         targetPlan: "PRO",
       });
       return;
@@ -189,10 +194,12 @@ export function SectionProtectionExpiry({
     <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
-          Protection &amp; expiry
+          {isFr ? "Protection & expiration" : "Protection & expiry"}
         </h2>
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
-          All optional. Turn on only what you need to protect and limit access.
+          {isFr
+            ? "Tout est optionnel. Activez uniquement ce dont vous avez besoin pour protéger et limiter l'accès."
+            : "All optional. Turn on only what you need to protect and limit access."}
         </p>
       </div>
 
@@ -203,7 +210,7 @@ export function SectionProtectionExpiry({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                  Password protection
+                  {isFr ? "Protection par mot de passe" : "Password protection"}
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -212,7 +219,9 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Visitors must enter a PIN or secret passphrase to continue.
+                {isFr
+                  ? "Les visiteurs doivent saisir un code PIN ou mot de passe secret pour continuer."
+                  : "Visitors must enter a PIN or secret passphrase to continue."}
               </p>
             </div>
             <DrawerSwitch
@@ -221,16 +230,16 @@ export function SectionProtectionExpiry({
                 handleProGuard(() => {
                   setHasPassword(val);
                   if (!val) setPassword("");
-                }, "Password Protection");
+                }, isFr ? "Protection par mot de passe" : "Password Protection");
               }}
-              aria-label="Toggle password protection"
+              aria-label={isFr ? "Activer la protection par mot de passe" : "Toggle password protection"}
             />
           </div>
 
           {hasPassword && isProPlan && (
             <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-2">
               <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                Choose Password (minimum 4 characters)
+                {isFr ? "Choisir un mot de passe (4 caractères minimum)" : "Choose Password (minimum 4 characters)"}
               </label>
               <div className="relative">
                 <Input
@@ -238,7 +247,7 @@ export function SectionProtectionExpiry({
                   style={{
                     WebkitTextSecurity: showPassword ? "none" : "disc",
                   } as React.CSSProperties}
-                  placeholder="Enter secret access key"
+                  placeholder={isFr ? "Saisissez la clé d'accès secrète" : "Enter secret access key"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-9 text-xs pr-10 font-mono text-zinc-950 dark:text-white"
@@ -275,7 +284,7 @@ export function SectionProtectionExpiry({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                  Expiry date
+                  {isFr ? "Date d'expiration" : "Expiry date"}
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -284,7 +293,9 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Automatically display a “Link expired” page after this date.
+                {isFr
+                  ? "Affiche automatiquement une page « Lien expiré » après cette date."
+                  : "Automatically display a “Link expired” page after this date."}
               </p>
             </div>
             <DrawerSwitch
@@ -293,16 +304,16 @@ export function SectionProtectionExpiry({
                 handleProGuard(() => {
                   setHasExpiry(val);
                   if (!val) setExpiresAt("");
-                }, "Link Expiration");
+                }, isFr ? "Expiration du lien" : "Link Expiration");
               }}
-              aria-label="Toggle link expiration"
+              aria-label={isFr ? "Activer l'expiration du lien" : "Toggle link expiration"}
             />
           </div>
 
           {hasExpiry && isProPlan && (
             <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-2">
               <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                Select Expiration Date &amp; Time
+                {isFr ? "Sélectionner la date et l'heure d'expiration" : "Select Expiration Date & Time"}
               </label>
               <Input
                 type="datetime-local"
@@ -329,7 +340,7 @@ export function SectionProtectionExpiry({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                  Click limit
+                  {isFr ? "Limite de clics" : "Click limit"}
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -338,7 +349,9 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Redirect elsewhere after a maximum number of clicks.
+                {isFr
+                  ? "Redirigez ailleurs après un nombre maximum de clics."
+                  : "Redirect elsewhere after a maximum number of clicks."}
               </p>
             </div>
             <DrawerSwitch
@@ -350,9 +363,9 @@ export function SectionProtectionExpiry({
                     setMaxClicks("");
                     setFallbackUrl("");
                   }
-                }, "Click Limit & Fallback");
+                }, isFr ? "Limite de clics et redirection de secours" : "Click Limit & Fallback");
               }}
-              aria-label="Toggle click limit"
+              aria-label={isFr ? "Activer la limite de clics" : "Toggle click limit"}
             />
           </div>
 
@@ -360,12 +373,12 @@ export function SectionProtectionExpiry({
             <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                  Max Clicks
+                  {isFr ? "Clics maximum" : "Max Clicks"}
                 </label>
                 <Input
                   type="number"
                   min="1"
-                  placeholder="e.g. 500"
+                  placeholder={isFr ? "ex. 500" : "e.g. 500"}
                   value={maxClicks}
                   onChange={(e) => setMaxClicks(e.target.value)}
                   className="h-9 text-xs text-zinc-950 dark:text-white"
@@ -374,7 +387,7 @@ export function SectionProtectionExpiry({
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                  Fallback URL
+                  {isFr ? "URL de secours" : "Fallback URL"}
                 </label>
                 <Input
                   type="url"
@@ -394,7 +407,7 @@ export function SectionProtectionExpiry({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                  Restrict browsing (PathLock™)
+                  {isFr ? "Restreindre la navigation (PathLock™)" : "Restrict browsing (PathLock™)"}
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -403,7 +416,9 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Lock visitors to the landing page or checkout funnel only.
+                {isFr
+                  ? "Limitez les visiteurs uniquement à la page d'atterrissage ou au tunnel de commande."
+                  : "Lock visitors to the landing page or checkout funnel only."}
               </p>
             </div>
             <DrawerSwitch
@@ -411,9 +426,9 @@ export function SectionProtectionExpiry({
               onChange={(val) => {
                 handleProGuard(() => {
                   setPathLockMode(val ? "strict" : "off");
-                }, "PathLock™ Restricted Browsing");
+                }, isFr ? "Navigation restreinte PathLock™" : "PathLock™ Restricted Browsing");
               }}
-              aria-label="Toggle PathLock restricted browsing"
+              aria-label={isFr ? "Activer la navigation restreinte PathLock" : "Toggle PathLock restricted browsing"}
             />
           </div>
 
@@ -431,7 +446,7 @@ export function SectionProtectionExpiry({
                       : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                   )}
                 >
-                  Single page (Strict)
+                  {isFr ? "Page unique (Strict)" : "Single page (Strict)"}
                 </button>
                 <button
                   type="button"
@@ -443,7 +458,7 @@ export function SectionProtectionExpiry({
                       : "text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-medium",
                   )}
                 >
-                  Funnel &amp; subpaths
+                  {isFr ? "Tunnel & sous-chemins" : "Funnel & subpaths"}
                 </button>
               </div>
 
@@ -456,14 +471,16 @@ export function SectionProtectionExpiry({
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs font-bold text-blue-950 dark:text-blue-200">
-                        Page accessible autorisée :
+                        {isFr ? "Page accessible autorisée :" : "Allowed accessible page:"}
                       </span>
                       <code className="px-2 py-0.5 rounded-md bg-blue-200/70 dark:bg-blue-900/70 text-blue-900 dark:text-blue-200 font-mono text-xs font-bold border border-blue-300/60 dark:border-blue-700/50">
                         {singlePagePath}
                       </code>
                     </div>
                     <p className="text-[11px] font-medium text-blue-900/90 dark:text-blue-200 leading-relaxed">
-                      Seule cette page exacte sera accessible. Toutes les autres navigations, liens sortants et sous-pages du site de destination seront automatiquement restreints.
+                      {isFr
+                        ? "Seule cette page exacte sera accessible. Toutes les autres navigations, liens sortants et sous-pages du site de destination seront automatiquement restreints."
+                        : "Only this exact page will be accessible. All other navigation, outgoing links, and subpages on the destination site will be automatically restricted."}
                     </p>
                   </div>
                 </div>
@@ -476,7 +493,7 @@ export function SectionProtectionExpiry({
                     htmlFor={prefixTagInputId}
                     className="text-xs font-bold text-zinc-950 dark:text-white"
                   >
-                    Allowed Subpath Prefix
+                    {isFr ? "Préfixes de sous-chemins autorisés" : "Allowed Subpath Prefix"}
                   </label>
                   <div className="lshorter-tag-container w-full flex flex-col items-start">
                     <TagInput
@@ -490,7 +507,11 @@ export function SectionProtectionExpiry({
                       addTagsOnBlur
                       addOnPaste
                       delimiterList={[",", ";", " "]}
-                      placeholder="Add allowed routes (e.g. /pricing, /checkout)... empty = all (/)"
+                      placeholder={
+                        isFr
+                          ? "Ajoutez des routes autorisées (ex. /pricing, /checkout)... vide = tout (/)"
+                          : "Add allowed routes (e.g. /pricing, /checkout)... empty = all (/)"
+                      }
                       inputProps={
                         {
                           name: "pathlock_subpath_prefix_input",
@@ -519,7 +540,15 @@ export function SectionProtectionExpiry({
                     />
                   </div>
                   <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                    Press Enter, comma, or click outside to add routes (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Leave empty to allow the entire site (<code className="font-mono">/</code>).
+                    {isFr ? (
+                      <>
+                        Appuyez sur Entrée, virgule ou cliquez à l&apos;extérieur pour ajouter des routes (ex. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Laissez vide pour autoriser tout le site (<code className="font-mono">/</code>).
+                      </>
+                    ) : (
+                      <>
+                        Press Enter, comma, or click outside to add routes (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Leave empty to allow the entire site (<code className="font-mono">/</code>).
+                      </>
+                    )}
                   </p>
                 </div>
               )}
@@ -527,11 +556,17 @@ export function SectionProtectionExpiry({
               {/* Message shown when navigation is blocked */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                  Message shown when navigation is blocked (Optional)
+                  {isFr
+                    ? "Message affiché lorsque la navigation est bloquée (Optionnel)"
+                    : "Message shown when navigation is blocked (Optional)"}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="External navigation is disabled for this secure session."
+                  placeholder={
+                    isFr
+                      ? "La navigation externe est désactivée pour cette session sécurisée."
+                      : "External navigation is disabled for this secure session."
+                  }
                   value={pathLockMessage}
                   onChange={(e) => setPathLockMessage(e.target.value)}
                   className="w-full bg-white dark:bg-[#16181d] text-zinc-950 dark:text-white border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-lg p-2.5 text-xs outline-none transition-colors resize-none placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal"
@@ -541,7 +576,9 @@ export function SectionProtectionExpiry({
               {/* PathLock bypass password */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-zinc-950 dark:text-white">
-                  Unlock Passcode to leave (Optional)
+                  {isFr
+                    ? "Code de déverrouillage pour quitter (Optionnel)"
+                    : "Unlock Passcode to leave (Optional)"}
                 </label>
                 <div className="relative">
                   <Input
@@ -549,7 +586,11 @@ export function SectionProtectionExpiry({
                     style={{
                       WebkitTextSecurity: showPathLockPassword ? "none" : "disc",
                     } as React.CSSProperties}
-                    placeholder="Optional passcode to bypass lock"
+                    placeholder={
+                      isFr
+                        ? "Code optionnel pour contourner le verrouillage"
+                        : "Optional passcode to bypass lock"
+                    }
                     value={pathLockPassword}
                     onChange={(e) => setPathLockPassword(e.target.value)}
                     className="h-9 text-xs pr-10 font-mono text-zinc-950 dark:text-white"
@@ -585,16 +626,18 @@ export function SectionProtectionExpiry({
           <div className="flex items-center justify-between gap-4">
             <div>
               <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                Hide referrer
+                {isFr ? "Masquer le référent" : "Hide referrer"}
               </span>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Strips HTTP referrer headers to protect your traffic sources.
+                {isFr
+                  ? "Supprime les en-têtes HTTP Referer pour protéger vos sources de trafic."
+                  : "Strips HTTP referrer headers to protect your traffic sources."}
               </p>
             </div>
             <DrawerSwitch
               checked={hideReferrer}
               onChange={setHideReferrer}
-              aria-label="Toggle hide referrer"
+              aria-label={isFr ? "Activer le masquage du référent" : "Toggle hide referrer"}
             />
           </div>
         </div>
@@ -605,7 +648,9 @@ export function SectionProtectionExpiry({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-zinc-950 dark:text-white">
-                  Hide destination URL (Branded Masking)
+                  {isFr
+                    ? "Masquer l'URL de destination (Masquage de marque)"
+                    : "Hide destination URL (Branded Masking)"}
                 </span>
                 {!isProPlan && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -614,7 +659,9 @@ export function SectionProtectionExpiry({
                 )}
               </div>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-                Keep your branded custom domain in the address bar via secure iframe masking.
+                {isFr
+                  ? "Conservez votre domaine de marque dans la barre d'adresse via un masquage iframe sécurisé."
+                  : "Keep your branded custom domain in the address bar via secure iframe masking."}
               </p>
             </div>
             <DrawerSwitch
@@ -622,9 +669,9 @@ export function SectionProtectionExpiry({
               onChange={(val) => {
                 handleProGuard(() => {
                   setIsCloaked(val);
-                }, "Branded URL Masking");
+                }, isFr ? "Masquage d'URL de marque" : "Branded URL Masking");
               }}
-              aria-label="Toggle branded URL masking"
+              aria-label={isFr ? "Activer le masquage d'URL de marque" : "Toggle branded URL masking"}
             />
           </div>
         </div>

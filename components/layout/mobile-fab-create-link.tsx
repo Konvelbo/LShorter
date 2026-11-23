@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link2 } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 const BUTTON_SIZE = 50; // 50px button requested by user
 const EDGE_SPACING = 16; // 16px lateral padding
 const DRAG_THRESHOLD_PX = 12; // 12px slop to prevent mobile thumb tap-roll from cancelling taps
 
 export function MobileFabCreateLink() {
+  const { tr } = useI18n();
   const [mounted, setMounted] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -221,8 +223,8 @@ export function MobileFabCreateLink() {
       className={`sm:hidden fixed bottom-6 right-4 z-[60] w-[50px] h-[50px] min-w-[50px] min-h-[50px] max-w-[50px] max-h-[50px] rounded-full aspect-square flex items-center justify-center bg-[#0066FF] hover:bg-[#0052cc] text-white cursor-grab active:cursor-grabbing select-none shadow-md active:scale-95 transition-all shrink-0 ${
         isDragging ? "shadow-lg scale-105" : ""
       }`}
-      title="Create Link"
-      aria-label="Floating create link button"
+      title={tr("Create Link", "Créer un lien")}
+      aria-label={tr("Floating create link button", "Bouton flottant pour créer un lien")}
     >
       <Link2 className="w-[22px] h-[22px] text-white stroke-[2.4] shrink-0 pointer-events-none" />
     </button>

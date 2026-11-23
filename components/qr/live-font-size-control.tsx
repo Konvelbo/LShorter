@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface LiveFontSizeControlProps {
   value: number;
@@ -12,12 +13,12 @@ export interface LiveFontSizeControlProps {
 }
 
 const PRESETS = [
-  { sz: 8, label: "Mini 8px" },
-  { sz: 10, label: "Compact 10px" },
-  { sz: 12, label: "Standard 12px" },
-  { sz: 15, label: "Medium 15px" },
-  { sz: 18, label: "Large 18px" },
-  { sz: 22, label: "Max 22px" },
+  { sz: 8, en: "Mini 8px", fr: "Mini 8px" },
+  { sz: 10, en: "Compact 10px", fr: "Compact 10px" },
+  { sz: 12, en: "Standard 12px", fr: "Standard 12px" },
+  { sz: 15, en: "Medium 15px", fr: "Moyen 15px" },
+  { sz: 18, en: "Large 18px", fr: "Grand 18px" },
+  { sz: 22, en: "Max 22px", fr: "Max 22px" },
 ];
 
 /**
@@ -33,6 +34,8 @@ export const LiveFontSizeControl = React.memo(function LiveFontSizeControl({
   onCommit,
   commitDelayMs = 120,
 }: LiveFontSizeControlProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [draft, setDraft] = useState<number>(Math.min(max, Math.max(min, value)));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCommitRef = useRef<number | null>(null);
@@ -105,9 +108,11 @@ export const LiveFontSizeControl = React.memo(function LiveFontSizeControl({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-zinc-900 dark:text-white">Font Size</span>
+          <span className="text-xs font-bold text-zinc-900 dark:text-white">
+            {isFr ? "Taille de police" : "Font Size"}
+          </span>
           <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
-            ({min}px to {max}px max)
+            {isFr ? `(${min}px à ${max}px max)` : `(${min}px to ${max}px max)`}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -131,7 +136,9 @@ export const LiveFontSizeControl = React.memo(function LiveFontSizeControl({
 
       {/* Quick Presets for Font Size */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-neutral-500 dark:text-neutral-400 mr-1">Presets:</span>
+        <span className="text-[10px] text-neutral-500 dark:text-neutral-400 mr-1">
+          {isFr ? "Préréglages :" : "Presets:"}
+        </span>
         {PRESETS.map((preset) => (
           <button
             key={preset.sz}
@@ -143,7 +150,7 @@ export const LiveFontSizeControl = React.memo(function LiveFontSizeControl({
                 : "bg-white dark:bg-[#141416] border-neutral-200 dark:border-[#27272a] text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/5"
             }`}
           >
-            {preset.label}
+            {isFr ? preset.fr : preset.en}
           </button>
         ))}
       </div>

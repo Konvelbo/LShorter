@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface KpiCardsCarouselProps {
   children: React.ReactNode;
@@ -18,6 +19,8 @@ export function KpiCardsCarousel({
   speed = 0.9,
   pauseOnHover = false,
 }: KpiCardsCarouselProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const trackRef = useRef<HTMLDivElement>(null);
   const firstSetRef = useRef<HTMLDivElement>(null);
   const scrollPosRef = useRef<number>(0);
@@ -293,7 +296,7 @@ export function KpiCardsCarousel({
       <button
         type="button"
         onClick={() => slide("left")}
-        aria-label="Scroll left"
+        aria-label={isFr ? "Défiler vers la gauche" : "Scroll left"}
         className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 dark:bg-[#141416]/90 border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-zinc-200 shadow-md backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 focus:opacity-100 transition-opacity hover:scale-105 active:scale-95 hidden sm:flex items-center justify-center cursor-pointer"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -303,7 +306,7 @@ export function KpiCardsCarousel({
       <button
         type="button"
         onClick={() => slide("right")}
-        aria-label="Scroll right"
+        aria-label={isFr ? "Défiler vers la droite" : "Scroll right"}
         className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 dark:bg-[#141416]/90 border border-zinc-200 dark:border-[#2a2a30] text-zinc-700 dark:text-zinc-200 shadow-md backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 focus:opacity-100 transition-opacity hover:scale-105 active:scale-95 hidden sm:flex items-center justify-center cursor-pointer"
       >
         <ChevronRight className="w-4 h-4" />

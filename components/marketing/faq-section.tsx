@@ -3,38 +3,76 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SectionRailFrame } from "@/components/marketing/swiss-frame";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 const FAQ_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-const FAQS = [
-  {
-    q: "Is LShorter really free? Do I need a credit card?",
-    a: "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, 3 custom branded domains with automatic SSL, basic QR Code Studio styles, and 30-day real-time analytics. Smart Routing, password protection, webhooks, and retargeting pixels unlock starting on Pro.",
-  },
-  {
-    q: "What happens to links I shorten without creating an account?",
-    a: "You can shorten up to 2 links immediately from the homepage with live click tracking. Unclaimed guest links stay active for 3 days. As soon as you create a free account or sign in, those links and their existing clicks automatically transfer to your dashboard and become permanent.",
-  },
-  {
-    q: "What is PathLock™ and how is it different from a normal password?",
-    a: "A standard link password only checks access once before redirecting. PathLock™ locks visitors strictly inside the URL prefix you authorize (such as /app/dashboard/*). If someone tries to navigate into unfinished or private routes, access is intercepted unless they enter a team unlock password.",
-  },
-  {
-    q: "What happens if my links exceed my monthly click quota?",
-    a: "On the free Starter plan, links pause once you hit 10,000 clicks in a billing month. On Pro (150,000 clicks/month) and Business (500,000 clicks/month), redirects never pause — excess traffic is handled via transparent metered overage.",
-  },
-  {
-    q: "Can I use my own custom domain and how long does DNS setup take?",
-    a: "Yes. Even the free Starter plan includes 3 custom domains. Add your domain (such as go.yourbrand.io) from the dashboard, point a single CNAME record at your registrar, and LShorter verifies DNS and provisions edge SSL within minutes.",
-  },
-  {
-    q: "How does LShorter handle privacy, GDPR, and revenue attribution?",
-    a: "LShorter does not drop third-party ad tracking cookies on your visitors. Redirect telemetry runs on Cloudflare's global edge network (under 12ms across 310+ PoPs) with masked IP handling, and live revenue attribution works via a first-party click token (qk_cid) or server-side webhooks.",
-  },
-];
-
 export function FaqSection() {
+  const { tr } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const faqs = [
+    {
+      q: tr(
+        "Is LShorter really free? Do I need a credit card?",
+        "LShorter est-il vraiment gratuit ? Faut-il une carte bancaire ?"
+      ),
+      a: tr(
+        "Yes. Our Starter plan is free forever with no credit card required. It includes 50 permanent active links, 10,000 tracked clicks per month, 3 custom branded domains with automatic SSL, basic QR Code Studio styles, and 30-day real-time analytics. Smart Routing, password protection, webhooks, and retargeting pixels unlock starting on Pro.",
+        "Oui. Notre forfait Starter est gratuit à vie, sans carte bancaire requise. Il inclut 50 liens actifs permanents, 10 000 clics suivis par mois, 3 domaines personnalisés avec SSL automatique, les styles de base de QR Studio et 30 jours d'analyses en temps réel. Le routage intelligent, la protection par mot de passe, les webhooks et les pixels de retargeting se débloquent dès le forfait Pro."
+      ),
+    },
+    {
+      q: tr(
+        "What happens to links I shorten without creating an account?",
+        "Que deviennent les liens raccourcis sans créer de compte ?"
+      ),
+      a: tr(
+        "You can shorten up to 2 links immediately from the homepage with live click tracking. Unclaimed guest links stay active for 3 days. As soon as you create a free account or sign in, those links and their existing clicks automatically transfer to your dashboard and become permanent.",
+        "Vous pouvez raccourcir jusqu'à 2 liens immédiatement depuis la page d'accueil avec suivi des clics en direct. Les liens invités non réclamés restent actifs pendant 3 jours. Dès que vous créez un compte gratuit ou vous connectez, ces liens et leurs clics existants sont transférés automatiquement dans votre tableau de bord et deviennent permanents."
+      ),
+    },
+    {
+      q: tr(
+        "What is PathLock™ and how is it different from a normal password?",
+        "Qu'est-ce que PathLock™ et en quoi est-ce différent d'un mot de passe classique ?"
+      ),
+      a: tr(
+        "A standard link password only checks access once before redirecting. PathLock™ locks visitors strictly inside the URL prefix you authorize (such as /app/dashboard/*). If someone tries to navigate into unfinished or private routes, access is intercepted unless they enter a team unlock password.",
+        "Un mot de passe classique ne vérifie l'accès qu'une seule fois avant la redirection. PathLock™ maintient les visiteurs strictement à l'intérieur du préfixe d'URL autorisé (par exemple /app/dashboard/*). Si quelqu'un tente de naviguer vers des routes privées ou non finalisées, l'accès est intercepté sauf saisie du mot de passe de déverrouillage équipe."
+      ),
+    },
+    {
+      q: tr(
+        "What happens if my links exceed my monthly click quota?",
+        "Que se passe-t-il si mes liens dépassent mon quota mensuel de clics ?"
+      ),
+      a: tr(
+        "On the free Starter plan, links pause once you hit 10,000 clicks in a billing month. On Pro (150,000 clicks/month) and Business (500,000 clicks/month), redirects never pause — excess traffic is handled via transparent metered overage.",
+        "Sur le forfait Starter gratuit, les liens se mettent en pause une fois les 10 000 clics atteints dans le mois. Sur Pro (150 000 clics/mois) et Business (500 000 clics/mois), vos redirections ne s'arrêtent jamais — le trafic supplémentaire est facturé de façon transparente à l'usage."
+      ),
+    },
+    {
+      q: tr(
+        "Can I use my own custom domain and how long does DNS setup take?",
+        "Puis-je utiliser mon propre domaine personnalisé et combien de temps prend le DNS ?"
+      ),
+      a: tr(
+        "Yes. Even the free Starter plan includes 3 custom domains. Add your domain (such as go.yourbrand.io) from the dashboard, point a single CNAME record at your registrar, and LShorter verifies DNS and provisions edge SSL within minutes.",
+        "Oui. Même le forfait Starter gratuit inclut 3 domaines personnalisés. Ajoutez votre domaine (par exemple go.yourbrand.io) depuis le tableau de bord, pointez un simple enregistrement CNAME chez votre registrar, et LShorter vérifie le DNS et provisionne le certificat SSL edge en quelques minutes."
+      ),
+    },
+    {
+      q: tr(
+        "How does LShorter handle privacy, GDPR, and revenue attribution?",
+        "Comment LShorter gère-t-il la confidentialité, le RGPD et l'attribution des revenus ?"
+      ),
+      a: tr(
+        "LShorter does not drop third-party ad tracking cookies on your visitors. Redirect telemetry runs on Cloudflare's global edge network (under 12ms across 310+ PoPs) with masked IP handling, and live revenue attribution works via a first-party click token (qk_cid) or server-side webhooks.",
+        "LShorter ne dépose aucun cookie publicitaire tiers sur vos visiteurs. La télémétrie de redirection s'exécute sur le réseau edge mondial de Cloudflare (moins de 12 ms sur plus de 310 PoP) avec anonymisation des adresses IP, et l'attribution des revenus en direct fonctionne via un jeton first-party (qk_cid) ou des webhooks côté serveur."
+      ),
+    },
+  ];
 
   return (
     <section
@@ -46,20 +84,25 @@ export function FaqSection() {
           {/* Sticky Left Heading */}
           <div className="lg:col-span-5 lg:sticky lg:top-28">
             <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              Questions teams ask before switching
+              {tr(
+                "Questions teams ask before switching",
+                "Les questions que les équipes posent avant de migrer"
+              )}
             </h2>
             <p className="mt-4 text-[15px] text-[#52525B] dark:text-zinc-400 leading-[1.6] max-w-[380px]">
-              Clear answers on free limits, guest links, PathLock™ boundaries,
-              custom domains, and privacy.
+              {tr(
+                "Clear answers on free limits, guest links, PathLock™ boundaries, custom domains, and privacy.",
+                "Des réponses claires sur les limites gratuites, les liens invités, le périmètre PathLock™, les domaines personnalisés et la confidentialité."
+              )}
             </p>
           </div>
 
           {/* Right Borderless Hairline Accordion (Silky Framer Motion Open/Close) */}
           <div className="lg:col-span-7 border-t border-[#E4E7EC] dark:border-white/[0.09] divide-y divide-[#E4E7EC] dark:divide-white/[0.09]">
-            {FAQS.map((item, idx) => {
+            {faqs.map((item, idx) => {
               const isOpen = openIndex === idx;
               return (
-                <div key={item.q}>
+                <div key={idx}>
                   <button
                     type="button"
                     aria-expanded={isOpen}

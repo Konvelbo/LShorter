@@ -3,6 +3,7 @@
 import React from "react";
 import { Lock, Sparkles } from "lucide-react";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function LockedProFeature({
   title,
@@ -15,6 +16,9 @@ export function LockedProFeature({
   children: React.ReactNode;
   isUnlocked: boolean;
 }) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
+
   if (isUnlocked) {
     return <>{children}</>;
   }
@@ -24,7 +28,9 @@ export function LockedProFeature({
       onClick={() =>
         triggerPlanUpgrade({
           featureName: title,
-          reason: `Unlock ${title} by upgrading to the PRO plan.`,
+          reason: isFr
+            ? `Débloquez « ${title} » en passant au forfait PRO.`
+            : `Unlock ${title} by upgrading to the PRO plan.`,
           targetPlan: "PRO",
         })
       }
@@ -47,7 +53,7 @@ export function LockedProFeature({
                 {title}
               </span>
               <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-extrabold text-[9px] border border-amber-500/30 tracking-wider">
-                PLAN PRO
+                {isFr ? "FORFAIT PRO" : "PRO PLAN"}
               </span>
             </div>
             <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-200 leading-tight mt-0.5">
@@ -62,14 +68,16 @@ export function LockedProFeature({
             e.stopPropagation();
             triggerPlanUpgrade({
               featureName: title,
-              reason: `Unlock ${title} by upgrading to the PRO plan.`,
+              reason: isFr
+                ? `Débloquez « ${title} » en passant au forfait PRO.`
+                : `Unlock ${title} by upgrading to the PRO plan.`,
               targetPlan: "PRO",
             });
           }}
           className="px-3.5 py-1.5 rounded-[8px] bg-brand hover:bg-brand-hover text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Unlock with PRO</span>
+          <span>{isFr ? "Débloquer avec PRO" : "Unlock with PRO"}</span>
         </button>
       </div>
     </div>

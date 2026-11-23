@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/types";
+
 export interface DocApiParameter {
   name: string;
   type: string;
@@ -1610,7 +1612,7 @@ console.log("Vector SVG QR Code exported successfully!");`
     overview: [
       "LShorter webhooks notify your backend systems in real time whenever an event occurs on your short links (click registered, conversion recorded, QR scanned, link updated or deleted).",
       "All outgoing HTTP POST payloads are cryptographically signed with an HMAC-SHA256 secret key via the x-lshorter-signature header to guarantee authenticity and prevent tampering.",
-      "Les abonnements webhooks peuvent être créés, listés, modifiés et supprimés aussi bien depuis le tableau de bord LShorter (Paramètres > Webhooks) que programmatiquement via le SDK ou l'API REST (forfaits Pro, Business et Enterprise, avec validation anti-SSRF et isolation stricte par compte)."
+      "Webhook subscriptions can be created, listed, updated, and deleted either from the LShorter dashboard (Settings > Webhooks) or programmatically via the SDK or REST API (Pro, Business, and Enterprise plans, with anti-SSRF validation and strict per-account isolation)."
     ],
     keyPoints: [
       {
@@ -2878,8 +2880,1200 @@ const link = await lshorter.links.create({
   }
 ];
 
+export interface DocCategoryMeta {
+  tag: string;
+  color: string;
+  date: string;
+}
+
+export const DOC_CATEGORIES: Record<
+  string,
+  { en: string; fr: string; color: string; date: string }
+> = {
+  "sdk-quickstart": {
+    en: "SDK & API",
+    fr: "SDK & API",
+    color: "bg-emerald-500",
+    date: "v1.2",
+  },
+  "geo-routing": {
+    en: "Edge Routing",
+    fr: "Routage Edge",
+    color: "bg-brand",
+    date: "09/12",
+  },
+  "ab-testing-routing": {
+    en: "A/B Testing",
+    fr: "Tests A/B",
+    color: "bg-orange-500",
+    date: "09/10",
+  },
+  "pin-protection": {
+    en: "Security",
+    fr: "Sécurité",
+    color: "bg-amber-500",
+    date: "09/08",
+  },
+  "realtime-analytics": {
+    en: "Analytics",
+    fr: "Analytique",
+    color: "bg-purple-500",
+    date: "09/04",
+  },
+  "conversion-tracking-amount-count": {
+    en: "Conversions & EPC",
+    fr: "Conversions & EPC",
+    color: "bg-emerald-600",
+    date: "09/01",
+  },
+  "click-limits-and-expiration": {
+    en: "Limits",
+    fr: "Limites",
+    color: "bg-rose-500",
+    date: "08/28",
+  },
+  "url-masking": {
+    en: "Brand Masking",
+    fr: "Masquage de marque",
+    color: "bg-sky-500",
+    date: "08/20",
+  },
+  "dynamic-qr-codes": {
+    en: "QR Codes",
+    fr: "QR Codes",
+    color: "bg-indigo-500",
+    date: "08/14",
+  },
+  "social-sharing-opengraph": {
+    en: "Open Graph",
+    fr: "Open Graph",
+    color: "bg-pink-500",
+    date: "08/08",
+  },
+  "webhooks-and-events": {
+    en: "Webhooks",
+    fr: "Webhooks",
+    color: "bg-emerald-400",
+    date: "08/02",
+  },
+  "path-lock": {
+    en: "PathLock™",
+    fr: "PathLock™",
+    color: "bg-violet-500",
+    date: "09/14",
+  },
+};
+
+export function getLocalizedDocCategories(
+  locale: Locale = "en"
+): Record<string, DocCategoryMeta> {
+  const isFr = locale === "fr";
+  const result: Record<string, DocCategoryMeta> = {};
+  for (const [slug, meta] of Object.entries(DOC_CATEGORIES)) {
+    result[slug] = {
+      tag: isFr ? meta.fr : meta.en,
+      color: meta.color,
+      date: meta.date,
+    };
+  }
+  return result;
+}
+
+interface DocApiEndpointTranslation {
+  name: string;
+  description: string;
+  authentication?: string;
+  rateLimit?: string;
+  headers?: Record<string, string>;
+  pathParams?: Record<string, string>;
+  queryParams?: Record<string, string>;
+  bodyParams?: Record<string, string>;
+  responses?: string[];
+  errorCodes?: Record<string, string>;
+}
+
+interface DocFeatureTranslation {
+  title: string;
+  subtitle: string;
+  description: string;
+  readTime: string;
+  overview: string[];
+  keyPoints: { title: string; description: string }[];
+  apiEndpoints?: DocApiEndpointTranslation[];
+  codeSnippets: { title: string; description: string }[];
+  responseSample?: { title: string; description: string };
+  bestPractices: string[];
+}
+
+const FR_RATE_LIMIT_DEFAULT = "60 à 1 400 req/min (selon le forfait)";
+
+const DOC_FEATURES_FR: Record<string, DocFeatureTranslation> = {
+  "sdk-quickstart": {
+    title: "Démarrage rapide & Référence API REST",
+    subtitle:
+      "Intégrez le raccourcissement intelligent de liens à la périphérie, l'analytique en temps réel et le suivi des conversions grâce à notre API REST et à nos SDK officiels TypeScript, Python, Rust, Go et PHP.",
+    description:
+      "Référence complète de l'API REST, URL de base, en-têtes d'authentification, limites de débit, démarrage rapide multi-langages (JS/TS, Python, Rust, Go, PHP) et catalogue des endpoints pour développeurs.",
+    readTime: "5 min de lecture",
+    overview: [
+      "L'API REST LShorter offre un accès programmatique à l'ensemble des fonctionnalités de gestion de liens, de routage edge, de masquage de confidentialité, d'attribution des conversions et de télémétrie de la plateforme LShorter.",
+      "Toutes les requêtes sont acheminées vers le réseau edge mondial de Cloudflare (plus de 300 centres de données dans le monde) afin de garantir des temps de réponse inférieurs à 15 ms, une disponibilité de 99,99 % et un chiffrement TLS 1.3 automatique.",
+      "Les développeurs peuvent interagir directement via des requêtes HTTP standard ou utiliser nos SDK officiels typés pour TypeScript/JavaScript (lshorter-api), Python (lshorter-api), Rust (lshorter-api), Go (github.com/Konvelbo/LShorter-api/sdks/go) et PHP (lshorter/lshorter-api).",
+    ],
+    keyPoints: [
+      {
+        title: "REST & JSON standard",
+        description:
+          "Des URL orientées ressources prévisibles, des méthodes HTTP standard (GET, POST, PATCH, DELETE) et des corps de requêtes et réponses encodés en JSON.",
+      },
+      {
+        title: "Authentification par jeton Bearer",
+        description:
+          "Sécurisez chaque requête avec l'en-tête Authorization: Bearer <API_KEY>. Gérez vos clés et leurs permissions directement depuis votre tableau de bord développeur.",
+      },
+      {
+        title: "Limites de débit adaptatives",
+        description:
+          "Des limites de débit évolutives de 60 à 1 400 requêtes par minute selon votre forfait (Starter : 60, Pro : 200, Business : 600, Enterprise : 1 400), avec des en-têtes de quota temps réel inclus dans chaque réponse HTTP.",
+      },
+      {
+        title: "Exécution Edge mondiale",
+        description:
+          "La logique de redirection, la résolution géographique et les compteurs de clics atomiques s'exécutent directement dans des isolats V8 à l'Edge, sans latence serveur d'origine.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Créer un lien court",
+        description:
+          "Crée une nouvelle URL raccourcie avec en option un slug personnalisé, des tags, une date d'expiration, une limite maximale de clics, une protection par code PIN, un masquage de marque et des règles de routage géographique.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        headers: {
+          Authorization: "Jeton Bearer contenant votre clé API secrète.",
+          "Content-Type": "Doit être défini sur application/json.",
+        },
+        bodyParams: {
+          url: "L'URL de destination vers laquelle les visiteurs seront redirigés.",
+          slug: "Alias personnalisé du lien. Si omis, une chaîne aléatoire de 7 caractères à haute entropie est générée automatiquement.",
+          tags: "Tableau de tags de catégorisation pour filtrer vos statistiques.",
+          maxClicks:
+            "Nombre maximal de clics autorisés avant que le lien ne soit automatiquement désactivé.",
+          expiresAt:
+            "Horodatage d'expiration UTC après lequel le lien devient inactif.",
+          expiredRedirectUrl:
+            "URL de secours alternative vers laquelle rediriger les visiteurs une fois le lien expiré.",
+          pinCode:
+            "Code PIN de sécurité à 4 chiffres requis pour accéder à l'URL de destination.",
+          maskUrl:
+            "Si true, masque l'URL de destination en affichant le contenu dans une iframe sous votre domaine de marque.",
+          metaTitle: "Titre Open Graph personnalisé pour les réseaux sociaux.",
+          ogDescription:
+            "Description Open Graph personnalisée pour les cartes d'aperçu social.",
+          ogImage:
+            "URL de l'image bannière (1200x630px) pour les aperçus sur les réseaux sociaux.",
+        },
+        responses: ["Lien court créé avec succès."],
+        errorCodes: {
+          INVALID_URL: "L'URL de destination fournie est invalide ou mal formée.",
+          UNAUTHORIZED: "Clé API Bearer manquante ou invalide.",
+          SLUG_ALREADY_EXISTS:
+            "Le slug personnalisé demandé est déjà utilisé par un autre lien.",
+          INVALID_EXPIRATION:
+            "expiresAt doit être un horodatage ISO 8601 valide situé dans le futur.",
+          RATE_LIMIT_EXCEEDED:
+            "Vous avez dépassé la limite de débit associée à votre forfait actuel.",
+        },
+      },
+      {
+        name: "Lister les liens courts",
+        description:
+          "Récupère une liste paginée de tous les liens courts créés au sein de votre organisation, avec recherche textuelle, filtrage par tag et options de tri.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        queryParams: {
+          page: "Numéro de page à récupérer.",
+          limit: "Nombre de liens par page (maximum 100).",
+          tag: "Filtre les liens selon le nom exact d'un tag.",
+          search:
+            "Requête de recherche portant sur le slug ou l'URL de destination.",
+          sortBy: "Critère de tri des résultats.",
+          order: "Ordre de tri (ascendant ou descendant).",
+        },
+        responses: [
+          "Liste des liens courts renvoyée avec les métadonnées de pagination.",
+        ],
+      },
+    ],
+    codeSnippets: [
+      {
+        title:
+          "1. Installation du SDK officiel (JS/TS, Python, Rust, Go & PHP)",
+        description:
+          "Installez le SDK officiel LShorter pour votre stack à l'aide de votre gestionnaire de paquets favori :",
+      },
+      {
+        title: "2. Initialisation du client",
+        description:
+          "Configurez votre client LShorter avec votre clé API secrète dans n'importe quel langage pris en charge :",
+      },
+      {
+        title: "3. Créer votre premier lien court",
+        description:
+          "Créez un lien court traçable avec slug personnalisé, ciblage géographique et pixels de retargeting :",
+      },
+      {
+        title:
+          "4. Enregistrer une conversion avec avatar client (avatarUrl & customerAvatar)",
+        description:
+          "Enregistrez une vente avec la photo de profil / l'avatar du client affiché dans vos tableaux de bord temps réel :",
+      },
+      {
+        title: "5. Interroger la télémétrie revenus et clics en temps réel",
+        description:
+          "Récupérez les compteurs de clics en direct, le chiffre d'affaires suivi et le gain moyen par clic (EPC) :",
+      },
+    ],
+    bestPractices: [
+      "Gardez votre clé API strictement privée : stockez-la dans vos variables d'environnement (LSHORTER_API_KEY) et ne la versionnez jamais dans un dépôt public.",
+      "Utilisez le pooling de connexions HTTP Keep-Alive entre vos requêtes afin de minimiser la latence de négociation TLS.",
+      "Surveillez les en-têtes de limite de débit (x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset) pour anticiper les pics de trafic.",
+      "Mettez en place une gestion idempotente des requêtes lorsque vous réessayez des appels sur les endpoints POST.",
+    ],
+  },
+
+  "geo-routing": {
+    title: "Routage dynamique & Géolocalisation Edge",
+    subtitle:
+      "Redirigez vos visiteurs vers des URL contextuelles selon leur pays ou leur continent d'origine avec une latence ultra-faible.",
+    description:
+      "Guide et référence API REST pour configurer des règles de redirection géographique par pays et continent (ISO 3166-1), évaluées directement sur les nœuds Cloudflare Edge.",
+    readTime: "4 min de lecture",
+    overview: [
+      "Le routage géographique optimise l'expérience utilisateur et les taux de conversion en servant un contenu localisé (langue, devise, catalogue) selon le pays ou le continent, à partir d'un seul lien partagé.",
+      "L'évaluation des règles s'effectue directement sur les nœuds Cloudflare Edge lors de la résolution DNS et de la négociation TLS, garantissant un temps moyen de redirection inférieur à 15 millisecondes sans aller-retour vers le serveur backend.",
+      "Le routage dynamique et le ciblage géographique sont réservés aux forfaits payants (Pro, Business et Enterprise). Les liens du forfait gratuit redirigent systématiquement vers l'URL de destination principale.",
+    ],
+    keyPoints: [
+      {
+        title: "Résolution au plus près de l'utilisateur",
+        description:
+          "Le pays et le continent du visiteur sont détectés à partir de l'en-tête Edge CF-IPCountry, sans aucune latence de proxy supplémentaire.",
+      },
+      {
+        title: "URL de secours permanente",
+        description:
+          "Si le pays ou le continent du visiteur ne correspond à aucune règle spécifique, il est automatiquement redirigé vers l'URL de secours par défaut.",
+      },
+      {
+        title: "Ciblage par pays et par continent",
+        description:
+          "Définissez des règles pour n'importe quel code pays à 2 lettres (ex. US, UK, FR, DE, JP, CA, AU) ou zone continentale.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Mettre à jour les règles de routage géographique",
+        description:
+          "Configure ou met à jour les règles de destination par pays ainsi que l'URL de secours globale d'un lien court donné.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "L'identifiant du lien court ou son alias slug.",
+        },
+        bodyParams: {
+          fallbackUrl:
+            "URL par défaut utilisée lorsque le pays d'origine du visiteur ne correspond à aucune règle.",
+          rules: "Tableau des règles de correspondance par pays.",
+          "rules[].country": "Code pays majuscule à deux lettres (ISO 3166-1 alpha-2).",
+          "rules[].targetUrl":
+            "URL de destination pour les visiteurs provenant de ce pays.",
+        },
+        responses: [
+          "Configuration de routage déployée immédiatement sur tous les nœuds Edge.",
+        ],
+        errorCodes: {
+          INVALID_COUNTRY_CODE:
+            "Le code pays doit être une chaîne ISO 3166-1 alpha-2 valide de 2 lettres en majuscules.",
+          PLAN_UPGRADE_REQUIRED:
+            "Le routage dynamique et le ciblage géographique nécessitent un abonnement payant actif (Pro, Business ou Enterprise).",
+          LINK_NOT_FOUND:
+            "Aucun lien trouvé correspondant au slug ou à l'identifiant fourni.",
+        },
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Configurer le routage géographique et par appareil via SDK",
+        description:
+          "Associez des règles de redirection par pays et par appareil depuis n'importe quel SDK officiel :",
+      },
+    ],
+    responseSample: {
+      title: "Confirmation des règles appliquées",
+      description:
+        "Structure renvoyée après la mise à jour des règles de routage géographique :",
+    },
+    bestPractices: [
+      "Assurez-vous que votre URL de secours (fallbackUrl) soit toujours fonctionnelle et accessible dans le monde entier.",
+      "Pour tester vos règles en préproduction sans VPN, passez l'en-tête HTTP X-Override-Country: US dans vos requêtes de test.",
+      "Analysez régulièrement les pays non routés dans votre tableau de bord de télémétrie temps réel afin d'ajouter les régions à forte conversion.",
+    ],
+  },
+
+  "pin-protection": {
+    title: "Sécurité avancée & Protection par code PIN",
+    subtitle:
+      "Protégez vos documents confidentiels, présentations investisseurs et liens privés avec un code PIN à 4 chiffres vérifié à la volée.",
+    description:
+      "Guide API REST et spécification technique pour configurer des codes PIN sur vos liens courts, bloquer les attaques par force brute et émettre des sessions éphémères.",
+    readTime: "3 min de lecture",
+    overview: [
+      "La protection par code PIN ajoute instantanément un contrôle d'accès sans friction, sans obliger vos visiteurs à créer de compte complexe ni à traverser de lourds parcours OAuth.",
+      "Lorsqu'un visiteur ouvre un lien protégé, une interface edge légère et sécurisée lui demande le code PIN à 4 chiffres. Dès validation, un jeton de session éphémère est émis et la redirection s'exécute immédiatement.",
+    ],
+    keyPoints: [
+      {
+        title: "Hachage cryptographique du PIN",
+        description:
+          "Les codes PIN ne sont jamais stockés en clair ; ils sont salés et hachés de manière sécurisée avec Argon2id / bcrypt.",
+      },
+      {
+        title: "Défense anti-force brute",
+        description:
+          "Après 5 tentatives échouées consécutives, l'adresse IP du visiteur est temporairement bloquée pendant 15 minutes.",
+      },
+      {
+        title: "Jeton de session éphémère",
+        description:
+          "Une fois validé, la redirection s'effectue immédiatement grâce à un cookie de courte durée signé cryptographiquement.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Mettre à jour les paramètres de sécurité PIN",
+        description:
+          "Active, modifie ou désactive la protection par code PIN sur un lien court spécifique.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "Identifiant du lien court ou alias slug.",
+        },
+        bodyParams: {
+          pinCode:
+            "Chaîne de code PIN à 4 chiffres, ou null pour désactiver la protection.",
+          maxAttempts:
+            "Nombre maximal de tentatives échouées autorisées avant blocage temporaire de l'IP.",
+        },
+        responses: ["Paramètres de sécurité mis à jour avec succès."],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Créer un lien protégé par code PIN",
+        description:
+          "Spécifiez la propriété pinCode lors de la création du lien :",
+      },
+    ],
+    responseSample: {
+      title: "Structure de l'objet protégé",
+      description:
+        "Le champ isProtected confirme l'état de sécurité sans exposer le code en clair :",
+    },
+    bestPractices: [
+      "Évitez les codes PIN triviaux comme 0000 ou 1234 pour vos documents financiers sensibles ou propositions commerciales.",
+      "Transmettez le code PIN via un canal de communication distinct (ex. SMS / WhatsApp pour le PIN, e-mail pour le lien court).",
+      "Combinez la protection par code PIN avec une date d'expiration (expiresAt) pour une confidentialité renforcée en profondeur.",
+    ],
+  },
+
+  "realtime-analytics": {
+    title: "API Télémétrie & Métriques en temps réel",
+    subtitle:
+      "Extrayez des analyses d'audience détaillées, la répartition géographique, les statistiques d'appareils et la télémétrie de clics à la milliseconde près.",
+    description:
+      "Référence API REST pour interroger la télémétrie en temps réel : volumes de clics, visiteurs uniques dédupliqués, répartition géographique, systèmes d'exploitation, navigateurs et référents.",
+    readTime: "4 min de lecture",
+    overview: [
+      "Chaque interaction avec vos liens courts génère des métriques instantanées agrégées à l'Edge. Aucune donnée personnellement identifiable (PII) n'est stockée, garantissant une conformité native RGPD, CCPA et PECR.",
+      "Les compteurs de redirections (count) et les montants financiers des conversions (amount) se synchronisent en temps réel via l'API REST pour alimenter vos tableaux de bord en direct, alertes automatisées ou systèmes de suivi de rentabilité (ROI/EPC).",
+    ],
+    keyPoints: [
+      {
+        title: "Compteurs de clics atomiques (Count)",
+        description:
+          "Chaque clic est comptabilisé de manière atomique à l'Edge (totalClicks) et distingué entre volume brut et visiteurs uniques sans cookie (uniqueVisitors).",
+      },
+      {
+        title: "Métriques monétaires & Revenus (Amount)",
+        description:
+          "Suivez le chiffre d'affaires cumulé (trackedRevenue), le panier moyen (AOV) et le gain par clic (EPC = revenu total / clics totaux).",
+      },
+      {
+        title: "Segmentation multidimensionnelle",
+        description:
+          "Analysez les performances par pays, continent, type d'appareil (mobile, desktop, tablette), système d'exploitation et navigateur.",
+      },
+      {
+        title: "Suivi des référents",
+        description:
+          "Identifiez précisément vos sources de trafic (Twitter/X, LinkedIn, newsletters, moteurs de recherche).",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Récupérer les statistiques d'un lien",
+        description:
+          "Récupère la télémétrie agrégée des clics, la répartition par pays, les appareils, les navigateurs et les principales sources référentes pour un lien court spécifique.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          slug: "Alias slug du lien court.",
+        },
+        queryParams: {
+          period: "Fenêtre temporelle d'agrégation des métriques.",
+          country: "Filtre les statistiques selon un code pays précis.",
+          device: "Filtre les statistiques par type d'appareil.",
+        },
+        responses: [
+          "Charge utile de télémétrie contenant l'analyse complète du trafic.",
+        ],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Récupérer les statistiques via le SDK",
+        description:
+          "Interrogez les métriques complètes en temps réel d'un lien en TypeScript, Python, Rust, Go ou PHP :",
+      },
+    ],
+    bestPractices: [
+      "Utilisez le paramètre de requête period pour extraire des plages temporelles exactes destinées à vos rapports hebdomadaires et mensuels automatisés.",
+      "Exploitez la répartition mobile vs desktop pour optimiser l'ergonomie responsive et la vitesse de chargement de vos pages de destination.",
+      "Combinez les paramètres UTM avec la télémétrie des référents pour isoler la performance de vos campagnes payantes du trafic social organique.",
+    ],
+  },
+
+  "click-limits-and-expiration": {
+    title: "Limites de clics & Expiration programmée",
+    subtitle:
+      "Automatisez la clôture de vos campagnes avec des quotas maximaux de clics (ventes flash) et des calendriers d'expiration UTC précis.",
+    description:
+      "Guide API REST pour définir des plafonds de clics (maxClicks), calculer les clics restants (remainingClicks) et activer la redirection de secours après expiration.",
+    readTime: "3 min de lecture",
+    overview: [
+      "Les fonctionnalités de limitation et d'expiration automatisent la fin des campagnes marketing, promotions limitées ou invitations bêta restreintes sans aucune intervention manuelle des développeurs.",
+      "Chaque visite déclenche un incrément atomique de clicksCount directement sur les nœuds Cloudflare Edge. Dès qu'une limite est atteinte (clicksCount >= maxClicks) ou que la date d'expiration est dépassée, le lien bascule instantanément en moins de 10 ms en statut inactif ou redirige vers une URL de secours.",
+    ],
+    keyPoints: [
+      {
+        title: "Compteur atomique sans verrou (Count)",
+        description:
+          "L'incrément atomique à l'Edge élimine toute condition de concurrence lors des pics de trafic viraux simultanés (plus de 50 000 clics/seconde).",
+      },
+      {
+        title: "Calcul temps réel de remainingClicks",
+        description:
+          "remainingClicks = Math.max(0, maxClicks - clicksCount). Alimentez vos badges de rareté et d'urgence en direct.",
+      },
+      {
+        title: "Horodatages ISO 8601 UTC",
+        description:
+          "Définissez une date et une heure d'expiration universelles exactes sans erreurs de conversion de fuseau horaire.",
+      },
+      {
+        title: "Redirection de secours personnalisable",
+        description:
+          "Redirigez les visiteurs vers une page de liste d'attente « Offre terminée » ou affichez un écran d'expiration à votre image.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Mettre à jour les limites de clics et l'expiration",
+        description:
+          "Met à jour le quota maximal de clics, l'horodatage d'expiration ou l'URL de secours après expiration d'un lien actif.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "Slug ou identifiant du lien court.",
+        },
+        bodyParams: {
+          maxClicks:
+            "Nombre maximal de clics autorisés, ou null pour supprimer la limite.",
+          expiresAt:
+            "Horodatage d'expiration UTC, ou null pour supprimer l'expiration.",
+          expiredRedirectUrl: "URL de destination après expiration du lien.",
+        },
+        responses: [
+          "Limites mises à jour et appliquées sur tous les points de présence Edge mondiaux.",
+        ],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Vérifier les compteurs atomiques et remainingClicks",
+        description:
+          "Surveillez la consommation de votre quota en temps réel pour vos interfaces utilisateurs :",
+      },
+    ],
+    bestPractices: [
+      "Configurez toujours une expiredRedirectUrl afin de ne jamais perdre un trafic client précieux après la fin de votre campagne.",
+      "Veillez à transmettre les horodatages au format UTC standard (ISO 8601 terminé par Z) pour éviter tout décalage lié à l'heure d'été ou aux fuseaux horaires locaux.",
+      "Abonnez-vous aux webhooks (link.limit_reached, link.expired) pour recevoir des notifications automatiques dans Slack ou Discord.",
+    ],
+  },
+
+  "url-masking": {
+    title: "Masquage d'URL de marque & Intégration marque blanche",
+    subtitle:
+      "Préservez la cohérence de votre marque et masquez les URL d'affiliation ou tierces complexes dans la barre d'adresse du navigateur.",
+    description:
+      "Guide API REST pour configurer le masquage d'URL de marque, personnaliser les titres de page et encapsuler le contenu dans une iframe sécurisée.",
+    readTime: "3 min de lecture",
+    overview: [
+      "Le masquage d'URL de marque affiche le contenu de la page de destination tout en conservant votre nom de domaine dans la barre d'adresse du navigateur du visiteur.",
+      "Cette technique est largement utilisée pour les formulaires hébergés sur des plateformes SaaS tierces (Typeform, Notion, Airtable) ainsi que pour les portails clients entreprise en marque blanche.",
+    ],
+    keyPoints: [
+      {
+        title: "Préservation de l'image de marque",
+        description:
+          "Les visiteurs voient en permanence votre domaine propre et reconnaissable au lieu d'une longue URL technique.",
+      },
+      {
+        title: "Titres et favicons dynamiques",
+        description:
+          "Personnalisez le titre de l'onglet et le favicon du navigateur pour refléter parfaitement votre identité visuelle.",
+      },
+      {
+        title: "Isolation sécurisée (Sandboxing)",
+        description:
+          "Conteneurisation fiable avec des en-têtes Content-Security-Policy (CSP) stricts protégeant la confidentialité des visiteurs.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Activer le masquage d'URL",
+        description:
+          "Active ou désactive le masquage d'URL de marque et configure le titre HTML ainsi que les métadonnées favicon de la page encapsulée.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "Slug ou identifiant du lien court.",
+        },
+        bodyParams: {
+          maskUrl: "Définir sur true pour activer le masquage de marque.",
+          pageTitle: "Titre HTML personnalisé affiché dans l'onglet du navigateur.",
+          faviconUrl: "URL personnalisée de l'icône favicon.",
+        },
+        responses: ["Paramètres de masquage configurés avec succès."],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Créer un lien masqué",
+        description:
+          "Activez l'option maskUrl sur true lors de la création du lien :",
+      },
+    ],
+    bestPractices: [
+      "Vérifiez que les sites de destination autorisent l'intégration en iframe (assurez-vous qu'ils n'envoient pas d'en-tête strict X-Frame-Options: DENY).",
+      "Définissez un pageTitle clair afin que l'onglet du navigateur reflète fidèlement le contenu présenté.",
+      "Testez l'affichage responsive sur mobile pour vérifier que le défilement du contenu intégré reste fluide.",
+    ],
+  },
+
+  "dynamic-qr-codes": {
+    title: "API de génération de QR Codes dynamiques",
+    subtitle:
+      "Créez, personnalisez et diffusez dynamiquement des QR codes vectoriels SVG haute précision et PNG en résolution infinie.",
+    description:
+      "Documentation API REST pour la génération de QR codes dynamiques, personnalisation des couleurs, niveaux de correction d'erreur et télémétrie de scans en temps réel.",
+    readTime: "3 min de lecture",
+    overview: [
+      "Un QR code dynamique LShorter encode votre URL courte permanente plutôt que l'adresse de destination finale. Vous pouvez modifier la cible à tout moment depuis le tableau de bord ou l'API, même après l'impression de millions de brochures, d'affiches ou d'emballages physiques.",
+      "Chaque scan physique est enregistré dans la télémétrie en temps réel avec distinction des scans mobiles et suivi de l'origine géographique.",
+    ],
+    keyPoints: [
+      {
+        title: "Modifiable sans réimpression",
+        description:
+          "Modifiez l'URL de destination d'un QR code déjà imprimé en un clic, sans aucune interruption de service.",
+      },
+      {
+        title: "SVG vectoriel & PNG haute résolution",
+        description:
+          "Exportez des fichiers vectoriels SVG à résolution infinie pour l'affichage grand format et l'impression, ou des PNG pour vos supports numériques.",
+      },
+      {
+        title: "Niveaux de correction d'erreur",
+        description:
+          "Prise en charge des niveaux de correction L, M, Q et H permettant une lecture fiable même avec un logo centré.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Générer un QR Code dynamique",
+        description:
+          "Diffuse une image de QR code dynamique personnalisé au format SVG ou PNG.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          slug: "Alias slug du lien court.",
+        },
+        queryParams: {
+          format: "Format de sortie de l'image.",
+          size: "Dimension de l'image en pixels (pour PNG) ou taille viewBox (pour SVG).",
+          errorCorrectionLevel:
+            "Niveau de redondance du QR code (H = 30 % de tolérance aux dommages).",
+          darkColor: "Code couleur hexadécimal pour les modules du QR code.",
+          lightColor: "Code couleur hexadécimal pour l'arrière-plan.",
+          margin: "Largeur de la zone de calme périphérique en nombre de modules.",
+        },
+        responses: ["Image binaire renvoyée (image/svg+xml ou image/png)."],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Générer des QR Codes via le SDK",
+        description: "Téléchargez vos QR codes au format SVG ou PNG :",
+      },
+    ],
+    bestPractices: [
+      "Utilisez le niveau de correction d'erreur « H » (30 % de redondance) dès que vous placez un logo ou une icône de marque au centre du QR code.",
+      "Privilégiez toujours le format vectoriel SVG pour l'impression et le packaging afin de garantir des contours parfaitement nets à toute échelle physique.",
+      "Testez la lisibilité du QR code sur iOS (application Appareil photo native) et sur Android avant de lancer la production d'impression.",
+    ],
+  },
+
+  "webhooks-and-events": {
+    title: "API Webhooks & Événements en temps réel",
+    subtitle:
+      "Abonnez-vous aux flux d'événements en temps réel, recevez des notifications HTTP instantanées et vérifiez les signatures HMAC-SHA256.",
+    description:
+      "Guide API REST pour enregistrer des endpoints webhook, valider les signatures cryptographiques et traiter les événements de clics, conversions, limites et expirations.",
+    readTime: "4 min de lecture",
+    overview: [
+      "Les webhooks LShorter notifient vos systèmes backend en temps réel dès qu'un événement survient sur vos liens courts (clic enregistré, conversion comptabilisée, QR code scanné, lien modifié ou supprimé).",
+      "Toutes les requêtes HTTP POST sortantes sont signées cryptographiquement avec une clé secrète HMAC-SHA256 via l'en-tête x-lshorter-signature afin de garantir leur authenticité et empêcher toute altération.",
+      "Les abonnements webhooks peuvent être créés, listés, modifiés et supprimés aussi bien depuis le tableau de bord LShorter (Paramètres > Webhooks) que programmatiquement via le SDK ou l'API REST (forfaits Pro, Business et Enterprise, avec validation anti-SSRF et isolation stricte par compte).",
+    ],
+    keyPoints: [
+      {
+        title: "Types d'événements pris en charge",
+        description:
+          "click.created, click.unique, conversion.created, link.created, link.updated, link.deleted, link.expired, qr.scanned, target.reached.",
+      },
+      {
+        title: "Signatures cryptographiques HMAC-SHA256",
+        description:
+          "Validez l'en-tête x-lshorter-signature pour vérifier l'intégrité de chaque charge utile avant tout traitement.",
+      },
+      {
+        title: "Gestion complète via Tableau de bord & SDK (Pro+)",
+        description:
+          "Créez, listez, mettez à jour, suspendez et supprimez vos abonnements webhooks signés par code via lsh.webhooks.create(...) ou depuis Paramètres > Webhooks.",
+      },
+      {
+        title: "Nouvelles tentatives à délai exponentiel",
+        description:
+          "Planification automatique de nouvelles tentatives avec backoff exponentiel si votre récepteur webhook renvoie une erreur 5xx ou expire.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Créer & Lister les abonnements Webhooks",
+        description:
+          "Enregistre un nouvel endpoint webhook signé (requiert un forfait PRO, BUSINESS ou ENTERPRISE ; protégé contre le SSRF, les boucles infinies et soumis au quota par compte).",
+        rateLimit: "20 req/min à la création",
+        responses: [
+          "Liste des endpoints webhooks enregistrés et des événements auxquels ils sont abonnés.",
+        ],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Vérifier les signatures HMAC dans Next.js / Node.js",
+        description:
+          "Vérifiez cryptographiquement les charges utiles webhook entrantes avant de les traiter :",
+      },
+    ],
+    responseSample: {
+      title: "Exemple de charge utile Webhook",
+      description:
+        "Charge utile JSON envoyée lors d'un événement link.clicked ou link.converted :",
+    },
+    bestPractices: [
+      "Répondez rapidement avec un statut HTTP 200 OK (en moins de 3 000 ms) et déléguez les traitements métier longs à des files d'attente en arrière-plan (BullMQ, Celery, SQS).",
+      "Vérifiez toujours la signature HMAC-SHA256 avant de parser ou d'exploiter les données JSON d'un webhook.",
+      "Stockez les identifiants event.id reçus pour bâtir des gestionnaires idempotents capables d'absorber sereinement les réessais réseau.",
+    ],
+  },
+
+  "conversion-tracking-amount-count": {
+    title: "Suivi des conversions & Métriques financières (Amount & Count)",
+    subtitle:
+      "Guide complet de bout en bout pour attribuer les revenus monétaires (amount), calculer l'EPC et le ROI, capturer le clickId dans vos tunnels d'achat et gérer les achats multidevises et remboursements.",
+    description:
+      "Référence technique exhaustive et guide d'implémentation pour l'attribution de revenus (amount), les compteurs atomiques Edge (clicksCount, uniqueClicks, maxClicks), le panier moyen (AOV), le gain par clic (EPC) et les intégrations de paiement (Stripe, Shopify, WooCommerce).",
+    readTime: "6 min de lecture",
+    overview: [
+      "Le moteur de conversion financière LShorter offre une attribution monétaire exacte de bout en bout en reliant directement le chiffre d'affaires e-commerce (amount) au clic d'origine du lien court (clickId). Que vous vendiez via Stripe, Shopify, LemonSqueezy, WooCommerce ou un tunnel de paiement sur mesure, chaque dollar, euro ou livre sterling est mathématiquement rattaché à son canal d'acquisition.",
+      "Côté télémétrie, les compteurs de clics (clicksCount) et de conversions (conversionsCount) sont incrémentés sans verrou sur le réseau Cloudflare Edge. La plateforme calcule en continu vos indicateurs clés de rentabilité : Gain par Clic (EPC = trackedRevenue / totalClicks), Panier Moyen (AOV = trackedRevenue / conversionsCount) et Taux de Conversion (CR = conversionsCount / totalClicks * 100).",
+      "Le système gère nativement la normalisation multidevise (USD, EUR, GBP, CAD, JPY), les déductions de remboursements partiels ou totaux (POST /api/v1/track/refund) pour conserver une comptabilité irréprochable, ainsi que les paiements asynchrones différés.",
+    ],
+    keyPoints: [
+      {
+        title: "Attribution automatique des clics (clickId)",
+        description:
+          "Lorsqu'un visiteur clique sur un lien LShorter, notre Worker Edge ajoute automatiquement un jeton éphémère ref=clk_... à l'URL de destination. Ce jeton est conservé dans le navigateur puis transmis au paiement.",
+      },
+      {
+        title: "Ingestion de revenus monétaires (amount & currency)",
+        description:
+          "Transmettez le montant exact de la transaction (ex. amount: 49.00, currency: 'USD'). L'API met à jour trackedRevenue de façon atomique sans contention, même lors de ventes flash virales.",
+      },
+      {
+        title: "Formules EPC & Rentabilité en temps réel",
+        description:
+          "Le Gain par Clic (EPC = trackedRevenue / totalClicks) vous permet de comparer directement vos gains au Coût par Clic (CPC) publicitaire. Lorsque EPC > CPC, votre campagne est rentable.",
+      },
+      {
+        title: "Ajustements remboursements & litiges",
+        description:
+          "Préservez des rapports financiers impeccables : les endpoints de remboursement déduisent automatiquement les montants remboursés de trackedRevenue et recalculent votre ROI.",
+      },
+      {
+        title: "Déduplication Edge sans cookie",
+        description:
+          "Suivi des visiteurs conforme au RGPD et à la directive PECR qui comptabilise précisément les acheteurs uniques et les conversions tout en respectant la vie privée.",
+      },
+    ],
+    codeSnippets: [
+      {
+        title:
+          "1. Pixel de suivi universel côté client (HTML / Webflow / Shopify / WordPress)",
+        description:
+          "Ajoutez cet extrait léger dans le <head> ou le pied de page de votre site pour capturer automatiquement le clickId depuis l'URL et le conserver pendant 30 jours dans un cookie et localStorage :",
+      },
+      {
+        title: "2. Hook d'attribution Next.js (App Router) & React",
+        description:
+          "Hook React pour capturer le clickId via useSearchParams dans Next.js et le persister tout au long de la navigation client :",
+      },
+      {
+        title: "3. Session Stripe Checkout & Ingestion Webhook",
+        description:
+          "Passez le clickId et les informations client dans les métadonnées Stripe Checkout Session, puis attribuez le revenu dès le paiement dans votre gestionnaire de webhook :",
+      },
+      {
+        title:
+          "4. Ingestion Webhook Shopify / E-Commerce avec avatar client",
+        description:
+          "Attribuez les commandes créées dans votre boutique Shopify aux liens courts LShorter avec la photo d'avatar du client :",
+      },
+      {
+        title:
+          "5. Résolution d'avatar & d'identité client (customerAvatar & avatarUrl)",
+        description:
+          "Récupérez les photos de profil client depuis Google/GitHub OAuth, NextAuth, Clerk ou Gravatar et transmettez-les à LShorter :",
+      },
+      {
+        title:
+          "6. Traitement des remboursements partiels et totaux (track.refund)",
+        description:
+          "Déduisez les montants remboursés du chiffre d'affaires cumulé d'un lien afin de maintenir une télémétrie financière exacte :",
+      },
+      {
+        title:
+          "7. Interroger la télémétrie financière temps réel & l'EPC via SDK",
+        description:
+          "Consultez les compteurs de clics atomiques, le revenu cumulé, l'AOV et calculez le ROI de votre campagne :",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Enregistrer une conversion & un montant monétaire",
+        description:
+          "Enregistre un achat finalisé, un abonnement ou un événement de conversion avec son montant, sa devise et les informations client attribuées à un clickId précis.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        headers: {
+          Authorization: "Jeton Bearer contenant votre clé API.",
+          "Content-Type": "Doit être défini sur application/json.",
+        },
+        bodyParams: {
+          eventName:
+            "Nom de l'événement de conversion (ex. purchase, subscription, upsell).",
+          amount: "Montant décimal du revenu encaissé sur la transaction.",
+          currency:
+            "Code devise ISO 4217 à trois lettres en majuscules (USD, EUR, GBP, CAD, JPY).",
+          clickId:
+            "Jeton clickId d'origine transmis par la redirection du lien court.",
+          linkId:
+            "Identifiant ou alias slug du lien court si le clickId n'est pas disponible.",
+          orderId:
+            "Votre identifiant interne de transaction ou de facture pour garantir la déduplication.",
+          customer: "Métadonnées du client.",
+          "customer.email":
+            "Adresse e-mail du client pour l'attribution de la valeur vie client (LTV).",
+          "customer.name": "Nom complet du client.",
+          "customer.avatarUrl":
+            "URL de l'image d'avatar affichée dans les tableaux de bord de télémétrie.",
+          customerAvatar:
+            "Alias de premier niveau pour l'URL de l'avatar client (Gravatar, Google, Discord, GitHub).",
+          metadata:
+            "Métadonnées JSON clé-valeur libres pour vos rapports personnalisés en aval.",
+        },
+        responses: [
+          "Conversion enregistrée avec succès et métriques financières mises à jour en temps réel.",
+        ],
+        errorCodes: {
+          INVALID_AMOUNT:
+            "Le paramètre amount doit être un nombre décimal positif.",
+          INVALID_CURRENCY:
+            "La devise doit être un code ISO 4217 valide de 3 lettres en majuscules (ex. USD, EUR, GBP).",
+          UNAUTHORIZED: "Clé API Bearer manquante ou invalide.",
+          CLICK_OR_LINK_NOT_FOUND:
+            "Ni clickId ni linkId ne correspond à un enregistrement actif.",
+          DUPLICATE_ORDER_ID:
+            "Une conversion avec cet orderId a déjà été enregistrée (protection d'idempotence).",
+        },
+      },
+      {
+        name: "Traiter un remboursement ou une rétrofacturation",
+        description:
+          "Déduit un montant de remboursement total ou partiel du revenu cumulé du lien, en réajustant atomiquement l'EPC et l'AOV.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        bodyParams: {
+          orderId:
+            "L'orderId d'origine transmis lors de l'enregistrement de la conversion.",
+          amount: "Montant monétaire remboursé.",
+          currency:
+            "Code devise (par défaut la devise de la commande initiale).",
+          reason:
+            "Motif du remboursement (ex. customer_return, fraud, cancelled).",
+          refundId:
+            "Identifiant de remboursement de votre prestataire de paiement.",
+        },
+        responses: [
+          "Remboursement appliqué et métriques de revenus ajustées.",
+        ],
+      },
+      {
+        name: "Récupérer la télémétrie financière & les revenus",
+        description:
+          "Récupère le total des revenus monétaires, le nombre de conversions, le panier moyen (AOV) et le gain par clic (EPC) pour un lien court.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          slug: "Alias slug du lien court.",
+        },
+        queryParams: {
+          period: "Fenêtre temporelle des métriques financières.",
+          currency: "Devise cible souhaitée pour l'affichage converti.",
+        },
+        responses: ["Charge utile complète de télémétrie financière."],
+      },
+    ],
+    responseSample: {
+      title: "Exemple complet de charge utile de conversion & finance",
+      description:
+        "Réponse JSON structurée renvoyant les compteurs atomiques de visites, le cumul des revenus financiers, l'EPC et les transactions clients :",
+    },
+    bestPractices: [
+      "Stockez toujours le clickId dans les métadonnées de paiement (ex. Stripe Session Metadata, Shopify Cart Note) afin que les webhooks asynchrones et leurs réessais ne perdent jamais l'attribution.",
+      "Transmettez des montants décimaux numériques (ex. 49.00 et non 4900 centimes) accompagnés de codes devises ISO 4217 à 3 lettres en majuscules (USD, EUR, GBP).",
+      "Abonnez-vous aux webhooks Stripe charge.refunded ou Shopify refunds/create pour appeler POST /api/v1/track/refund et conserver une comptabilité parfaitement exacte.",
+      "Comparez directement votre EPC (Gain par Clic) à votre CPC (Coût par Clic) pour calculer automatiquement votre retour sur dépenses publicitaires (ROAS).",
+    ],
+  },
+
+  "ab-testing-routing": {
+    title: "API Routage par pourcentage & Tests A/B",
+    subtitle:
+      "Répartissez intelligemment le trafic de clics entre plusieurs variantes de pages de destination pour maximiser vos taux de conversion.",
+    description:
+      "Référence API REST pour configurer des tests A/B à l'Edge : pondération par pourcentage, télémétrie par variante et bascule instantanée.",
+    readTime: "4 min de lecture",
+    overview: [
+      "Le routage par pourcentage (Tests A/B) oriente une proportion définie de votre trafic vers différentes variantes de pages (ex. 50 % vers la Variante A, 50 % vers la Variante B, ou 70 % / 15 % / 15 %).",
+      "Les décisions de routage s'exécutent directement sur les serveurs Cloudflare Edge lors de la connexion réseau, sans aucun script côté client ni scintillement visuel (flicker).",
+    ],
+    keyPoints: [
+      {
+        title: "Distribution pondérée à l'Edge",
+        description:
+          "Définissez des poids personnalisés en pourcentage (somme = 100 %) entre l'URL principale et vos variantes A/B.",
+      },
+      {
+        title: "Zéro scintillement (Zero Flicker)",
+        description:
+          "Le routage a lieu avant le chargement du HTML, supprimant tout décalage ou saut visuel pour les visiteurs.",
+      },
+      {
+        title: "Analytique comparative des conversions",
+        description:
+          "Comparez les volumes de clics, taux de conversion et revenus générés par chaque variante directement dans votre tableau de bord.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Configurer le routage de test A/B",
+        description:
+          "Configure ou met à jour les pondérations de répartition du trafic entre plusieurs variantes de pages de destination.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "Slug ou identifiant du lien court.",
+        },
+        bodyParams: {
+          mainWeight:
+            "Pourcentage du trafic dirigé vers l'URL cible principale (de 0 à 100).",
+          abVariations: "Tableau des configurations de variantes.",
+          "abVariations[].id": "Clé unique identifiant la variante.",
+          "abVariations[].targetUrl":
+            "URL de destination associée à cette variante.",
+          "abVariations[].weight":
+            "Pourcentage de trafic alloué à cette variante.",
+          "abVariations[].name":
+            "Libellé lisible affiché pour la comparaison dans le tableau de bord.",
+        },
+        responses: ["Pondérations du test A/B mises à jour."],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Créer un test A/B via le SDK",
+        description:
+          "Associez vos variantes avec leurs pondérations respectives en pourcentage :",
+      },
+    ],
+    responseSample: {
+      title: "Structure d'un lien de test A/B",
+      description:
+        "Charge utile confirmant les poids de routage en pourcentage :",
+    },
+    bestPractices: [
+      "Assurez-vous que la somme totale des poids soit exactement égale à 100 % (mainWeight + somme des poids des variantes = 100).",
+      "Laissez tourner vos expériences jusqu'à atteindre un échantillon statistiquement significatif (au moins 500 à 1 000 clics par variante).",
+      "Ne testez qu'une seule variable majeure par expérience (ex. le titre ou l'image principale) afin d'identifier clairement la cause des écarts.",
+    ],
+  },
+
+  "social-sharing-opengraph": {
+    title: "API Partage social & Open Graph dynamique",
+    subtitle:
+      "Personnalisez l'apparence de vos liens lorsqu'ils sont partagés sur WhatsApp, Twitter/X, LinkedIn, Telegram et Facebook.",
+    description:
+      "Guide API REST pour configurer des balises Open Graph personnalisées (og:title, og:description, og:image) et des Twitter Cards servies dynamiquement à l'Edge.",
+    readTime: "3 min de lecture",
+    overview: [
+      "Lorsqu'un lien raccourci est partagé sur des messageries ou réseaux sociaux (WhatsApp, LinkedIn, Twitter/X, Discord, Slack), les robots d'indexation lisent les balises Open Graph pour afficher une carte d'aperçu enrichie.",
+      "LShorter sert dynamiquement vos métadonnées Open Graph personnalisées à la volée depuis le réseau Cloudflare Edge, garantissant des aperçus instantanés et nets sur tous vos canaux de diffusion.",
+    ],
+    keyPoints: [
+      {
+        title: "Bannières et titres personnalisés",
+        description:
+          "Définissez des titres percutants, des descriptions adaptées et des visuels HD 1200x630px pour chaque campagne.",
+      },
+      {
+        title: "Twitter Cards & Messageries instantanées",
+        description:
+          "Prise en charge native du format summary_large_image pour Twitter/X, WhatsApp et Telegram.",
+      },
+      {
+        title: "Hébergement CDN haute vitesse",
+        description:
+          "Téléversez vos bannières directement sur notre CDN distribué mondialement avec mise en cache Edge.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Mettre à jour les métadonnées sociales Open Graph",
+        description:
+          "Met à jour le titre Open Graph, la description et la bannière d'aperçu destinés aux robots sociaux.",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        pathParams: {
+          id: "Slug ou identifiant du lien court.",
+        },
+        bodyParams: {
+          metaTitle: "Titre de la carte sociale (70 caractères maximum).",
+          ogDescription:
+            "Description de la carte sociale (200 caractères maximum).",
+          ogImage:
+            "URL directe de l'image au ratio 1.91:1 (recommandé : 1200x630px).",
+          twitterCard: "Format de mise en page de la Twitter Card.",
+        },
+        responses: [
+          "Métadonnées Open Graph mises à jour et mises en cache à l'Edge.",
+        ],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Créer un lien avec métadonnées Open Graph",
+        description:
+          "Renseignez les propriétés metaTitle, ogDescription et ogImage lors de la création du lien :",
+      },
+    ],
+    responseSample: {
+      title: "Structure des métadonnées Open Graph",
+      description:
+        "Balises enrichies servies aux robots d'aperçu des réseaux sociaux :",
+    },
+    bestPractices: [
+      "Utilisez des images de 1200 x 630 pixels au ratio 1.91:1 pour une netteté optimale sur Facebook, LinkedIn et Twitter/X.",
+      "Gardez vos titres Open Graph sous la barre des 60 caractères pour éviter toute troncature sur les écrans mobiles.",
+      "Validez vos aperçus avec les outils officiels (Twitter Card Validator, LinkedIn Post Inspector) avant publication.",
+    ],
+  },
+
+  "path-lock": {
+    title: "PathLock™ Navigation restreinte & Isolation de tunnel",
+    subtitle:
+      "Maintenez strictement vos visiteurs sur une page de destination ou un tunnel de vente précis, en empêchant l'exploration non autorisée d'autres répertoires grâce à un verrouillage Edge instantané.",
+    description:
+      "Éliminez les distractions, isolez vos tunnels de conversion et bloquez l'accès aux sous-chemins non autorisés grâce aux modes Strict et Funnel de PathLock™.",
+    readTime: "4 min de lecture",
+    overview: [
+      "PathLock™ est une fonctionnalité exclusive PRO de sécurité et d'anti-distraction conçue pour les équipes marketing, éditeurs affiliés et architectes de tunnels de vente.",
+      "Une fois activé, PathLock™ affiche la destination dans une visionneuse isolée et responsive équipée d'une barrière de sécurité Edge.",
+      "Le mode Strict (Page unique) empêche les visiteurs d'explorer d'autres sections du site (par exemple parcourir tout le catalogue de la boutique alors qu'une seule page produit de validation a été partagée).",
+      "Le mode Funnel & Sous-chemins autorise une progression fluide à travers des tunnels en plusieurs étapes (ex. /checkout, /confirmation, /upsell) tout en bloquant toute sortie hors du préfixe autorisé.",
+    ],
+    keyPoints: [
+      {
+        title: "Isolation stricte sur page unique",
+        description:
+          "Verrouille l'accès du visiteur strictement sur le chemin cible exact. Toute tentative de navigation externe déclenche immédiatement l'écran de blocage Gate.",
+      },
+      {
+        title: "Périmètre Funnel & Sous-chemins",
+        description:
+          "Autorise toutes les routes enfants imbriquées (ex. /funnel/step-1, /funnel/checkout) tout en bloquant l'exploration du reste du domaine.",
+      },
+      {
+        title: "Ancres & Paramètres de requête préservés",
+        description:
+          "Le défilement fluide interne (#features, #pricing) et les paramètres de suivi (UTM, jetons d'affiliation) restent 100 % opérationnels.",
+      },
+      {
+        title: "Barre supérieure rétractable",
+        description:
+          "Offre aux visiteurs une expérience discrète grâce à une barre supérieure rétractable fluide et une pastille flottante de retour instantané.",
+      },
+    ],
+    apiEndpoints: [
+      {
+        name: "Créer un lien avec PathLock™",
+        description:
+          "Crée un lien court configuré avec une isolation PathLock™ sur page unique ou sur tunnel de vente.",
+        authentication: "Jeton Bearer requis",
+        rateLimit: FR_RATE_LIMIT_DEFAULT,
+        bodyParams: {
+          pathLockMode:
+            "Mode de restriction PathLock : 'off' | 'strict' | 'funnel'. (Forfait PRO)",
+          pathLockPrefix:
+            "Préfixe de chemin URL autorisé dans la liste blanche de navigation du visiteur.",
+          pathLockMessage:
+            "Message d'avis personnalisé affiché lorsque le visiteur déclenche la barrière de sécurité.",
+        },
+        responses: ["Lien court protégé par PathLock™ créé avec succès."],
+      },
+    ],
+    codeSnippets: [
+      {
+        title: "1. Configurer le mode Funnel de PathLock™",
+        description:
+          "Autorisez tout un tunnel de commande tout en empêchant les visiteurs de sortir vers d'autres pages :",
+      },
+    ],
+    responseSample: {
+      title: "Charge utile d'un lien PathLock",
+      description:
+        "Configuration d'un lien avec isolation PathLock active :",
+    },
+    bestPractices: [
+      "Utilisez le mode « Strict Single-Page » lorsque vous partagez une revue produit ponctuelle, un NDA ou une validation partenaire.",
+      "Utilisez le mode « Funnel & Subpaths » avec un préfixe racine commun (ex. 'checkout' ou 'webinar') pour autoriser des parcours multi-étapes naturels.",
+      "Rédigez un message de blocage courtois et contextualisé afin que vos visiteurs comprennent pourquoi la navigation vers le reste du site est restreinte.",
+    ],
+  },
+};
+
+function translateParameters(
+  params: DocApiParameter[] | undefined,
+  translations: Record<string, string> | undefined
+): DocApiParameter[] | undefined {
+  if (!params) return undefined;
+  if (!translations) return params;
+  return params.map((param) => ({
+    ...param,
+    description: translations[param.name] ?? param.description,
+  }));
+}
+
+function applyFeatureTranslation(
+  feature: DocFeature,
+  tr: DocFeatureTranslation | undefined
+): DocFeature {
+  if (!tr) return feature;
+
+  return {
+    ...feature,
+    title: tr.title,
+    subtitle: tr.subtitle,
+    description: tr.description,
+    readTime: tr.readTime,
+    overview: tr.overview,
+    keyPoints: feature.keyPoints.map((kp, idx) => tr.keyPoints[idx] ?? kp),
+    apiEndpoints: feature.apiEndpoints?.map((ep, idx) => {
+      const epTr = tr.apiEndpoints?.[idx];
+      if (!epTr) return ep;
+      return {
+        ...ep,
+        name: epTr.name,
+        description: epTr.description,
+        authentication: epTr.authentication ?? ep.authentication,
+        rateLimit: epTr.rateLimit ?? ep.rateLimit,
+        headers: translateParameters(ep.headers, epTr.headers),
+        pathParams: translateParameters(ep.pathParams, epTr.pathParams),
+        queryParams: translateParameters(ep.queryParams, epTr.queryParams),
+        bodyParams: translateParameters(ep.bodyParams, epTr.bodyParams),
+        responses: ep.responses?.map((resp, rIdx) => ({
+          ...resp,
+          description: epTr.responses?.[rIdx] ?? resp.description,
+        })),
+        errorCodes: ep.errorCodes?.map((err) => ({
+          ...err,
+          description: epTr.errorCodes?.[err.code] ?? err.description,
+        })),
+      };
+    }),
+    codeSnippets: feature.codeSnippets.map((cs, idx) => {
+      const csTr = tr.codeSnippets[idx];
+      if (!csTr) return cs;
+      return {
+        ...cs,
+        title: csTr.title,
+        description: csTr.description,
+      };
+    }),
+    responseSample:
+      feature.responseSample && tr.responseSample
+        ? {
+            ...feature.responseSample,
+            title: tr.responseSample.title,
+            description: tr.responseSample.description,
+          }
+        : feature.responseSample,
+    bestPractices: tr.bestPractices,
+  };
+}
+
+const DOC_FEATURES_FR_MERGED: DocFeature[] = DOC_FEATURES.map((feature) =>
+  applyFeatureTranslation(feature, DOC_FEATURES_FR[feature.slug])
+);
+
+export const DOCS_ARTICLES = DOC_FEATURES;
+
 export function getAllDocFeatures(): DocFeature[] {
   return DOC_FEATURES;
+}
+
+export function getLocalizedDocs(locale: Locale = "en"): DocFeature[] {
+  return locale === "fr" ? DOC_FEATURES_FR_MERGED : DOC_FEATURES;
 }
 
 const SLUG_ALIASES: Record<string, string> = {
@@ -2901,4 +4095,16 @@ export function getDocFeatureBySlug(slug: string): DocFeature | undefined {
   const resolvedSlug = SLUG_ALIASES[slug] || slug;
   return DOC_FEATURES.find((feature) => feature.slug === resolvedSlug);
 }
+
+export const getDocBySlug = getDocFeatureBySlug;
+
+export function getLocalizedDocBySlug(
+  slug: string,
+  locale: Locale = "en"
+): DocFeature | undefined {
+  const resolvedSlug = SLUG_ALIASES[slug] || slug;
+  const list = getLocalizedDocs(locale);
+  return list.find((feature) => feature.slug === resolvedSlug);
+}
+
 

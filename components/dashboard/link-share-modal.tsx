@@ -17,6 +17,7 @@ import {
 import { ShortLink } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface LinkShareModalProps {
   link: Partial<ShortLink> | null;
@@ -91,6 +92,7 @@ function MailIcon({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
+  const { tr } = useI18n();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#09090b");
@@ -147,7 +149,12 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
         ? `https://${rawDomain}/${link.slug}`
         : link.targetUrl || link.shortUrl || ""
   ).replace(/\/r\/([^/?#]+)$/, "/$1");
-  const shareTitle = link.metaTitle || link.ogTitle || (link.slug ? `Check out this link: ${link.slug}` : "Check out this link");
+  const shareTitle =
+    link.metaTitle ||
+    link.ogTitle ||
+    (link.slug
+      ? tr(`Check out this link: ${link.slug}`, `Découvrez ce lien : ${link.slug}`)
+      : tr("Check out this link", "Découvrez ce lien"));
   const encodedUrl = encodeURIComponent(publicShareUrl);
   const encodedTitle = encodeURIComponent(shareTitle);
 
@@ -251,12 +258,15 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
       },
     },
     {
-      name: "Email",
+      name: tr("Email", "E-mail"),
       icon: MailIcon,
       iconColor: "text-zinc-600 dark:text-neutral-400",
       onClick: () => {
         const emailBody = encodeURIComponent(
-          `Hello,\n\nCheck out this link:\n${publicShareUrl}\n\n${shareTitle}`
+          tr(
+            `Hello,\n\nCheck out this link:\n${publicShareUrl}\n\n${shareTitle}`,
+            `Bonjour,\n\nDécouvrez ce lien :\n${publicShareUrl}\n\n${shareTitle}`
+          )
         );
         window.location.href = `mailto:?subject=${encodedTitle}&body=${emailBody}`;
       },
@@ -278,7 +288,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight">
-                Share &amp; QR Code
+                {tr("Share & QR Code", "Partager & QR Code")}
               </h3>
               <p className="text-[11.5px] text-zinc-500 dark:text-neutral-400 font-mono">
                 /{link.slug}
@@ -290,7 +300,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             type="button"
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-700 dark:hover:text-white p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            aria-label="Close"
+            aria-label={tr("Close", "Fermer")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -323,7 +333,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               )}
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Social Network</span>
+              <span>{tr("Social Network", "Réseaux sociaux")}</span>
             </button>
           </div>
         </div>
@@ -343,12 +353,12 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Copied</span>
+                  <span>{tr("Copied", "Copié")}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copy</span>
+                  <span>{tr("Copy", "Copier")}</span>
                 </>
               )}
             </button>
@@ -369,7 +379,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
                   <span>QR Code</span>
                 </span>
                 <span className="text-[10.5px] text-zinc-400 dark:text-neutral-500">
-                  Ready to scan
+                  {tr("Ready to scan", "Prêt à scanner")}
                 </span>
               </div>
 
@@ -382,15 +392,15 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               <div className="flex items-center justify-between w-full px-1">
                 <span className="text-[11px] text-zinc-500 dark:text-neutral-400 flex items-center gap-1">
                   <Palette className="w-3 h-3 text-zinc-400" />
-                  <span>Color:</span>
+                  <span>{tr("Color:", "Couleur :")}</span>
                 </span>
                 <div className="flex items-center gap-1.5">
                   {[
-                    { name: "Black", hex: "#09090b" },
-                    { name: "Slate", hex: "#1e293b" },
-                    { name: "Brand Blue", hex: "#0066FF" },
-                    { name: "Emerald", hex: "#059669" },
-                    { name: "Crimson", hex: "#dc2626" },
+                    { name: tr("Black", "Noir"), hex: "#09090b" },
+                    { name: tr("Slate", "Ardoise"), hex: "#1e293b" },
+                    { name: tr("Brand Blue", "Bleu LShorter"), hex: "#0066FF" },
+                    { name: tr("Emerald", "Émeraude"), hex: "#059669" },
+                    { name: tr("Crimson", "Carmin"), hex: "#dc2626" },
                   ].map((c) => (
                     <button
                       key={c.hex}
@@ -441,7 +451,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               >
                 <div className="flex items-center gap-1.5">
                   <Edit3 className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>Edit QR code</span>
+                  <span>{tr("Edit QR code", "Modifier le QR code")}</span>
                 </div>
                 <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
               </button>
@@ -461,7 +471,7 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
             >
               <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                 <Share2 className="w-3.5 h-3.5 text-zinc-500" />
-                <span>Social Networks</span>
+                <span>{tr("Social Networks", "Réseaux sociaux")}</span>
               </span>
 
               <div className="grid grid-cols-2 gap-2">
@@ -496,7 +506,10 @@ export function LinkShareModal({ link, isOpen, onClose }: LinkShareModalProps) {
               </div>
 
               <p className="text-[11px] text-zinc-500 dark:text-neutral-500 mt-1 leading-relaxed">
-                Click any channel to share instantly with an automatic OpenGraph &amp; Twitter Card preview.
+                {tr(
+                  "Click any channel to share instantly with an automatic OpenGraph & Twitter Card preview.",
+                  "Cliquez sur un canal pour partager instantanément avec un aperçu automatique OpenGraph & Twitter Card."
+                )}
               </p>
             </div>
           </div>

@@ -34,8 +34,10 @@ const ANALYTICS_ZERO: GlobalAnalytics = {
 };
 
 import { DashboardOverviewSkeleton } from "@/components/ui/skeleton";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function DashboardOverviewPage() {
+  const { tr } = useI18n();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [links, setLinks] = useState<ShortLink[]>([]);
@@ -301,25 +303,25 @@ export default function DashboardOverviewPage() {
             clicksByDay: clicksByDayFinal,
             topCountries: (d.top_countries || d.topCountries || []).map((c: any) => ({
               code: (c.code || c.country_code || c.country || "XX").toUpperCase(),
-              name: c.name || c.country_name || c.country || "Inconnu",
+              name: c.name || c.country_name || c.country || tr("Unknown", "Inconnu"),
               count: c.count || c.clicks || 0,
               percentage: total > 0 ? Math.round(((c.count || c.clicks || 0) / total) * 100) : 0,
             })),
             topCities: (d.top_cities || d.topCities || []).map((ci: any) => ({
-              city: ci.city || ci.name || "Inconnue",
+              city: ci.city || ci.name || tr("Unknown", "Inconnue"),
               countryCode: (ci.countryCode || ci.country_code || "XX").toUpperCase(),
               count: ci.count || ci.clicks || 0,
               percentage: total > 0 ? Math.round(((ci.count || ci.clicks || 0) / total) * 100) : 0,
             })),
             topDevices: (d.top_devices || d.topDevices || []).map((dv: any) => ({
-              label: dv.label || dv.device || dv.name || "Inconnu",
+              label: dv.label || dv.device || dv.name || tr("Unknown", "Inconnu"),
               device: dv.device || dv.label || dv.name || "desktop",
               count: dv.count || dv.clicks || 0,
               percentage: total > 0 ? Math.round(((dv.count || dv.clicks || 0) / total) * 100) : 0,
             })),
             topBrowsers: (d.top_browsers || d.topBrowsers || []).map((br: any) => ({
-              name: br.name || br.browser || "Inconnu",
-              browser: br.browser || br.name || "Inconnu",
+              name: br.name || br.browser || tr("Unknown", "Inconnu"),
+              browser: br.browser || br.name || tr("Unknown", "Inconnu"),
               count: br.count || br.clicks || 0,
               percentage: total > 0 ? Math.round(((br.count || br.clicks || 0) / total) * 100) : 0,
             })),
@@ -336,11 +338,11 @@ export default function DashboardOverviewPage() {
               slug: ev.slug || "link",
               ipMasked: ev.ipMasked || ev.ip_masked || "•••.•••.•••",
               countryCode: (ev.country_code || ev.countryCode || "XX").toUpperCase(),
-              countryName: ev.country_name || ev.countryName || "Inconnu",
+              countryName: ev.country_name || ev.countryName || tr("Unknown", "Inconnu"),
               city: ev.city || "—",
               device: ev.device || "desktop",
               os: ev.os || undefined,
-              browser: ev.browser || "Inconnu",
+              browser: ev.browser || tr("Unknown", "Inconnu"),
               referrer: ev.referrer || "Direct",
               // DEMO-START: Forward buyer and conversion details
               conversionAmount: ev.conversionAmount ?? ev.conversion_amount ?? 0,

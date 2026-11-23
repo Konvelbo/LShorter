@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 function formatTime(sec: number) {
   const s = Math.max(0, Math.floor(sec));
@@ -26,16 +27,37 @@ const VIDEO_SOURCES: Record<VideoLang, { src: string; poster: string; defaultDur
 };
 
 export function ApiCartoonPanel() {
+  const { locale, tr } = useI18n();
+  const initialLang: VideoLang = locale === "fr" ? "fr" : "en";
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pendingResumeRef = useRef<{ ratio: number; shouldPlay: boolean } | null>(null);
-  const [lang, setLang] = useState<VideoLang>("en");
+  const prevLocaleRef = useRef<VideoLang>(initialLang);
+  const [lang, setLang] = useState<VideoLang>(initialLang);
   const [shouldLoad, setShouldLoad] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(VIDEO_SOURCES.en.defaultDuration);
+  const [duration, setDuration] = useState(VIDEO_SOURCES[initialLang].defaultDuration);
+
+  // Keep video language synchronized with global site locale while preserving
+  // manual switcher overrides and lazy loading (`shouldLoad`).
+  useEffect(() => {
+    const nextLang: VideoLang = locale === "fr" ? "fr" : "en";
+    if (prevLocaleRef.current === nextLang) return;
+    prevLocaleRef.current = nextLang;
+    if (lang === nextLang) return;
+
+    const video = videoRef.current;
+    if (video && shouldLoad) {
+      const ratio = duration > 0 ? video.currentTime / duration : 0;
+      const shouldPlay = !video.paused;
+      pendingResumeRef.current = { ratio, shouldPlay };
+    }
+    setLang(nextLang);
+    setDuration(VIDEO_SOURCES[nextLang].defaultDuration);
+  }, [locale, lang, duration, shouldLoad]);
 
   const handleSwitchLang = (nextLang: VideoLang, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -173,7 +195,10 @@ export function ApiCartoonPanel() {
         loop
         playsInline
         preload={shouldLoad ? "metadata" : "none"}
-        aria-label="Animated cartoon explaining everything possible with the LShorter REST API"
+        aria-label={tr(
+          "Animated cartoon explaining everything possible with the LShorter REST API",
+          "Dessin animé expliquant tout ce qui est possible avec l'API REST LShorter"
+        )}
         onClick={handleTogglePlay}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -196,7 +221,7 @@ export function ApiCartoonPanel() {
       {/* Sleek EN / FR Language Switcher */}
       <div
         role="group"
-        aria-label="Video language"
+        aria-label={tr("Video language", "Langue de la vidéo")}
         onClick={(e) => e.stopPropagation()}
         className="absolute right-3 top-3 z-20 inline-flex items-center rounded-full border border-white/20 bg-black/65 p-0.5 backdrop-blur-md shadow-md"
       >
@@ -222,7 +247,10 @@ export function ApiCartoonPanel() {
         <button
           type="button"
           onClick={handleTogglePlay}
-          aria-label="Play LShorter API cartoon walkthrough"
+          aria-label={tr(
+            "Play LShorter API cartoon walkthrough",
+            "Lire la vidéo animée de présentation de l'API LShorter"
+          )}
           className="absolute inset-0 m-auto flex size-14 items-center justify-center rounded-full bg-[#0066FF] text-white shadow-[0_10px_28px_rgba(0,102,255,0.45)] transition-transform hover:scale-105 cursor-pointer"
         >
           <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -239,7 +267,11 @@ export function ApiCartoonPanel() {
           <button
             type="button"
             onClick={handleTogglePlay}
-            aria-label={isPlaying ? "Pause API cartoon" : "Play API cartoon"}
+            aria-label={
+              isPlaying
+                ? tr("Pause API cartoon", "Mettre en pause la vidéo API")
+                : tr("Play API cartoon", "Lire la vidéo API")
+            }
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             {isPlaying ? (
@@ -251,7 +283,7 @@ export function ApiCartoonPanel() {
 
           <div
             role="slider"
-            aria-label="Video timeline"
+            aria-label={tr("Video timeline", "Barre de progression de la vidéo")}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration)}
             aria-valuenow={Math.round(currentTime)}
@@ -273,7 +305,11 @@ export function ApiCartoonPanel() {
           <button
             type="button"
             onClick={handleToggleMute}
-            aria-label={isMuted ? "Unmute cartoon audio" : "Mute cartoon audio"}
+            aria-label={
+              isMuted
+                ? tr("Unmute cartoon audio", "Activer le son de la vidéo")
+                : tr("Mute cartoon audio", "Couper le son de la vidéo")
+            }
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             {isMuted ? (
@@ -286,7 +322,7 @@ export function ApiCartoonPanel() {
           <button
             type="button"
             onClick={handleFullscreen}
-            aria-label="Fullscreen cartoon video"
+            aria-label={tr("Fullscreen cartoon video", "Afficher la vidéo en plein écran")}
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
           >
             <Maximize2 className="w-3.5 h-3.5" />

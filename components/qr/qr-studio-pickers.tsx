@@ -5,6 +5,33 @@ import { Crown, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { PixelStyleType, EyeStyleType, FrameType, FontFamilyType } from "./qr-render-engine";
 import { ANIMATED_THEME_CATEGORIES, type AnimatedThemeCategory } from "./qr-animated-themes";
+import { useI18n } from "@/components/providers/i18n-provider";
+
+const ANIMATED_CAT_FR: Record<string, string> = {
+  all: "Tous",
+  tech: "Tech & Cyber",
+  cyber: "Cyber",
+  neon: "Néon",
+  nature: "Nature",
+  weather: "Météo",
+  luxury: "Luxe",
+  seasonal: "Saisonnier",
+  sport: "Sport",
+  sports: "Sports",
+  lifestyle: "Style de vie",
+  creative: "Créatif",
+  abstract: "Abstrait",
+  events: "Événements",
+};
+
+const FONT_CAT_FR: Record<string, string> = {
+  "Sans-Serif": "Sans-Serif",
+  Serif: "Serif",
+  Display: "Titres",
+  Monospace: "Monospace",
+  Cursive: "Cursive",
+  Futuristic: "Futuriste",
+};
 
 // =============================================================================
 // 1. MEMOIZED BRAND LOGOS PICKER (99 OFFICIAL HD LOGOS)
@@ -33,6 +60,8 @@ export const BrandLogosPicker = React.memo(function BrandLogosPicker({
   onToggleShowMore,
   onSelectLogo,
 }: BrandLogosPickerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const displayedLogos = showMoreLogos ? logos : logos.slice(0, 8);
 
   return (
@@ -76,7 +105,9 @@ export const BrandLogosPicker = React.memo(function BrandLogosPicker({
           onClick={onToggleShowMore}
           className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
         >
-          {showMoreLogos ? "Show less ↑" : `View all logos (${logos.length}) ↓`}
+          {showMoreLogos
+            ? (isFr ? "Afficher moins ↑" : "Show less ↑")
+            : (isFr ? `Voir tous les logos (${logos.length}) ↓` : `View all logos (${logos.length}) ↓`)}
         </button>
       )}
     </div>
@@ -120,6 +151,8 @@ export const FramesPicker = React.memo(function FramesPicker({
   onSetAnimatedCategoryFilter,
   onToggleShowMore,
 }: FramesPickerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const filteredFrames = React.useMemo(() => {
     return frames.filter((frame) => {
       if (frameFilter === "static") return !frame.isAnimated;
@@ -140,9 +173,9 @@ export const FramesPicker = React.memo(function FramesPicker({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#1a1a1e] p-1 rounded-[10px] border border-neutral-200 dark:border-[#27272a] w-fit">
           {[
-            { id: "all" as const, label: `All (${frames.length})` },
-            { id: "static" as const, label: `Static (${frames.filter((f) => !f.isAnimated).length})` },
-            { id: "animated" as const, label: `Animated (${frames.filter((f) => f.isAnimated).length})` },
+            { id: "all" as const, label: isFr ? `Tous (${frames.length})` : `All (${frames.length})` },
+            { id: "static" as const, label: isFr ? `Statiques (${frames.filter((f) => !f.isAnimated).length})` : `Static (${frames.filter((f) => !f.isAnimated).length})` },
+            { id: "animated" as const, label: isFr ? `Animés (${frames.filter((f) => f.isAnimated).length})` : `Animated (${frames.filter((f) => f.isAnimated).length})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -177,7 +210,7 @@ export const FramesPicker = React.memo(function FramesPicker({
                   : "bg-neutral-50 dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
-              {cat.label}
+              {isFr ? (ANIMATED_CAT_FR[cat.id] || cat.label) : cat.label}
             </button>
           ))}
         </div>
@@ -220,7 +253,9 @@ export const FramesPicker = React.memo(function FramesPicker({
           onClick={onToggleShowMore}
           className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
         >
-          {showMoreFrames ? "Show less ↑" : `View all (${filteredFrames.length}) ↓`}
+          {showMoreFrames
+            ? (isFr ? "Afficher moins ↑" : "Show less ↑")
+            : (isFr ? `Tout voir (${filteredFrames.length}) ↓` : `View all (${filteredFrames.length}) ↓`)}
         </button>
       )}
     </div>
@@ -264,6 +299,8 @@ export const FontsPicker = React.memo(function FontsPicker({
   onSetSearchQuery,
   onToggleShowAll,
 }: FontsPickerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const filteredFonts = React.useMemo(() => {
     return fonts.filter((f) => {
       const matchesCat = fontCategoryFilter === "all" || f.category === fontCategoryFilter;
@@ -295,7 +332,9 @@ export const FontsPicker = React.memo(function FontsPicker({
                   : "bg-neutral-50 dark:bg-[#1a1a1e] border-neutral-200 dark:border-[#27272a] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
-              {cat === "all" ? "All Styles (80)" : cat}
+              {cat === "all"
+                ? (isFr ? "Tous les styles (80)" : "All Styles (80)")
+                : (isFr ? (FONT_CAT_FR[cat] || cat) : cat)}
             </button>
           ))}
         </div>
@@ -305,7 +344,7 @@ export const FontsPicker = React.memo(function FontsPicker({
           <Input
             value={fontSearchQuery}
             onChange={(e) => onSetSearchQuery(e.target.value)}
-            placeholder="Search fonts..."
+            placeholder={isFr ? "Rechercher une police..." : "Search fonts..."}
             className="pl-8 h-8 text-xs rounded-[10px]"
           />
           {fontSearchQuery && (
@@ -350,7 +389,7 @@ export const FontsPicker = React.memo(function FontsPicker({
                       : "bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-white/5"
                   }`}
                 >
-                  {f.category}
+                  {isFr ? (FONT_CAT_FR[f.category] || f.category) : f.category}
                 </span>
               </div>
               <div
@@ -374,13 +413,17 @@ export const FontsPicker = React.memo(function FontsPicker({
           onClick={onToggleShowAll}
           className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end mt-1"
         >
-          {showAllFonts ? "Show less ↑" : `View all fonts (${filteredFonts.length}) ↓`}
+          {showAllFonts
+            ? (isFr ? "Afficher moins ↑" : "Show less ↑")
+            : (isFr ? `Voir toutes les polices (${filteredFonts.length}) ↓` : `View all fonts (${filteredFonts.length}) ↓`)}
         </button>
       )}
 
       {filteredFonts.length === 0 && (
         <div className="text-center py-4 text-xs text-neutral-500 dark:text-neutral-400">
-          No fonts match &quot;{fontSearchQuery}&quot;.
+          {isFr
+            ? `Aucune police ne correspond à « ${fontSearchQuery} ».`
+            : `No fonts match "${fontSearchQuery}".`}
         </div>
       )}
     </div>
@@ -414,6 +457,8 @@ export const PixelStylesPicker = React.memo(function PixelStylesPicker({
   onToggleShowMore,
   onSelectPixel,
 }: PixelStylesPickerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const displayed = showMore ? styles : styles.slice(0, 6);
 
   return (
@@ -448,7 +493,9 @@ export const PixelStylesPicker = React.memo(function PixelStylesPicker({
           onClick={onToggleShowMore}
           className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
         >
-          {showMore ? "Show less ↑" : `View all patterns (${styles.length}) ↓`}
+          {showMore
+            ? (isFr ? "Afficher moins ↑" : "Show less ↑")
+            : (isFr ? `Voir tous les motifs (${styles.length}) ↓` : `View all patterns (${styles.length}) ↓`)}
         </button>
       )}
     </div>
@@ -482,6 +529,8 @@ export const EyeStylesPicker = React.memo(function EyeStylesPicker({
   onToggleShowMore,
   onSelectEye,
 }: EyeStylesPickerProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const displayed = showMore ? styles : styles.slice(0, 6);
 
   return (
@@ -516,7 +565,9 @@ export const EyeStylesPicker = React.memo(function EyeStylesPicker({
           onClick={onToggleShowMore}
           className="btn-hover-scale text-xs font-semibold text-brand hover:underline cursor-pointer self-end"
         >
-          {showMore ? "Show less ↑" : `View all shapes (${styles.length}) ↓`}
+          {showMore
+            ? (isFr ? "Afficher moins ↑" : "Show less ↑")
+            : (isFr ? `Voir toutes les formes (${styles.length}) ↓` : `View all shapes (${styles.length}) ↓`)}
         </button>
       )}
     </div>

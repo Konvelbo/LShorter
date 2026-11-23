@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { cfCreatePixel } from "@/lib/cloudflare-api";
 import { BrandColorLogo, CanonicalPixelPlatform } from "@/components/dashboard/pixel-badges";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface PixelDrawerProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ interface PlatformInfo {
   color: string;
   placeholder: string;
   helper: string;
+  helperEn: string;
   example: string;
 }
 
@@ -47,8 +49,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "Facebook Ads Pixel (Meta)",
     badge: "Facebook",
     color: "#0866FF",
-    placeholder: "ex: 123456789012345",
+    placeholder: "123456789012345",
     helper: "Trouvez votre identifiant à 15-16 chiffres dans le Gestionnaire d'événements Meta.",
+    helperEn: "Find your 15-16 digit ID inside Meta Events Manager.",
     example: "123456789012345",
   },
   {
@@ -58,8 +61,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "Instagram Ads Pixel",
     badge: "Instagram",
     color: "#E1306C",
-    placeholder: "ex: 123456789012345",
+    placeholder: "123456789012345",
     helper: "Utilisez votre Meta Pixel ID lié à votre compte publicitaire Instagram dans Meta Events Manager.",
+    helperEn: "Use the Meta Pixel ID linked to your Instagram ad account in Meta Events Manager.",
     example: "123456789012345",
   },
   {
@@ -69,8 +73,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "Google Analytics 4 / Google Tag",
     badge: "Google",
     color: "#EA4335",
-    placeholder: "ex: G-XXXXXXXXXX ou AW-XXXXXXXXX",
+    placeholder: "G-XXXXXXXXXX / AW-XXXXXXXXX",
     helper: "ID de mesure GA4 (G-...) ou ID de conversion Google Ads (AW-...).",
+    helperEn: "GA4 Measurement ID (G-...) or Google Ads Conversion ID (AW-...).",
     example: "G-AB12C3D4E5",
   },
   {
@@ -80,8 +85,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "YouTube Ads Tag (Google Ads)",
     badge: "YouTube",
     color: "#FF0000",
-    placeholder: "ex: AW-123456789",
+    placeholder: "AW-123456789",
     helper: "Trouvez votre identifiant AW-... dans Google Ads > Outils > Gestionnaire d'audiences (YouTube).",
+    helperEn: "Find your AW-... ID in Google Ads > Tools > Audience Manager (YouTube).",
     example: "AW-987654321",
   },
   {
@@ -91,8 +97,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "TikTok Ads Pixel",
     badge: "TikTok",
     color: "#FE2C55",
-    placeholder: "ex: C1234567890ABCDEF",
+    placeholder: "C1234567890ABCDEF",
     helper: "Trouvez l'ID dans TikTok Ads Manager > Assets > Events.",
+    helperEn: "Find the ID in TikTok Ads Manager > Assets > Events.",
     example: "C7F8H9K2L3M4N5P6",
   },
   {
@@ -102,8 +109,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "LinkedIn Insight Tag",
     badge: "LinkedIn",
     color: "#0A66C2",
-    placeholder: "ex: 1234567",
+    placeholder: "1234567",
     helper: "Votre Partner ID LinkedIn à 6-8 chiffres dans LinkedIn Campaign Manager.",
+    helperEn: "Your 6-8 digit LinkedIn Partner ID from LinkedIn Campaign Manager.",
     example: "8765432",
   },
   {
@@ -113,8 +121,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "Pinterest Ads Tag",
     badge: "Pinterest",
     color: "#E60023",
-    placeholder: "ex: 2612345678901",
+    placeholder: "2612345678901",
     helper: "Trouvez votre Pinterest Tag ID (13 chiffres) dans Pinterest Ads Manager > Conversions.",
+    helperEn: "Find your 13-digit Pinterest Tag ID in Pinterest Ads Manager > Conversions.",
     example: "2612345678901",
   },
   {
@@ -124,8 +133,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "Snapchat Ads Pixel",
     badge: "Snapchat",
     color: "#E6B800",
-    placeholder: "ex: a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    placeholder: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     helper: "Trouvez votre Snap Pixel ID (UUID) dans Snapchat Ads Manager > Events Manager.",
+    helperEn: "Find your Snap Pixel ID (UUID) in Snapchat Ads Manager > Events Manager.",
     example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   },
   {
@@ -135,8 +145,9 @@ const PLATFORMS: PlatformInfo[] = [
     name: "X Ads Pixel (Twitter)",
     badge: "X Ads",
     color: "#0F1419",
-    placeholder: "ex: o1a2b",
+    placeholder: "o1a2b",
     helper: "Trouvez votre X Pixel ID dans X Ads Manager > Outils > Events Manager.",
+    helperEn: "Find your X Pixel ID in X Ads Manager > Tools > Events Manager.",
     example: "o1a2b",
   },
 ];
@@ -155,6 +166,7 @@ function PixelDrawerForm({
   plan,
   onUpgrade,
 }: Omit<PixelDrawerProps, "isOpen">) {
+  const { tr } = useI18n();
   const [platform, setPlatform] = useState<CanonicalPixelPlatform>("meta");
   const [pixelName, setPixelName] = useState("");
   const [pixelId, setPixelId] = useState("");
@@ -196,16 +208,16 @@ function PixelDrawerForm({
 
     const trimmedId = pixelId.trim();
     if (!trimmedId) {
-      setErrorMsg("Veuillez renseigner l'identifiant du pixel.");
+      setErrorMsg(tr("Please enter the pixel ID.", "Veuillez renseigner l'identifiant du pixel."));
       return;
     }
     if (!PIXEL_ID_FORMAT.test(trimmedId)) {
-      setErrorMsg("Identifiant invalide (lettres, chiffres, tirets ou underscores uniquement, 2 à 64 caractères).");
+      setErrorMsg(tr("Invalid ID (letters, numbers, hyphens or underscores only, 2 to 64 characters).", "Identifiant invalide (lettres, chiffres, tirets ou underscores uniquement, 2 à 64 caractères)."));
       return;
     }
 
     if (!userId) {
-      setErrorMsg("Session invalide. Veuillez rafraîchir la page.");
+      setErrorMsg(tr("Invalid session. Please refresh the page.", "Session invalide. Veuillez rafraîchir la page."));
       return;
     }
 
@@ -223,11 +235,11 @@ function PixelDrawerForm({
         isActive: true,
       });
 
-      showToast.success("Pixel de retargeting connecté avec succès !");
+      showToast.success(tr("Retargeting pixel connected successfully!", "Pixel de retargeting connecté avec succès !"));
       await onCreated();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'enregistrement du pixel.";
+      const msg = err instanceof Error ? err.message : tr("Error saving pixel.", "Erreur lors de l'enregistrement du pixel.");
       setErrorMsg(msg);
       showToast.error(msg);
     } finally {
@@ -245,17 +257,17 @@ function PixelDrawerForm({
           </div>
           <div>
             <h3 className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Nouveau pixel de retargeting
+              {tr("New retargeting pixel", "Nouveau pixel de retargeting")}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Associez vos audiences publicitaires à vos redirections courtes
+              {tr("Connect your ad audiences to your short redirects", "Associez vos audiences publicitaires à vos redirections courtes")}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={tr("Close", "Fermer")}
           disabled={isSubmitting}
           className="p-1.5 rounded-[8px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
         >
@@ -277,10 +289,13 @@ function PixelDrawerForm({
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-0.5">
               <span className="text-[13px] font-medium text-amber-900 dark:text-amber-200">
-                Fonctionnalité Pro &amp; Business
+                {tr("Pro & Business Feature", "Fonctionnalité Pro & Business")}
               </span>
               <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                L&apos;injection transparente de pixels publicitaires (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat &amp; X) nécessite le forfait Pro.
+                {tr(
+                  "Transparent ad pixel injection (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X) requires the Pro plan.",
+                  "L'injection transparente de pixels publicitaires (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X) nécessite le forfait Pro."
+                )}
               </p>
             </div>
           </div>
@@ -290,7 +305,7 @@ function PixelDrawerForm({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <span id="pixel-platform-label" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 shrink-0">
-              Réseau publicitaire <span className="text-red-500">*</span>
+              {tr("Ad network", "Réseau publicitaire")} <span className="text-red-500">*</span>
             </span>
             <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
               {activePlatformInfo.name}
@@ -344,25 +359,25 @@ function PixelDrawerForm({
         {/* Pixel Name Field */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="pixel-name-input" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-            Libellé du tag / campagne
+            {tr("Tag / campaign label", "Libellé du tag / campagne")}
           </label>
           <Input
             id="pixel-name-input"
-            placeholder={`Ex. Pixel principal (${activePlatformInfo.badge})`}
+            placeholder={tr(`e.g. Main pixel (${activePlatformInfo.badge})`, `Ex. Pixel principal (${activePlatformInfo.badge})`)}
             value={pixelName}
             onChange={(e) => setPixelName(e.target.value)}
             disabled={isSubmitting}
             className="h-10 rounded-[8px] bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 text-[13px] font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
           />
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            Nom interne pour distinguer vos différents pixels dans le tableau de bord.
+            {tr("Internal name to distinguish your pixels in the dashboard.", "Nom interne pour distinguer vos différents pixels dans le tableau de bord.")}
           </span>
         </div>
 
         {/* Pixel ID Field */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="pixel-id-input" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
-            Identifiant du pixel (Pixel ID) <span className="text-red-500">*</span>
+            {tr("Pixel ID", "Identifiant du pixel (Pixel ID)")} <span className="text-red-500">*</span>
           </label>
           <Input
             id="pixel-id-input"
@@ -375,7 +390,7 @@ function PixelDrawerForm({
           />
           <div className="flex items-start gap-1.5 mt-0.5 text-zinc-500 dark:text-zinc-400 text-xs leading-relaxed">
             <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
-            <span>{activePlatformInfo.helper}</span>
+            <span>{tr(activePlatformInfo.helperEn, activePlatformInfo.helper)}</span>
           </div>
         </div>
 
@@ -383,7 +398,10 @@ function PixelDrawerForm({
         <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-zinc-800 flex items-start gap-2.5">
           <Sparkles className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
           <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            Une fois ce pixel enregistré, vous pourrez l&apos;activer en un clic lors de la création de vos liens pour recibler automatiquement vos visiteurs.
+            {tr(
+              "Once saved, you can activate this pixel in one click when creating links to automatically retarget visitors.",
+              "Une fois ce pixel enregistré, vous pourrez l'activer en un clic lors de la création de vos liens pour recibler automatiquement vos visiteurs."
+            )}
           </p>
         </div>
 
@@ -396,7 +414,7 @@ function PixelDrawerForm({
             disabled={isSubmitting}
             className="h-9 px-4 rounded-[8px] text-[13px] font-medium border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer"
           >
-            Annuler
+            {tr("Cancel", "Annuler")}
           </Button>
           <Button
             type="submit"
@@ -406,12 +424,12 @@ function PixelDrawerForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Connexion en cours...</span>
+                <span>{tr("Connecting...", "Connexion en cours...")}</span>
               </>
             ) : (
               <>
                 <Target className="w-3.5 h-3.5" />
-                <span>Connecter le pixel</span>
+                <span>{tr("Connect pixel", "Connecter le pixel")}</span>
               </>
             )}
           </Button>

@@ -1,13 +1,15 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { PauseCircle, ArrowLeft } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
-export default async function PausedPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
+export default function PausedPage() {
+  const params = useParams<{ slug?: string | string[] }>();
+  const slug = Array.isArray(params?.slug) ? params.slug[0] : (params?.slug ?? "");
+  const { tr } = useI18n();
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -25,10 +27,13 @@ export default async function PausedPage({
         </div>
 
         <h1 className="text-xl font-bold text-white mb-2 tracking-tight">
-          Link Temporarily Paused
+          {tr("Link Temporarily Paused", "Lien temporairement en pause")}
         </h1>
         <p className="text-xs text-neutral-400 mb-6 max-w-xs mx-auto leading-relaxed">
-          This short link has been paused by its owner. Redirections are temporarily suspended.
+          {tr(
+            "This short link has been paused by its owner. Redirections are temporarily suspended.",
+            "Ce lien court a été mis en pause par son propriétaire. Les redirections sont temporairement suspendues."
+          )}
         </p>
 
         <Link
@@ -36,11 +41,11 @@ export default async function PausedPage({
           className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-[10px] bg-[#1c1c21] hover:bg-[#25252c] text-white font-semibold text-xs border border-[#2a2a30] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Return to Homepage</span>
+          <span>{tr("Return to Homepage", "Retour à l'accueil")}</span>
         </Link>
 
         <div className="mt-6 pt-6 border-t border-[#1e1e24] flex items-center justify-center text-[11px] text-neutral-500 gap-1.5">
-          <span>Secured by</span>
+          <span>{tr("Secured by", "Sécurisé par")}</span>
           <span className="font-semibold text-neutral-400">LShorter Edge</span>
         </div>
       </div>

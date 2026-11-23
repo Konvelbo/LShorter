@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Bell, X, Check, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface NotificationsBellProps {
   userId: string;
@@ -46,6 +47,7 @@ export function NotificationsBell({
   setShowNotifications,
   setShowUserMenu,
 }: NotificationsBellProps) {
+  const { locale, tr } = useI18n();
   const [liveNotifs, setLiveNotifs] = useState<NotificationItem[] | null>(null);
   const [localReadIds, setLocalReadIds] = useState<Set<string>>(() =>
     readStorageSet(READ_STORAGE_KEY)
@@ -126,13 +128,16 @@ export function NotificationsBell({
   const defaultNotif: NotificationItem = useMemo(
     () => ({
       _id: "welcome_default",
-      title: "Welcome to LShorter",
-      message: `Your infrastructure is active. Plan ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString()} clicks/month included).`,
+      title: tr("Welcome to LShorter", "Bienvenue sur LShorter"),
+      message: tr(
+        `Your infrastructure is active. Plan ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString("en-US")} clicks/month included).`,
+        `Votre infrastructure est active. Forfait ${plan || "STARTER"} (${(clicksLimit ?? 10000).toLocaleString("fr-FR")} clics/mois inclus).`
+      ),
       type: "SUCCESS",
       isRead: false,
       createdAt: Date.now(),
     }),
-    [plan, clicksLimit]
+    [plan, clicksLimit, tr, locale]
   );
 
   // Background query to Convex HTTP endpoint + process due 2-hour welcome emails
@@ -421,9 +426,12 @@ export function NotificationsBell({
                   title={
                     isDeleteMode
                       ? selectedForDelete.size > 0
-                        ? `Confirmer la suppression (${selectedForDelete.size})`
-                        : "Quitter le mode sélection"
-                      : "Choisir les notifications à supprimer"
+                        ? tr(
+                            `Confirm deletion (${selectedForDelete.size})`,
+                            `Confirmer la suppression (${selectedForDelete.size})`
+                          )
+                        : tr("Exit selection mode", "Quitter le mode sélection")
+                      : tr("Select notifications to delete", "Choisir les notifications à supprimer")
                   }
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -441,7 +449,7 @@ export function NotificationsBell({
                   setShowNotifications(false);
                 }}
                 className="w-6 h-6 rounded-[8px] text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors"
-                title="Fermer"
+                title={tr("Close", "Fermer")}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -451,7 +459,7 @@ export function NotificationsBell({
           {/* Selection Mode Action Bar */}
           {isDeleteMode && notifications.length > 0 && (
             <div className="flex items-center justify-between pt-2.5 pb-1 text-[11px] text-neutral-400">
-              <span>Cliquez sur les notifications à supprimer</span>
+              <span>{tr("Click notifications to delete", "Cliquez sur les notifications à supprimer")}</span>
               {selectedForDelete.size > 0 && (
                 <button
                   type="button"
@@ -462,7 +470,7 @@ export function NotificationsBell({
                   }}
                   className="px-2 py-0.5 rounded-[6px] bg-[#27272a] border border-[#3f3f46] text-neutral-100 hover:bg-white/10 font-semibold cursor-pointer transition-colors"
                 >
-                  Supprimer ({selectedForDelete.size})
+                  {tr("Delete", "Supprimer")} ({selectedForDelete.size})
                 </button>
               )}
             </div>
@@ -475,10 +483,10 @@ export function NotificationsBell({
                 <Bell className="w-4 h-4 opacity-60" />
               </div>
               <p className="text-xs font-semibold text-neutral-200">
-                Aucune notification
+                {tr("No notifications", "Aucune notification")}
               </p>
               <p className="text-[11px] text-neutral-500 mt-0.5">
-                Vous êtes parfaitement à jour.
+                {tr("You're completely up to date.", "Vous êtes parfaitement à jour.")}
               </p>
             </div>
           ) : (

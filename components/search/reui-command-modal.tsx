@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { getAllDocFeatures, DocFeature } from "@/lib/docs-data";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export type CommandBadgeType = "Doc" | "Link" | "Analytics" | "Page";
 
@@ -57,119 +58,6 @@ interface ReuiCommandModalProps {
 }
 
 const RECENT_STORAGE_KEY = "lshorter_reui_recent_searches_v1";
-
-const DASHBOARD_AND_ANALYTICS_ITEMS: CommandItem[] = [
-  {
-    id: "action-create-link",
-    title: "Create Short Link (Drawer)",
-    href: "#create-link",
-    badge: "Link",
-    meta: "Ctrl + →",
-    description: "Open the link creation drawer to create, configure, and protect a short URL",
-    keywords: ["create", "new", "link", "drawer", "shorten", "url", "raccourci", "shortcut"],
-    iconType: "link",
-  },
-  {
-    id: "page-dashboard",
-    title: "Dashboard",
-    href: "/dashboard",
-    badge: "Page",
-    meta: "Overview & KPIs",
-    description: "Main dashboard overview, performance metrics, and quick link creation",
-    keywords: ["home", "overview", "kpi", "metrics", "summary", "dashboard"],
-    iconType: "dashboard",
-  },
-  {
-    id: "page-short-links",
-    title: "Short Links",
-    href: "/dashboard/links",
-    badge: "Page",
-    meta: "Link management",
-    description: "Create, edit, filter, protect, and manage shortened edge URLs",
-    keywords: ["links", "urls", "slugs", "shorten", "redirect", "pin", "ab testing", "expiration"],
-    iconType: "link",
-  },
-  {
-    id: "analytics-traffic",
-    title: "Traffic Overview",
-    href: "/dashboard/analytics",
-    badge: "Analytics",
-    meta: "Clicks & devices",
-    description: "Detailed click telemetry, top referrers, browsers, OS, and time-series charts",
-    keywords: ["analytics", "traffic", "clicks", "referrers", "devices", "browsers", "os", "stats"],
-    iconType: "analytics",
-  },
-  {
-    id: "analytics-geo",
-    title: "Geography & Continents",
-    href: "/dashboard/analytics/geo",
-    badge: "Analytics",
-    meta: "Global heatmaps",
-    description: "Interactive continent vector map, ISO country distribution, and country-level click routing",
-    keywords: ["geography", "continents", "countries", "map", "location", "geo", "regions"],
-    iconType: "geo",
-  },
-  {
-    id: "analytics-revenue",
-    title: "Customers & Revenue",
-    href: "/dashboard/analytics/revenue",
-    badge: "Analytics",
-    meta: "Conversions & EPC",
-    description: "Conversion attribution, revenue tracking, average order value (AOV), and earnings per click",
-    keywords: ["customers", "revenue", "conversions", "sales", "epc", "aov", "roi", "money", "attribution"],
-    iconType: "revenue",
-  },
-  {
-    id: "analytics-live",
-    title: "Live Click Stream",
-    href: "/dashboard/analytics/live",
-    badge: "Analytics",
-    meta: "Real-time edge feed",
-    description: "Millisecond-precision live click stream directly from global Cloudflare edge nodes",
-    keywords: ["live", "realtime", "stream", "events", "feed", "edge", "pulse"],
-    iconType: "live",
-  },
-  {
-    id: "page-qr-studio",
-    title: "QR Studio",
-    href: "/dashboard/qr-code",
-    badge: "Page",
-    meta: "Vector QR codes",
-    description: "Customize high-resolution PNG and SVG QR codes with colors, logos, and quiet zones",
-    keywords: ["qr", "qrcode", "studio", "barcode", "svg", "png", "scanner"],
-    iconType: "qr",
-  },
-  {
-    id: "page-custom-domains",
-    title: "Custom Domains",
-    href: "/dashboard/domains",
-    badge: "Page",
-    meta: "Branded DNS & SSL",
-    description: "Connect custom branded short domains with automated edge SSL certificates",
-    keywords: ["domains", "dns", "cname", "ssl", "custom domain", "branded", "whitelabel"],
-    iconType: "domains",
-  },
-  {
-    id: "page-api-sdk",
-    title: "API & SDK",
-    href: "/dashboard/api-sdk",
-    badge: "Page",
-    meta: "REST keys & tokens",
-    description: "Generate developer API keys, inspect TypeScript SDK usage, and test REST endpoints",
-    keywords: ["api", "sdk", "token", "bearer", "developer", "rest", "keys", "webhook"],
-    iconType: "api",
-  },
-  {
-    id: "page-settings",
-    title: "Settings",
-    href: "/dashboard/settings",
-    badge: "Page",
-    meta: "Account & security",
-    description: "Manage profile, subscription billing, 2FA security, webhooks, and retargeting pixels",
-    keywords: ["settings", "account", "profile", "billing", "security", "2fa", "password", "preferences", "gdpr"],
-    iconType: "settings",
-  },
-];
 
 function renderItemIcon(iconType: CommandItem["iconType"], className = "h-4 w-4") {
   switch (iconType) {
@@ -272,6 +160,7 @@ export function ReuiCommandModal({
   initialQuery = "",
 }: ReuiCommandModalProps) {
   const router = useRouter();
+  const { tr, formatNumber } = useI18n();
   const [internalOpen, setInternalOpen] = useState(false);
   const [query, setQuery] = useState(initialQuery);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -281,6 +170,172 @@ export function ReuiCommandModal({
     "page-short-links",
   ]);
   const [shortLinks, setShortLinks] = useState<CommandItem[]>([]);
+
+  const badgeLabel = useCallback(
+    (badge: CommandBadgeType) => {
+      switch (badge) {
+        case "Link":
+          return tr("Link", "Lien");
+        case "Analytics":
+          return tr("Analytics", "Analytiques");
+        case "Doc":
+          return tr("Doc", "Doc");
+        case "Page":
+        default:
+          return tr("Page", "Page");
+      }
+    },
+    [tr]
+  );
+
+  const dashboardAndAnalyticsItems = useMemo<CommandItem[]>(
+    () => [
+      {
+        id: "action-create-link",
+        title: tr("Create Short Link (Drawer)", "Créer un lien court (Panneau)"),
+        href: "#create-link",
+        badge: "Link",
+        meta: "Ctrl + →",
+        description: tr(
+          "Open the link creation drawer to create, configure, and protect a short URL",
+          "Ouvrir le panneau de création pour créer, configurer et protéger une URL courte"
+        ),
+        keywords: ["create", "créer", "new", "nouveau", "link", "lien", "drawer", "shorten", "raccourcir", "url", "raccourci", "shortcut"],
+        iconType: "link",
+      },
+      {
+        id: "page-dashboard",
+        title: tr("Dashboard", "Tableau de bord"),
+        href: "/dashboard",
+        badge: "Page",
+        meta: tr("Overview & KPIs", "Vue d'ensemble & KPIs"),
+        description: tr(
+          "Main dashboard overview, performance metrics, and quick link creation",
+          "Vue d'ensemble principale, indicateurs de performance et création rapide de liens"
+        ),
+        keywords: ["home", "accueil", "overview", "kpi", "metrics", "summary", "dashboard", "tableau de bord"],
+        iconType: "dashboard",
+      },
+      {
+        id: "page-short-links",
+        title: tr("Short Links", "Liens courts"),
+        href: "/dashboard/links",
+        badge: "Page",
+        meta: tr("Link management", "Gestion des liens"),
+        description: tr(
+          "Create, edit, filter, protect, and manage shortened edge URLs",
+          "Créer, modifier, filtrer, protéger et gérer vos URLs courtes sur l'edge"
+        ),
+        keywords: ["links", "liens", "urls", "slugs", "shorten", "redirect", "pin", "ab testing", "expiration"],
+        iconType: "link",
+      },
+      {
+        id: "analytics-traffic",
+        title: tr("Traffic Overview", "Vue du trafic"),
+        href: "/dashboard/analytics",
+        badge: "Analytics",
+        meta: tr("Clicks & devices", "Clics & appareils"),
+        description: tr(
+          "Detailed click telemetry, top referrers, browsers, OS, and time-series charts",
+          "Télémétrie détaillée des clics, principaux référents, navigateurs, OS et graphiques temporels"
+        ),
+        keywords: ["analytics", "analytiques", "traffic", "trafic", "clicks", "clics", "referrers", "devices", "appareils", "browsers", "os", "stats"],
+        iconType: "analytics",
+      },
+      {
+        id: "analytics-geo",
+        title: tr("Geography & Continents", "Géographie & Continents"),
+        href: "/dashboard/analytics/geo",
+        badge: "Analytics",
+        meta: tr("Global heatmaps", "Cartes mondiales"),
+        description: tr(
+          "Interactive continent vector map, ISO country distribution, and country-level click routing",
+          "Carte vectorielle interactive des continents, répartition par pays ISO et routage géographique"
+        ),
+        keywords: ["geography", "géographie", "continents", "countries", "pays", "map", "carte", "location", "geo", "regions"],
+        iconType: "geo",
+      },
+      {
+        id: "analytics-revenue",
+        title: tr("Customers & Revenue", "Clients & Revenus"),
+        href: "/dashboard/analytics/revenue",
+        badge: "Analytics",
+        meta: tr("Conversions & EPC", "Conversions & EPC"),
+        description: tr(
+          "Conversion attribution, revenue tracking, average order value (AOV), and earnings per click",
+          "Attribution des conversions, suivi des revenus, panier moyen (AOV) et gains par clic"
+        ),
+        keywords: ["customers", "clients", "revenue", "revenus", "conversions", "sales", "ventes", "epc", "aov", "roi", "money", "attribution"],
+        iconType: "revenue",
+      },
+      {
+        id: "analytics-live",
+        title: tr("Live Click Stream", "Flux de clics en direct"),
+        href: "/dashboard/analytics/live",
+        badge: "Analytics",
+        meta: tr("Real-time edge feed", "Flux edge temps réel"),
+        description: tr(
+          "Millisecond-precision live click stream directly from global Cloudflare edge nodes",
+          "Flux de clics en direct à la milliseconde depuis les nœuds Cloudflare Edge mondiaux"
+        ),
+        keywords: ["live", "direct", "realtime", "temps réel", "stream", "flux", "events", "feed", "edge", "pulse"],
+        iconType: "live",
+      },
+      {
+        id: "page-qr-studio",
+        title: tr("QR Studio", "Studio QR"),
+        href: "/dashboard/qr-code",
+        badge: "Page",
+        meta: tr("Vector QR codes", "QR codes vectoriels"),
+        description: tr(
+          "Customize high-resolution PNG and SVG QR codes with colors, logos, and quiet zones",
+          "Personnalisez des QR codes haute résolution PNG et SVG avec couleurs, logos et zones de silence"
+        ),
+        keywords: ["qr", "qrcode", "studio", "barcode", "svg", "png", "scanner"],
+        iconType: "qr",
+      },
+      {
+        id: "page-custom-domains",
+        title: tr("Custom Domains", "Domaines personnalisés"),
+        href: "/dashboard/domains",
+        badge: "Page",
+        meta: tr("Branded DNS & SSL", "DNS & SSL de marque"),
+        description: tr(
+          "Connect custom branded short domains with automated edge SSL certificates",
+          "Connectez des domaines courts personnalisés avec certificats SSL edge automatiques"
+        ),
+        keywords: ["domains", "domaines", "dns", "cname", "ssl", "custom domain", "branded", "whitelabel"],
+        iconType: "domains",
+      },
+      {
+        id: "page-api-sdk",
+        title: tr("API & SDK", "API & SDK"),
+        href: "/dashboard/api-sdk",
+        badge: "Page",
+        meta: tr("REST keys & tokens", "Clés REST & jetons"),
+        description: tr(
+          "Generate developer API keys, inspect TypeScript SDK usage, and test REST endpoints",
+          "Générez des clés API développeur, consultez le SDK TypeScript et testez les endpoints REST"
+        ),
+        keywords: ["api", "sdk", "token", "bearer", "developer", "développeur", "rest", "keys", "clés", "webhook"],
+        iconType: "api",
+      },
+      {
+        id: "page-settings",
+        title: tr("Settings", "Paramètres"),
+        href: "/dashboard/settings",
+        badge: "Page",
+        meta: tr("Account & security", "Compte & sécurité"),
+        description: tr(
+          "Manage profile, subscription billing, 2FA security, webhooks, and retargeting pixels",
+          "Gérez votre profil, facturation, sécurité 2FA, webhooks et pixels de reciblage"
+        ),
+        keywords: ["settings", "paramètres", "account", "compte", "profile", "profil", "billing", "facturation", "security", "sécurité", "2fa", "password", "preferences", "gdpr", "rgpd"],
+        iconType: "settings",
+      },
+    ],
+    [tr]
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -340,7 +395,10 @@ export function ReuiCommandModal({
         title: doc.title,
         href: `/docs/${doc.slug}`,
         badge: "Doc",
-        meta: endpointCount > 0 ? `${endpointCount} API endpoints · ${doc.readTime}` : doc.readTime,
+        meta:
+          endpointCount > 0
+            ? `${endpointCount} ${tr("API endpoints", "endpoints API")} · ${doc.readTime}`
+            : doc.readTime,
         description: doc.subtitle || doc.description,
         keywords: [
           doc.slug,
@@ -379,7 +437,7 @@ export function ReuiCommandModal({
     }
 
     return items;
-  }, []);
+  }, [tr]);
 
   // Fetch User's Short Links from /api/links (via cfGetLinks cache or fetch) when modal opens
   useEffect(() => {
@@ -415,8 +473,8 @@ export function ReuiCommandModal({
             title: `/${slug}`,
             href: `/dashboard/links?search=${encodeURIComponent(slug)}`,
             badge: "Link" as const,
-            meta: `${clicks.toLocaleString()} clicks${host ? ` · ${host}` : ""}`,
-            description: dest || `Short link /${slug}`,
+            meta: `${formatNumber(clicks)} ${tr("clicks", "clics")}${host ? ` · ${host}` : ""}`,
+            description: dest || `${tr("Short link", "Lien court")} /${slug}`,
             keywords: [
               slug,
               dest,
@@ -438,7 +496,7 @@ export function ReuiCommandModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, formatNumber, tr]);
 
   // Global Cmd+K / Ctrl+K shortcut & custom event listener
   useEffect(() => {
@@ -483,8 +541,8 @@ export function ReuiCommandModal({
 
   // All available items
   const allCatalogItems = useMemo(() => {
-    return [...DASHBOARD_AND_ANALYTICS_ITEMS, ...shortLinks, ...docItems];
-  }, [shortLinks, docItems]);
+    return [...dashboardAndAnalyticsItems, ...shortLinks, ...docItems];
+  }, [dashboardAndAnalyticsItems, shortLinks, docItems]);
 
   // Resolve recent items
   const recentItems = useMemo(() => {
@@ -498,7 +556,7 @@ export function ReuiCommandModal({
   const sections = useMemo(() => {
     const trimmed = query.trim();
     if (!trimmed) {
-      const browsePages = DASHBOARD_AND_ANALYTICS_ITEMS;
+      const browsePages = dashboardAndAnalyticsItems;
       const browseDocs = docItems.filter((d) => d.iconType === "doc").slice(0, 8);
       const browseLinks = shortLinks.slice(0, 5);
 
@@ -506,26 +564,26 @@ export function ReuiCommandModal({
 
       if (recentItems.length > 0) {
         resultSections.push({
-          title: "Recent",
+          title: tr("Recent", "Récents"),
           isRecent: true,
           items: recentItems,
         });
       }
 
       resultSections.push({
-        title: "Browse — Pages & Analytics",
+        title: tr("Browse — Pages & Analytics", "Parcourir — Pages & Analytiques"),
         items: browsePages,
       });
 
       if (browseLinks.length > 0) {
         resultSections.push({
-          title: "Short Links",
+          title: tr("Short Links", "Liens courts"),
           items: browseLinks,
         });
       }
 
       resultSections.push({
-        title: "Documentation",
+        title: tr("Documentation", "Documentation"),
         items: browseDocs,
       });
 
@@ -555,17 +613,17 @@ export function ReuiCommandModal({
     const resultSections: Array<{ title: string; isRecent?: boolean; items: CommandItem[] }> = [];
 
     if (matchedPages.length > 0) {
-      resultSections.push({ title: "Pages & Analytics", items: matchedPages });
+      resultSections.push({ title: tr("Pages & Analytics", "Pages & Analytiques"), items: matchedPages });
     }
     if (matchedLinks.length > 0) {
-      resultSections.push({ title: "Short Links", items: matchedLinks });
+      resultSections.push({ title: tr("Short Links", "Liens courts"), items: matchedLinks });
     }
     if (matchedDocs.length > 0) {
-      resultSections.push({ title: "Documentation & API", items: matchedDocs });
+      resultSections.push({ title: tr("Documentation & API", "Documentation & API"), items: matchedDocs });
     }
 
     return resultSections;
-  }, [query, allCatalogItems, docItems, shortLinks, recentItems]);
+  }, [query, allCatalogItems, dashboardAndAnalyticsItems, docItems, shortLinks, recentItems, tr]);
 
   const flatItems = useMemo(() => {
     return sections.flatMap((sec) =>
@@ -639,7 +697,7 @@ export function ReuiCommandModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Command Search Modal"
+        aria-label={tr("Command Search Modal", "Fenêtre de recherche rapide")}
         className="w-full max-w-[640px] rounded-[12px] bg-white text-[#09090B] border border-black/[0.08] dark:bg-[#141416] dark:text-[#FAFAFA] dark:border-white/[0.1] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.75)] overflow-hidden flex flex-col"
       >
         {/* Top Search Input Bar */}
@@ -651,7 +709,10 @@ export function ReuiCommandModal({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}
-            placeholder="Search links, analytics, domains, docs, settings..."
+            placeholder={tr(
+              "Search links, analytics, domains, docs, settings...",
+              "Rechercher liens, analytiques, domaines, docs, paramètres..."
+            )}
             className="w-full bg-transparent text-[14px] text-[#09090B] dark:text-[#FAFAFA] placeholder:text-[#71717A] dark:placeholder:text-[#71717A] focus:outline-none"
           />
           {query && (
@@ -663,13 +724,13 @@ export function ReuiCommandModal({
               }}
               className="text-[11px] font-medium px-2 py-0.5 rounded-[6px] text-[#71717A] hover:text-[#09090B] dark:hover:text-[#FAFAFA] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
             >
-              Clear
+              {tr("Clear", "Effacer")}
             </button>
           )}
           <button
             type="button"
             onClick={handleClose}
-            aria-label="Close command search"
+            aria-label={tr("Close command search", "Fermer la recherche rapide")}
             className="flex h-7 w-7 items-center justify-center rounded-[7px] text-[#71717A] hover:text-[#09090B] dark:text-[#A1A1AA] dark:hover:text-[#FAFAFA] hover:bg-black/[0.05] dark:hover:bg-white/[0.07] transition-colors cursor-pointer shrink-0"
           >
             <X className="h-4 w-4" />
@@ -684,10 +745,13 @@ export function ReuiCommandModal({
           {flatItems.length === 0 ? (
             <div className="py-12 px-4 text-center">
               <p className="text-sm font-medium text-[#09090B] dark:text-[#FAFAFA]">
-                No results found for &ldquo;{query}&rdquo;
+                {tr("No results found for", "Aucun résultat trouvé pour")} &ldquo;{query}&rdquo;
               </p>
               <p className="mt-1 text-xs text-[#71717A] dark:text-[#A1A1AA]">
-                Try searching for documentation topics, API endpoints, analytics views, or link slugs.
+                {tr(
+                  "Try searching for documentation topics, API endpoints, analytics views, or link slugs.",
+                  "Essayez de rechercher des sujets de documentation, des endpoints API, des vues analytiques ou des slugs de liens."
+                )}
               </p>
             </div>
           ) : (
@@ -708,7 +772,7 @@ export function ReuiCommandModal({
                       }}
                       className="text-[11px] text-[#71717A] hover:text-[#09090B] dark:hover:text-[#FAFAFA] transition-colors cursor-pointer"
                     >
-                      Clear recent
+                      {tr("Clear recent", "Effacer l'historique")}
                     </button>
                   )}
                 </div>
@@ -752,7 +816,7 @@ export function ReuiCommandModal({
                         </span>
 
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[10.5px] font-medium leading-none shrink-0 bg-black/[0.04] dark:bg-white/[0.06] text-[#52525B] dark:text-[#A1A1AA] border border-black/[0.06] dark:border-white/[0.08]">
-                          {item.badge}
+                          {badgeLabel(item.badge)}
                         </span>
                       </div>
 
@@ -792,7 +856,7 @@ export function ReuiCommandModal({
               <kbd className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-[4px] border border-black/[0.1] dark:border-white/[0.12] bg-white dark:bg-[#18181B] px-1 text-[10.5px] font-mono text-[#09090B] dark:text-[#FAFAFA]">
                 ↵
               </kbd>
-              <span>Open</span>
+              <span>{tr("Open", "Ouvrir")}</span>
             </span>
 
             <span className="inline-flex items-center gap-1.5">
@@ -802,14 +866,14 @@ export function ReuiCommandModal({
               <kbd className="inline-flex h-5 items-center justify-center rounded-[4px] border border-black/[0.1] dark:border-white/[0.12] bg-white dark:bg-[#18181B] px-1 text-[10.5px] font-mono text-[#09090B] dark:text-[#FAFAFA]">
                 <ArrowDown className="h-2.5 w-2.5" />
               </kbd>
-              <span>Navigate</span>
+              <span>{tr("Navigate", "Naviguer")}</span>
             </span>
 
             <span className="inline-flex items-center gap-1.5">
               <kbd className="inline-flex h-5 items-center justify-center rounded-[4px] border border-black/[0.1] dark:border-white/[0.12] bg-white dark:bg-[#18181B] px-1.5 text-[10.5px] font-mono text-[#09090B] dark:text-[#FAFAFA]">
                 esc
               </kbd>
-              <span>Close</span>
+              <span>{tr("Close", "Fermer")}</span>
             </span>
 
             <span className="hidden md:inline-flex items-center gap-1.5">
@@ -818,12 +882,15 @@ export function ReuiCommandModal({
                 <span>+</span>
                 <ArrowRight className="h-2.5 w-2.5 stroke-[2.5]" />
               </kbd>
-              <span>Drawer</span>
+              <span>{tr("Drawer", "Panneau")}</span>
             </span>
           </div>
 
           <span className="hidden sm:inline text-[11px] text-[#71717A] dark:text-[#8E8E93]">
-            {flatItems.length} {flatItems.length === 1 ? "item" : "items"}
+            {flatItems.length}{" "}
+            {flatItems.length === 1
+              ? tr("item", "élément")
+              : tr("items", "éléments")}
           </span>
         </div>
       </div>

@@ -219,18 +219,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if ((token.userId || token.email) && shouldSyncWithConvex) {
         try {
-          let convexUser = null;
-          if (token.email) {
-            convexUser = await convex.query(api.users.getUserByEmail, {
-              email: String(token.email).toLowerCase().trim(),
-            });
-          }
-          if (!convexUser && token.userId) {
-            convexUser = await convex.query(api.users.getCurrentUser, {
-              userId: String(token.userId),
-              email: token.email ? String(token.email).toLowerCase().trim() : undefined,
-            });
-          }
+          const isPeriodicRefresh =
+            !user &&
+            trigger !== "update" &&
+            Boolean(token.plan) &&
+            token.hasCompletedOnboarding !== undefined;
+
+          const fetchConvexUser = async () => {
+            let found = null;
+            if (token.email) {
+              found = await convex.query(api.users.getUserByEmail, {
+                email: String(token.email).toLowerCase().trim(),
+              });
+            }
+            if (!found && token.userId) {
+              found = await convex.query(api.users.getCurrentUser, {
+                userId: String(token.userId),
+                email: token.email ? String(token.email).toLowerCase().trim() : undefined,
+              });
+            }
+            return found;
+          };
+
+          const convexUser = isPeriodicRefresh
+            ? await Promise.race([
+                fetchConvexUser(),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+              ])
+            : await fetchConvexUser();
           if (convexUser) {
             token.userId = convexUser.userId;
             token.email = convexUser.email || token.email;

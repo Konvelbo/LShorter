@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useSpring } from "motion/react";
 import { Play } from "lucide-react";
 import React, { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 const VideoPopOver = dynamic(
   () => import("@/components/ui/skiper67-modal").then((m) => m.VideoPopOver),
@@ -28,8 +29,8 @@ export interface Skiper67Props {
 export const Skiper67 = ({
   videoSrc = "/videos/demo-walkthrough-en.mp4?v=2",
   thumbnailSrc = "/videos/demo-walkthrough-en-poster.jpg?v=3",
-  thumbnailAlt = "LShorter 6-minute product walkthrough preview",
-  caption = "Click the video to play",
+  thumbnailAlt,
+  caption,
   initialSeekSeconds = null,
   isOpen,
   onOpenChange,
@@ -38,8 +39,18 @@ export const Skiper67 = ({
   onLangChange,
   className,
 }: Skiper67Props) => {
+  const { tr } = useI18n();
   const [internalOpen, setInternalOpen] = useState(false);
   const showVideoPopOver = isOpen !== undefined ? isOpen : internalOpen;
+
+  const resolvedCaption =
+    caption ?? tr("Click the video to play", "Cliquez pour lancer la vidéo");
+  const resolvedThumbnailAlt =
+    thumbnailAlt ??
+    tr(
+      "LShorter 6-minute product walkthrough preview",
+      "Aperçu de la présentation produit LShorter en 6 minutes"
+    );
 
   const setShowVideoPopOver = useCallback(
     (next: boolean) => {
@@ -77,8 +88,8 @@ export const Skiper67 = ({
     >
       {/* Skiper67 Editorial Caption + Vertical Hairline */}
       <div className="mb-10 sm:mb-12 grid content-start justify-items-center text-center">
-        <span className="relative max-w-[16ch] text-[11px] font-mono font-medium uppercase tracking-[0.14em] leading-tight text-[#09090B]/55 dark:text-white/55 after:absolute after:left-1/2 after:top-full after:mt-3 after:h-9 after:w-px after:-translate-x-1/2 after:bg-gradient-to-b after:from-transparent after:to-[#09090B]/35 dark:after:to-white/35 after:content-['']">
-          {caption}
+        <span className="relative max-w-[20ch] text-[11px] font-mono font-medium uppercase tracking-[0.14em] leading-tight text-[#09090B]/55 dark:text-white/55 after:absolute after:left-1/2 after:top-full after:mt-3 after:h-9 after:w-px after:-translate-x-1/2 after:bg-gradient-to-b after:from-transparent after:to-[#09090B]/35 dark:after:to-white/35 after:content-['']">
+          {resolvedCaption}
         </span>
       </div>
 
@@ -100,7 +111,10 @@ export const Skiper67 = ({
       <div
         role="button"
         tabIndex={0}
-        aria-label="Play LShorter 6-minute walkthrough video"
+        aria-label={tr(
+          "Play LShorter 6-minute walkthrough video",
+          "Lire la vidéo de présentation LShorter de 6 minutes"
+        )}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => {
           opacity.set(0);
@@ -120,14 +134,14 @@ export const Skiper67 = ({
           className="pointer-events-none absolute left-0 top-0 z-30 flex w-fit select-none items-center justify-center gap-2 rounded-[8px] bg-[#09090B]/90 px-4 py-2 text-[13px] font-semibold text-white border border-white/20 shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
         >
           <Play className="size-3.5 fill-white" />
-          <span>Play</span>
+          <span>{tr("Play", "Lire")}</span>
         </motion.div>
 
         {/* Custom LShorter Walkthrough Thumbnail */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={thumbnailSrc}
-          alt={thumbnailAlt}
+          alt={resolvedThumbnailAlt}
           loading="lazy"
           decoding="async"
           className="h-full w-full object-cover transform-gpu will-change-transform video-hover-smooth transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.025]"

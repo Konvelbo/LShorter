@@ -23,6 +23,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { signIn } from "next-auth/react";
 import { ForgotPasswordModal } from "@/components/auth/forgot-password-modal";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { cn } from "@/lib/utils";
 import {
   sendSignupPinAction,
@@ -70,6 +71,11 @@ export default function LoginPage({
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { tr } = useI18n();
+  const trRef = useRef(tr);
+  useEffect(() => {
+    trRef.current = tr;
+  }, [tr]);
 
   // ─── Signup PIN Email Verification State ─────────────────────────────────────
   const [showSignupPIN, setShowSignupPIN] = useState(false);
@@ -187,11 +193,11 @@ export default function LoginPage({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      showToast.error("Please enter your email address.");
+      showToast.error(tr("Please enter your email address.", "Veuillez saisir votre adresse e-mail."));
       return;
     }
     if (!password.trim()) {
-      showToast.error("Please enter your password.");
+      showToast.error(tr("Please enter your password.", "Veuillez saisir votre mot de passe."));
       return;
     }
 
@@ -199,27 +205,46 @@ export default function LoginPage({
     if (authMode === "register") {
       const cleanName = name.trim();
       if (!cleanName) {
-        showToast.error("Please enter your name.");
+        showToast.error(tr("Please enter your name.", "Veuillez saisir votre nom."));
         return;
       }
       if (cleanName.length < 2) {
-        showToast.error("Your name must be at least 2 characters long.");
+        showToast.error(
+          tr(
+            "Your name must be at least 2 characters long.",
+            "Votre nom doit contenir au moins 2 caractères."
+          )
+        );
         return;
       }
       if (cleanName.length > 50) {
-        showToast.error("Your name cannot exceed 50 characters.");
+        showToast.error(
+          tr(
+            "Your name cannot exceed 50 characters.",
+            "Votre nom ne peut pas dépasser 50 caractères."
+          )
+        );
         return;
       }
       if (!confirmPassword.trim()) {
-        showToast.error("Please confirm your password.");
+        showToast.error(
+          tr("Please confirm your password.", "Veuillez confirmer votre mot de passe.")
+        );
         return;
       }
       if (password !== confirmPassword) {
-        showToast.error("Passwords do not match.");
+        showToast.error(
+          tr("Passwords do not match.", "Les mots de passe ne correspondent pas.")
+        );
         return;
       }
       if (password.length < 8) {
-        showToast.error("Password must be at least 8 characters long.");
+        showToast.error(
+          tr(
+            "Password must be at least 8 characters long.",
+            "Le mot de passe doit contenir au moins 8 caractères."
+          )
+        );
         return;
       }
 
@@ -267,7 +292,7 @@ export default function LoginPage({
             res?.message ||
             formatApiValidationDetails(res?.details) ||
             res?.error ||
-            "Registration failed.";
+            tr("Registration failed.", "L'inscription a échoué.");
           showToast.error(errMsg);
           setIsLoading(false);
           return;
@@ -280,13 +305,19 @@ export default function LoginPage({
         setSignupCountdown(60);
         setShowSignupPIN(true);
         showToast.success(
-          "A 6-digit validation PIN has been sent to your email!"
+          tr(
+            "A 6-digit validation PIN has been sent to your email!",
+            "Un code PIN de validation à 6 chiffres a été envoyé à votre adresse e-mail !"
+          )
         );
         setIsLoading(false);
         return;
       } catch (err: any) {
         console.error("Registration error:", err);
-        showToast.error(err?.message || "Error sending confirmation code.");
+        showToast.error(
+          err?.message ||
+            tr("Error sending confirmation code.", "Erreur lors de l'envoi du code de confirmation.")
+        );
         setIsLoading(false);
         return;
       }
@@ -300,7 +331,8 @@ export default function LoginPage({
       const cleanName =
         name.trim() || cleanEmail.split("@")[0].replace(/[._-]/g, " ");
       const userName =
-        cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "My Account";
+        cleanName.charAt(0).toUpperCase() + cleanName.slice(1) ||
+        tr("My Account", "Mon compte");
 
       // Sign in with NextAuth Credentials provider
       const result = await signIn("credentials", {
@@ -318,7 +350,12 @@ export default function LoginPage({
         ) {
           setShow2FAChallenge(true);
           setIsLoading(false);
-          showToast.info("Two-factor authentication required for this account.");
+          showToast.info(
+            tr(
+              "Two-factor authentication required for this account.",
+              "Authentification à deux facteurs requise pour ce compte."
+            )
+          );
           return;
         }
         if (
@@ -326,7 +363,10 @@ export default function LoginPage({
           result.code === "2FA_INVALID_CODE"
         ) {
           showToast.error(
-            "Invalid or expired 2FA code. Please check your authenticator app or backup code.",
+            tr(
+              "Invalid or expired 2FA code. Please check your authenticator app or backup code.",
+              "Code 2FA invalide ou expiré. Veuillez vérifier votre application d'authentification ou votre code de secours."
+            )
           );
           setIsLoading(false);
           return;
@@ -347,23 +387,35 @@ export default function LoginPage({
             if (checkData?.twoFactorEnabled) {
               setShow2FAChallenge(true);
               setIsLoading(false);
-              showToast.info("Please enter your 6-digit code to continue.");
+              showToast.info(
+                tr(
+                  "Please enter your 6-digit code to continue.",
+                  "Veuillez saisir votre code à 6 chiffres pour continuer."
+                )
+              );
               return;
             }
           } catch {}
         }
 
-        showToast.error("Invalid email or password.");
+        showToast.error(
+          tr("Invalid email or password.", "Adresse e-mail ou mot de passe incorrect.")
+        );
         setIsLoading(false);
         return;
       }
 
-      showToast.success(`Welcome to LShorter, ${userName}!`);
+      showToast.success(
+        tr(`Welcome to LShorter, ${userName}!`, `Bienvenue sur LShorter, ${userName} !`)
+      );
       window.location.href = "/dashboard";
     } catch (error) {
       console.error("Auth error:", error);
       showToast.error(
-        "An error occurred during authentication. Please try again.",
+        tr(
+          "An error occurred during authentication. Please try again.",
+          "Une erreur est survenue lors de l'authentification. Veuillez réessayer."
+        )
       );
       setIsLoading(false);
     }
@@ -373,12 +425,22 @@ export default function LoginPage({
   const handleVerifySignupPin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (codeExpiresIn <= 0) {
-      showToast.error("This code has expired. Please click 'Resend code'.");
+      showToast.error(
+        tr(
+          "This code has expired. Please click 'Resend code'.",
+          "Ce code a expiré. Veuillez cliquer sur « Renvoyer le code »."
+        )
+      );
       return;
     }
     const cleanPin = signupPin.trim();
     if (cleanPin.length !== 6) {
-      showToast.error("Please enter the complete 6-digit PIN code.");
+      showToast.error(
+        tr(
+          "Please enter the complete 6-digit PIN code.",
+          "Veuillez saisir le code PIN complet à 6 chiffres."
+        )
+      );
       return;
     }
 
@@ -427,12 +489,19 @@ export default function LoginPage({
             return;
           }
         }
-        showToast.error(res?.message || "Invalid or expired PIN code.");
+        showToast.error(
+          res?.message || tr("Invalid or expired PIN code.", "Code PIN invalide ou expiré.")
+        );
         setIsLoading(false);
         return;
       }
 
-      showToast.success("Account successfully verified and activated!");
+      showToast.success(
+        tr(
+          "Account successfully verified and activated!",
+          "Compte vérifié et activé avec succès !"
+        )
+      );
 
       // Sign in automatically
       const signinRes = await signIn("credentials", {
@@ -442,7 +511,12 @@ export default function LoginPage({
       });
 
       if (signinRes?.error) {
-        showToast.success("Account verified! Please sign in with your credentials.");
+        showToast.success(
+          tr(
+            "Account verified! Please sign in with your credentials.",
+            "Compte vérifié ! Veuillez vous connecter avec vos identifiants."
+          )
+        );
         setShowSignupPIN(false);
         setAuthMode("login");
         setIsLoading(false);
@@ -456,7 +530,10 @@ export default function LoginPage({
       }
     } catch (err: any) {
       console.error("Signup validation error:", err);
-      showToast.error(err?.message || "Error activating account.");
+      showToast.error(
+        err?.message ||
+          tr("Error activating account.", "Erreur lors de l'activation du compte.")
+      );
       setIsLoading(false);
     }
   };
@@ -509,17 +586,22 @@ export default function LoginPage({
         setSignupCountdown(60);
         setPinDigits(["", "", "", "", "", ""]);
         setSignupPin("");
-        showToast.success("New PIN code sent to your email!");
+        showToast.success(
+          tr(
+            "New PIN code sent to your email!",
+            "Un nouveau code PIN a été envoyé à votre adresse e-mail !"
+          )
+        );
       } else {
         const errMsg =
           res?.message ||
           formatApiValidationDetails(res?.details) ||
           res?.error ||
-          "Error resending code.";
+          tr("Error resending code.", "Erreur lors du renvoi du code.");
         showToast.error(errMsg);
       }
     } catch {
-      showToast.error("Error resending code.");
+      showToast.error(tr("Error resending code.", "Erreur lors du renvoi du code."));
     } finally {
       setIsLoading(false);
     }
@@ -533,16 +615,32 @@ export default function LoginPage({
       if (err) {
         if (err === "Configuration") {
           showToast.error(
-            "Incomplete OAuth provider configuration. Please use email and password or contact support.",
+            trRef.current(
+              "Incomplete OAuth provider configuration. Please use email and password or contact support.",
+              "Configuration du fournisseur OAuth incomplète. Veuillez utiliser votre e-mail et mot de passe ou contacter le support."
+            )
           );
         } else if (err === "OAuthCallbackError" || err === "OAuthCallback") {
           showToast.error(
-            "OAuth callback error: Please verify the redirect URI.",
+            trRef.current(
+              "OAuth callback error: Please verify the redirect URI.",
+              "Erreur de rappel OAuth : veuillez vérifier l'URI de redirection."
+            )
           );
         } else if (err === "AccessDenied") {
-          showToast.error("Access denied by authentication provider.");
+          showToast.error(
+            trRef.current(
+              "Access denied by authentication provider.",
+              "Accès refusé par le fournisseur d'authentification."
+            )
+          );
         } else {
-          showToast.error(`Authentication error: ${err}`);
+          showToast.error(
+            trRef.current(
+              `Authentication error: ${err}`,
+              `Erreur d'authentification : ${err}`
+            )
+          );
         }
       }
     }
@@ -552,7 +650,7 @@ export default function LoginPage({
     const handleAuthSuccess = () => {
       if (hasRedirected) return;
       hasRedirected = true;
-      showToast.success("Login successful!");
+      showToast.success(trRef.current("Login successful!", "Connexion réussie !"));
       setTimeout(() => {
         router.push("/dashboard");
       }, 500);
@@ -597,8 +695,12 @@ export default function LoginPage({
       await signIn(provider, { callbackUrl: "/dashboard" });
     } catch (error) {
       console.error("OAuth Sign-in error:", error);
+      const providerName = provider === "google" ? "Google" : "GitHub";
       showToast.error(
-        `OAuth error with ${provider === "google" ? "Google" : "GitHub"}. Please check your configuration.`,
+        tr(
+          `OAuth error with ${providerName}. Please check your configuration.`,
+          `Erreur OAuth avec ${providerName}. Veuillez vérifier votre configuration.`
+        )
       );
       setIsLoading(false);
     }
@@ -614,7 +716,7 @@ export default function LoginPage({
             <div className="w-8 h-8 rounded-[8px] overflow-hidden shadow-md shrink-0 group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.svg"
-                alt="LShorter Logo"
+                alt={tr("LShorter Logo", "Logo LShorter")}
                 width={32}
                 height={32}
                 className="w-full h-full object-contain"
@@ -630,7 +732,11 @@ export default function LoginPage({
           <button
             type="button"
             onClick={toggleTheme}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={
+              theme === "dark"
+                ? tr("Switch to light mode", "Passer en mode clair")
+                : tr("Switch to dark mode", "Passer en mode sombre")
+            }
             className="w-9 h-9 rounded-[10px] bg-white dark:bg-[#141416] border border-neutral-300 dark:border-[#27272a] hover:border-neutral-400 dark:hover:border-neutral-500 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
           >
             {theme === "dark" ? (
@@ -661,7 +767,7 @@ export default function LoginPage({
                       : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
                   )}
                 >
-                  Log in
+                  {tr("Log in", "Connexion")}
                 </button>
                 <button
                   type="button"
@@ -677,19 +783,27 @@ export default function LoginPage({
                       : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
                   )}
                 >
-                  Sign up
+                  {tr("Sign up", "Inscription")}
                 </button>
               </div>
 
               {/* Titles */}
               <div className="mb-6 text-left max-sm:text-center">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-                  {authMode === "login" ? "Welcome back" : "Create an account"}
+                  {authMode === "login"
+                    ? tr("Welcome back", "Bon retour")
+                    : tr("Create an account", "Créer un compte")}
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mt-1.5 leading-relaxed">
                   {authMode === "login"
-                    ? "Sign in to your account to continue"
-                    : "Get started for free with 2,500 clicks/month included"}
+                    ? tr(
+                        "Sign in to your account to continue",
+                        "Connectez-vous à votre compte pour continuer"
+                      )
+                    : tr(
+                        "Get started for free with 2,500 clicks/month included",
+                        "Démarrez gratuitement avec 2 500 clics/mois inclus"
+                      )}
                 </p>
               </div>
 
@@ -720,7 +834,7 @@ export default function LoginPage({
                       d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3L1.9 16c1.8 3.6 5.5 7 10.1 7z"
                     />
                   </svg>
-                  <span>Continue with Google</span>
+                  <span>{tr("Continue with Google", "Continuer avec Google")}</span>
                 </button>
 
                 {/* GitHub OAuth Button */}
@@ -733,7 +847,7 @@ export default function LoginPage({
                   <svg className="w-4 h-4 fill-neutral-800 dark:fill-white shrink-0" viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                   </svg>
-                  <span>Continue with GitHub</span>
+                  <span>{tr("Continue with GitHub", "Continuer avec GitHub")}</span>
                 </button>
               </div>
 
@@ -741,7 +855,7 @@ export default function LoginPage({
               <div className="flex items-center gap-3 my-5">
                 <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
                 <span className="text-[10.5px] text-neutral-500 font-bold uppercase tracking-wider">
-                  OR
+                  {tr("OR", "OU")}
                 </span>
                 <div className="flex-1 h-px bg-neutral-300 dark:bg-[#27272a]" />
               </div>
@@ -757,13 +871,16 @@ export default function LoginPage({
               {/* Modern Typography Header */}
               <div className="mb-7 text-left max-sm:text-center">
                 <div className="text-[11px] font-semibold text-brand uppercase tracking-widest mb-1.5">
-                  Security
+                  {tr("Security", "Sécurité")}
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-white mb-2">
-                  Confirmation code
+                  {tr("Confirmation code", "Code de confirmation")}
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed font-normal">
-                  A 6-digit verification code has been sent to{" "}
+                  {tr(
+                    "A 6-digit verification code has been sent to",
+                    "Un code de vérification à 6 chiffres a été envoyé à"
+                  )}{" "}
                   <span className="font-semibold text-neutral-900 dark:text-white break-all">
                     {email}
                   </span>.
@@ -809,7 +926,7 @@ export default function LoginPage({
                         )}
                       />
                       <span className="text-neutral-500 dark:text-neutral-400">
-                        Code valid for{" "}
+                        {tr("Code valid for", "Code valable pendant")}{" "}
                         <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
                           {formatCountdown(codeExpiresIn)}
                         </span>
@@ -819,7 +936,10 @@ export default function LoginPage({
                     <>
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                       <span className="text-red-500 dark:text-red-400 font-semibold">
-                        Code expired &mdash; please click &ldquo;Resend code&rdquo;
+                        {tr(
+                          'Code expired — please click "Resend code"',
+                          "Code expiré — veuillez cliquer sur « Renvoyer le code »"
+                        )}
                       </span>
                     </>
                   )}
@@ -835,10 +955,10 @@ export default function LoginPage({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Activating account...</span>
+                    <span>{tr("Activating account...", "Activation du compte...")}</span>
                   </>
                 ) : (
-                  <span>Validate and continue →</span>
+                  <span>{tr("Validate and continue →", "Valider et continuer →")}</span>
                 )}
               </button>
 
@@ -856,8 +976,11 @@ export default function LoginPage({
                   )}
                 >
                   {signupCountdown > 0
-                    ? `Resend code (${signupCountdown}s)`
-                    : "Resend code"}
+                    ? tr(
+                        `Resend code (${signupCountdown}s)`,
+                        `Renvoyer le code (${signupCountdown}s)`
+                      )
+                    : tr("Resend code", "Renvoyer le code")}
                 </button>
                 <button
                   type="button"
@@ -869,7 +992,7 @@ export default function LoginPage({
                   className="hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Change email</span>
+                  <span>{tr("Change email", "Changer d'e-mail")}</span>
                 </button>
               </div>
             </form>
@@ -884,20 +1007,29 @@ export default function LoginPage({
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
-                  Two-Factor Authentication (2FA)
+                  {tr(
+                    "Two-Factor Authentication (2FA)",
+                    "Authentification à deux facteurs (2FA)"
+                  )}
                 </h3>
                 <p className="text-[11px] text-neutral-600 dark:text-neutral-400 max-w-xs leading-relaxed">
                   {useBackupCode
-                    ? "Enter one of your emergency backup codes."
-                    : `Enter the 6-digit code for ${email}`}
+                    ? tr(
+                        "Enter one of your emergency backup codes.",
+                        "Saisissez l'un de vos codes de secours d'urgence."
+                      )
+                    : tr(
+                        `Enter the 6-digit code for ${email}`,
+                        `Saisissez le code à 6 chiffres pour ${email}`
+                      )}
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
                   {useBackupCode
-                    ? "Emergency Backup Code"
-                    : "Authentication Code (TOTP)"}
+                    ? tr("Emergency Backup Code", "Code de secours d'urgence")
+                    : tr("Authentication Code (TOTP)", "Code d'authentification (TOTP)")}
                 </label>
                 <Input
                   required
@@ -915,7 +1047,12 @@ export default function LoginPage({
                 disabled={isLoading || !twoFactorCode.trim()}
                 className="w-full h-11 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-[10px] shadow-md transition-all cursor-pointer"
               >
-                {isLoading ? "Verifying..." : "Verify & Access Dashboard"}
+                {isLoading
+                  ? tr("Verifying...", "Vérification...")
+                  : tr(
+                      "Verify & Access Dashboard",
+                      "Vérifier et accéder au tableau de bord"
+                    )}
               </Button>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs pt-1">
@@ -928,8 +1065,14 @@ export default function LoginPage({
                   className="text-brand hover:underline font-medium cursor-pointer"
                 >
                   {useBackupCode
-                    ? "Use authenticator app code"
-                    : "Lost device? Use backup code"}
+                    ? tr(
+                        "Use authenticator app code",
+                        "Utiliser le code de l'application d'authentification"
+                      )
+                    : tr(
+                        "Lost device? Use backup code",
+                        "Appareil perdu ? Utiliser un code de secours"
+                      )}
                 </button>
                 <button
                   type="button"
@@ -939,7 +1082,7 @@ export default function LoginPage({
                   }}
                   className="text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white cursor-pointer"
                 >
-                  ← Back to login
+                  {tr("← Back to login", "← Retour à la connexion")}
                 </button>
               </div>
             </form>
@@ -951,7 +1094,7 @@ export default function LoginPage({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                      Your Name
+                      {tr("Your Name", "Votre nom")}
                     </label>
                     <span
                       className={`text-[10px] font-medium transition-colors ${
@@ -962,8 +1105,11 @@ export default function LoginPage({
                       }`}
                     >
                       {name.trim().length > 0
-                        ? `${name.trim().length}/50 (2–50 chars)`
-                        : "2–50 characters"}
+                        ? tr(
+                            `${name.trim().length}/50 (2–50 chars)`,
+                            `${name.trim().length}/50 (2–50 car.)`
+                          )
+                        : tr("2–50 characters", "2–50 caractères")}
                     </span>
                   </div>
                   <div className="relative">
@@ -972,7 +1118,7 @@ export default function LoginPage({
                       required
                       minLength={2}
                       maxLength={50}
-                      placeholder="e.g. Alex Johnson"
+                      placeholder={tr("e.g. Alex Johnson", "ex. Alex Martin")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="pl-9 bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand text-xs h-11 rounded-[10px] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 shadow-xs"
@@ -984,14 +1130,14 @@ export default function LoginPage({
               {/* Email */}
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Email Address
+                  {tr("Email Address", "Adresse e-mail")}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                   <Input
                     type="email"
                     required
-                    placeholder="name@example.com"
+                    placeholder={tr("name@example.com", "nom@exemple.com")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-9 bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand text-xs h-11 rounded-[10px] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 shadow-xs"
@@ -1003,7 +1149,7 @@ export default function LoginPage({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                    Password
+                    {tr("Password", "Mot de passe")}
                   </label>
                   {authMode === "login" && (
                     <button
@@ -1011,7 +1157,7 @@ export default function LoginPage({
                       onClick={() => setIsForgotPasswordOpen(true)}
                       className="text-xs text-brand hover:underline font-medium cursor-pointer"
                     >
-                      Forgot password?
+                      {tr("Forgot password?", "Mot de passe oublié ?")}
                     </button>
                   )}
                 </div>
@@ -1020,7 +1166,7 @@ export default function LoginPage({
                   <Input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Your password"
+                    placeholder={tr("Your password", "Votre mot de passe")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-9 pr-9 bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand text-xs h-11 rounded-[10px] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 shadow-xs"
@@ -1029,7 +1175,11 @@ export default function LoginPage({
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
-                    title={showPassword ? "Hide password" : "Show password"}
+                    title={
+                      showPassword
+                        ? tr("Hide password", "Masquer le mot de passe")
+                        : tr("Show password", "Afficher le mot de passe")
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -1044,14 +1194,17 @@ export default function LoginPage({
               {authMode === "register" && (
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Confirm Password
+                    {tr("Confirm Password", "Confirmer le mot de passe")}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <Input
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      placeholder="Confirm your password"
+                      placeholder={tr(
+                        "Confirm your password",
+                        "Confirmez votre mot de passe"
+                      )}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-9 pr-9 bg-white dark:bg-[#141416] border-neutral-300 dark:border-[#27272a] focus:border-brand text-xs h-11 rounded-[10px] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 shadow-xs"
@@ -1060,6 +1213,11 @@ export default function LoginPage({
                       type="button"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      title={
+                        showConfirmPassword
+                          ? tr("Hide password", "Masquer le mot de passe")
+                          : tr("Show password", "Afficher le mot de passe")
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
                     >
@@ -1084,13 +1242,18 @@ export default function LoginPage({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>
                       {authMode === "login"
-                        ? "Signing in..."
-                        : "Sending verification code..."}
+                        ? tr("Signing in...", "Connexion en cours...")
+                        : tr(
+                            "Sending verification code...",
+                            "Envoi du code de vérification..."
+                          )}
                     </span>
                   </>
                 ) : (
                   <span>
-                    {authMode === "login" ? "Sign In" : "Create Account"}
+                    {authMode === "login"
+                      ? tr("Sign In", "Se connecter")
+                      : tr("Create Account", "Créer un compte")}
                   </span>
                 )}
               </button>
@@ -1102,7 +1265,10 @@ export default function LoginPage({
             <div className="mt-6 text-center text-xs text-neutral-600 dark:text-neutral-400">
               {authMode === "login" ? (
                 <span>
-                  Don't have an account?{" "}
+                  {tr(
+                    "Don't have an account?",
+                    "Vous n'avez pas encore de compte ?"
+                  )}{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -1112,12 +1278,15 @@ export default function LoginPage({
                     }}
                     className="text-brand font-semibold hover:underline cursor-pointer"
                   >
-                    Sign up
+                    {tr("Sign up", "S'inscrire")}
                   </button>
                 </span>
               ) : (
                 <span>
-                  Already have an account?{" "}
+                  {tr(
+                    "Already have an account?",
+                    "Vous avez déjà un compte ?"
+                  )}{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -1127,7 +1296,7 @@ export default function LoginPage({
                     }}
                     className="text-brand font-semibold hover:underline cursor-pointer"
                   >
-                    Sign in
+                    {tr("Sign in", "Se connecter")}
                   </button>
                 </span>
               )}
@@ -1137,19 +1306,22 @@ export default function LoginPage({
 
         {/* Footer Disclaimer */}
         <div className="text-center text-[11px] text-neutral-500">
-          By continuing, you agree to our{" "}
+          {tr(
+            "By continuing, you agree to our",
+            "En continuant, vous acceptez nos"
+          )}{" "}
           <a href="/terms" className="text-neutral-600 dark:text-neutral-400 hover:underline">
-            Terms
+            {tr("Terms", "Conditions d'utilisation")}
           </a>{" "}
-          and{" "}
+          {tr("and", "et notre")}{" "}
           <a href="/privacy" className="text-neutral-600 dark:text-neutral-400 hover:underline">
-            Privacy Policy
+            {tr("Privacy Policy", "Politique de confidentialité")}
           </a>
           .
         </div>
       </div>
 
-      {/* ── RIGHT COLUMN: CLEAN MINIMALIST BRAND SHOWCASE WITH BOUNCING LS LOGO & ENGLISH MOTTO ── */}
+      {/* ── RIGHT COLUMN: CLEAN MINIMALIST BRAND SHOWCASE WITH BOUNCING LS LOGO & MOTTO ── */}
       <div className="hidden lg:flex flex-col items-center justify-center relative bg-[#faf7f2] dark:bg-[#0d0d12] overflow-hidden border-l border-neutral-300/80 dark:border-[#222225] select-none p-12 transition-colors duration-200">
         {/* Subtle radial ambient blue glow behind the logo */}
         <div className="absolute w-[480px] h-[480px] bg-[#0066FF]/25 dark:bg-[#0066FF]/35 rounded-full blur-[130px] pointer-events-none" />
@@ -1159,7 +1331,7 @@ export default function LoginPage({
           <div className="w-28 h-28 rounded-3xl overflow-hidden relative group cursor-default shadow-[0_0_45px_rgba(0,102,255,0.45)] animate-icon-bounce p-3 bg-white/15 dark:bg-[#0066FF]/10 backdrop-blur-md border border-white/25 dark:border-[#0066FF]/35">
             <Image
               src="/logo.svg"
-              alt="LShorter Logo"
+              alt={tr("LShorter Logo", "Logo LShorter")}
               width={112}
               height={112}
               className="w-full h-full object-contain"
@@ -1167,15 +1339,20 @@ export default function LoginPage({
             />
           </div>
 
-          {/* Slogan / Devise in English */}
+          {/* Slogan / Devise */}
           <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight mt-9 leading-tight">
-            Every Click Matters. <br />
-            <span className="text-[#0066FF]">Every Millisecond Counts.</span>
+            {tr("Every Click Matters.", "Chaque clic importe.")} <br />
+            <span className="text-[#0066FF]">
+              {tr("Every Millisecond Counts.", "Chaque milliseconde compte.")}
+            </span>
           </h2>
 
-          {/* Subtitle in English */}
+          {/* Subtitle */}
           <p className="text-base text-neutral-600 dark:text-neutral-400 mt-3 max-w-xs leading-relaxed">
-            Next-gen Anycast edge routing, smart geo-targeting, and real-time analytics.
+            {tr(
+              "Next-gen Anycast edge routing, smart geo-targeting, and real-time analytics.",
+              "Routage edge Anycast nouvelle génération, ciblage géographique intelligent et analyses en temps réel."
+            )}
           </p>
         </div>
       </div>

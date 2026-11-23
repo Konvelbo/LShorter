@@ -17,6 +17,7 @@ import {
 import type { ComponentProps } from "react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export type VideoPlayerProps = ComponentProps<typeof MediaController>;
 
@@ -142,6 +143,7 @@ export const VideoPopOver = ({
   onLangChange,
   setShowVideoPopOver,
 }: VideoPopOverProps) => {
+  const { tr } = useI18n();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controllerRef = useRef<HTMLElement | null>(null);
   const pendingRatioRef = useRef<number | null>(null);
@@ -219,7 +221,7 @@ export const VideoPopOver = ({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="LShorter Walkthrough Video Player"
+      aria-label={tr("LShorter Walkthrough Video Player", "Lecteur vidéo de démonstration LShorter")}
       className="fixed inset-0 z-[10060] flex h-screen w-screen items-center justify-center p-4 sm:p-8"
     >
       <motion.div
@@ -272,7 +274,7 @@ export const VideoPopOver = ({
             {lang && onLangChange && (
               <div
                 role="group"
-                aria-label="Video language"
+                aria-label={tr("Video language", "Langue de la vidéo")}
                 className="inline-flex items-center rounded-[8px] border border-white/15 bg-black/75 p-0.5 backdrop-blur-md"
               >
                 {(["en", "fr"] as const).map((code) => (
@@ -294,7 +296,7 @@ export const VideoPopOver = ({
             )}
             <button
               type="button"
-              aria-label="Close video player"
+              aria-label={tr("Close video player", "Fermer le lecteur vidéo")}
               onClick={handleClose}
               className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-black/75 hover:bg-black/95 border border-white/15 text-white transition-colors cursor-pointer"
             >

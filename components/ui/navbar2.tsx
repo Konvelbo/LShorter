@@ -262,7 +262,7 @@ function useLerpPanelReveal(
 export function Navbar2() {
   const pathname = usePathname();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { locale, toggleLocale, t, tr } = useI18n();
   const { lenis } = useLenis();
   const { data: session, status } = useSession();
@@ -590,7 +590,7 @@ export function Navbar2() {
       >
         {/* Fixed-height Top Bar */}
         <div
-          className={`relative z-20 overflow-hidden border border-zinc-200/80 dark:border-white/[0.11] bg-white/[0.97] dark:bg-[#0D0E12]/[0.97] backdrop-blur-md transition-[border-radius,border-color] duration-200 ${
+          className={`relative z-20 overflow-hidden border border-zinc-200/80 dark:border-white/[0.11] bg-white/[0.97] dark:bg-[#0D0E12]/[0.97] backdrop-blur-md transition-[border-radius] duration-200 ${
             isAnyPanelOpen
               ? "rounded-t-[10px] rounded-b-none border-b-zinc-200/70 dark:border-b-white/[0.08] shadow-none"
               : "rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-8px_rgba(0,0,0,0.10)] dark:shadow-[0_14px_38px_-8px_rgba(0,0,0,0.68)]"
@@ -678,6 +678,7 @@ export function Navbar2() {
               {/* Simple, sober compact EN/FR language toggle strictly to the left of the theme toggle */}
               <button
                 type="button"
+                data-testid="navbar-language-toggle"
                 onClick={toggleLocale}
                 aria-label={t("lang.switchToOther")}
                 title={t("lang.switchToOther")}
@@ -688,20 +689,22 @@ export function Navbar2() {
 
               <button
                 type="button"
+                data-testid="navbar-theme-toggle"
                 onClick={toggleTheme}
-                aria-label={
-                  theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")
-                }
+                aria-label={t("nav.toggleTheme")}
+                title={t("nav.toggleTheme")}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200/80 dark:border-white/12 bg-zinc-50/80 dark:bg-white/[0.05] text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-white/[0.10] hover:text-zinc-900 dark:hover:text-white cursor-pointer"
               >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
+                <Sun className="hidden dark:block h-4 w-4" aria-hidden="true" />
+                <Moon className="block dark:hidden h-4 w-4" aria-hidden="true" />
               </button>
 
-              {isAuthenticated ? (
+              {status === "loading" ? (
+                <div
+                  aria-hidden="true"
+                  className="h-9 w-[132px] rounded-full bg-zinc-100/80 dark:bg-white/[0.06] animate-pulse"
+                />
+              ) : isAuthenticated ? (
                 <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}
@@ -741,6 +744,7 @@ export function Navbar2() {
             <div className="flex items-center gap-1 lg:hidden">
               <button
                 type="button"
+                data-testid="navbar-language-toggle-mobile"
                 onClick={toggleLocale}
                 aria-label={t("lang.switchToOther")}
                 title={t("lang.switchToOther")}
@@ -750,17 +754,14 @@ export function Navbar2() {
               </button>
               <button
                 type="button"
+                data-testid="navbar-theme-toggle-mobile"
                 onClick={toggleTheme}
-                aria-label={
-                  theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")
-                }
+                aria-label={t("nav.toggleTheme")}
+                title={t("nav.toggleTheme")}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
+                <Sun className="hidden dark:block h-4 w-4" aria-hidden="true" />
+                <Moon className="block dark:hidden h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -991,7 +992,12 @@ export function Navbar2() {
             )}
 
             <div className="mt-3 flex flex-col gap-2.5 border-t border-zinc-200/70 dark:border-white/[0.08] pt-4">
-              {isAuthenticated ? (
+              {status === "loading" ? (
+                <div
+                  aria-hidden="true"
+                  className="h-11 w-full rounded-full bg-zinc-100/80 dark:bg-white/[0.06] animate-pulse"
+                />
+              ) : isAuthenticated ? (
                 <WaveRevealButton
                   href={dashboardHref}
                   onClick={closeAll}

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { WaveRevealButton } from "@/components/ui/wave-reveal-button";
 import { cfInvalidateCache } from "@/lib/cloudflare-api";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface ShortenedItem {
   linkId: string;
@@ -44,14 +45,15 @@ const HERO_STORAGE_KEY = "lshorter_hero_active_link_v1";
 const QR_COLOR_SWATCHES: Array<{
   id: string;
   name: string;
+  nameFr: string;
   hex: string;
   guestLocked: boolean;
 }> = [
-  { id: "black", name: "Classic Black", hex: "#000000", guestLocked: false },
-  { id: "blue", name: "Electric Blue", hex: "#0066FF", guestLocked: true },
-  { id: "indigo", name: "Royal Indigo", hex: "#6366F1", guestLocked: true },
-  { id: "violet", name: "Deep Violet", hex: "#8B5CF6", guestLocked: true },
-  { id: "emerald", name: "Emerald", hex: "#10B981", guestLocked: true },
+  { id: "black", name: "Classic Black", nameFr: "Noir classique", hex: "#000000", guestLocked: false },
+  { id: "blue", name: "Electric Blue", nameFr: "Bleu électrique", hex: "#0066FF", guestLocked: true },
+  { id: "indigo", name: "Royal Indigo", nameFr: "Indigo royal", hex: "#6366F1", guestLocked: true },
+  { id: "violet", name: "Deep Violet", nameFr: "Violet profond", hex: "#8B5CF6", guestLocked: true },
+  { id: "emerald", name: "Emerald", nameFr: "Émeraude", hex: "#10B981", guestLocked: true },
 ];
 
 function formatRemaining24h(ms: number): string {
@@ -135,6 +137,7 @@ const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
   expiresAtMs: number;
   onExpire: (slug: string) => void;
 }) {
+  const { tr } = useI18n();
   const [remainingMs, setRemainingMs] = useState<number>(() =>
     Math.max(0, expiresAtMs - Date.now())
   );
@@ -156,7 +159,7 @@ const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
     <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] bg-white/60 dark:bg-[#0D1320]/75 text-[12.5px] sm:text-[13px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 select-none">
       <Clock className="w-3.5 h-3.5 text-[#0066FF]/90 dark:text-[#60A5FA]/90 shrink-0" />
       <span>
-        Expires in{" "}
+        {tr("Expires in", "Expire dans")}{" "}
         <strong className="font-mono font-semibold tabular-nums text-[#0A1F44] dark:text-[#DBEAFE]">
           {formatRemaining24h(remainingMs)}
         </strong>
@@ -165,8 +168,15 @@ const HeroCountdownTimer = React.memo(function HeroCountdownTimer({
   );
 });
 
+type HeroShortenerError =
+  | { type: "empty" }
+  | { type: "invalid" }
+  | { type: "failed"; raw?: string }
+  | { type: "network" };
+
 export function HeroShortener() {
   const router = useRouter();
+  const { isFr, tr, formatNumber } = useI18n();
   const { data: session, status: sessionStatus } = useSession();
   const sessionUser = session?.user as
     | {
@@ -192,13 +202,42 @@ export function HeroShortener() {
     const rawName = sessionUser?.name?.trim();
     if (rawName) return rawName.split(/\s+/)[0];
     const emailPrefix = sessionUser?.email?.split("@")[0]?.trim();
-    return emailPrefix || "there";
+    return emailPrefix || null;
   }, [sessionUser?.name, sessionUser?.email]);
 
   const [urlInput, setUrlInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<HeroShortenerError | null>(null);
   const [isPulseHighlighted, setIsPulseHighlighted] = useState(false);
+
+  const errorMsg = useMemo(() => {
+    if (!errorState) return null;
+    switch (errorState.type) {
+      case "empty":
+        return tr(
+          "Please paste a website URL to shorten.",
+          "Veuillez coller une URL à raccourcir."
+        );
+      case "invalid":
+        return tr(
+          "Please enter a valid website URL (for example, https://example.com).",
+          "Veuillez saisir une URL valide (par exemple, https://exemple.com)."
+        );
+      case "failed":
+        return (
+          errorState.raw ||
+          tr(
+            "Could not shorten this URL. Please check the address and try again.",
+            "Impossible de raccourcir cette URL. Vérifiez l'adresse et réessayez."
+          )
+        );
+      case "network":
+        return tr(
+          "Network error. Please try again in a moment.",
+          "Erreur réseau. Veuillez réessayer dans un instant."
+        );
+    }
+  }, [errorState, tr]);
 
   const [links, setLinks] = useState<ShortenedItem[]>([]);
   const [maxLinks, setMaxLinks] = useState(1);
@@ -228,9 +267,10 @@ export function HeroShortener() {
   }, [links]);
 
   const activeLink = orderedLinks[0] || null;
-  const activeColorName =
-    QR_COLOR_SWATCHES.find((s) => s.hex === selectedQrColor)?.name ||
-    "Classic Black";
+  const activeSwatch = QR_COLOR_SWATCHES.find((s) => s.hex === selectedQrColor);
+  const activeColorName = activeSwatch
+    ? tr(activeSwatch.name, activeSwatch.nameFr)
+    : tr("Classic Black", "Noir classique");
 
   // Reset color to Classic Black if user logs out
   useEffect(() => {
@@ -563,7 +603,7 @@ export function HeroShortener() {
 
   const handleShorten = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    setErrorState(null);
 
     // Guests only: after 1 temporary link, guide to free account creation
     if (!isAuthenticated && (limitReached || (maxLinks > 0 && orderedLinks.length >= maxLinks))) {
@@ -573,7 +613,7 @@ export function HeroShortener() {
 
     const trimmed = urlInput.trim();
     if (!trimmed) {
-      setErrorMsg("Please paste a website URL to shorten.");
+      setErrorState({ type: "empty" });
       inputRef.current?.focus();
       return;
     }
@@ -596,9 +636,7 @@ export function HeroShortener() {
       }
     }
     if (!hasValidUrl) {
-      setErrorMsg(
-        "Please enter a valid website URL (for example, https://example.com)."
-      );
+      setErrorState({ type: "invalid" });
       inputRef.current?.focus();
       return;
     }
@@ -631,10 +669,7 @@ export function HeroShortener() {
       }
 
       if (!res.ok || !data?.success) {
-        setErrorMsg(
-          data?.error ||
-            "Could not shorten this URL. Please check the address and try again."
-        );
+        setErrorState({ type: "failed", raw: data?.error });
         return;
       }
 
@@ -691,7 +726,7 @@ export function HeroShortener() {
         window.dispatchEvent(new Event("lshorter_data_change"));
       }
     } catch {
-      setErrorMsg("Network error. Please try again in a moment.");
+      setErrorState({ type: "network" });
     } finally {
       setIsSubmitting(false);
     }
@@ -745,10 +780,16 @@ export function HeroShortener() {
                   value={urlInput}
                   onChange={(e) => {
                     setUrlInput(e.target.value);
-                    if (errorMsg) setErrorMsg(null);
+                    if (errorState) setErrorState(null);
                   }}
-                  placeholder="Paste a long URL to shorten..."
-                  aria-label="Paste a long URL to shorten"
+                  placeholder={tr(
+                    "Paste a long URL to shorten...",
+                    "Collez une URL longue à raccourcir..."
+                  )}
+                  aria-label={tr(
+                    "Paste a long URL to shorten",
+                    "Collez une URL longue à raccourcir"
+                  )}
                   className="w-full h-[clamp(42px,6.4svh,54px)] sm:h-12 px-3 bg-transparent text-[16px] sm:text-[15px] text-[#09090B] dark:text-white placeholder:text-[#71717A] dark:placeholder:text-zinc-500 outline-none border-0"
                 />
                 {urlInput && (
@@ -757,7 +798,7 @@ export function HeroShortener() {
                     className="hidden md:inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-[5px] border border-[#E4E7EC] dark:border-white/10 bg-[#F8F9FB] dark:bg-white/[0.04] text-[11px] text-[#71717A] dark:text-zinc-400 shrink-0 select-none"
                   >
                     <CornerDownLeft className="w-2.5 h-2.5" />
-                    <span>Enter</span>
+                    <span>{tr("Enter", "Entrée")}</span>
                   </span>
                 )}
               </div>
@@ -776,7 +817,9 @@ export function HeroShortener() {
                   ) : undefined
                 }
               >
-                {isSubmitting ? "Shortening..." : "Shorten"}
+                {isSubmitting
+                  ? tr("Shortening...", "Raccourcissement...")
+                  : tr("Shorten", "Raccourcir")}
               </WaveRevealButton>
             </div>
           </form>
@@ -786,10 +829,12 @@ export function HeroShortener() {
         <motion.button
           type="button"
           onClick={() => inputRef.current?.focus()}
-          aria-label="Focus the URL input to shorten a link for free"
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+          aria-label={tr(
+            "Focus the URL input to shorten a link for free",
+            "Activer le champ URL pour raccourcir un lien gratuitement"
+          )}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="hidden lg:flex items-start gap-1.5 xl:gap-2 absolute left-[calc(100%+6px)] xl:left-[calc(100%+16px)] top-1/2 -translate-y-[78%] z-20 select-none cursor-pointer group text-[#0066FF] dark:text-[#60A5FA] focus-visible:outline-2 focus-visible:outline-[#0066FF] focus-visible:outline-offset-4 rounded-[6px]"
         >
           <svg
@@ -804,9 +849,8 @@ export function HeroShortener() {
               strokeWidth="2.35"
               strokeLinecap="round"
               strokeLinejoin="round"
-              initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
+              initial={false}
               animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.85, delay: 0.62, ease: [0.22, 1, 0.36, 1] }}
             />
             <motion.path
               d="M 10 30 C 9.5 35, 8.5 39, 7 43 C 12 42, 16.5 41.8, 21.5 42.5"
@@ -814,15 +858,18 @@ export function HeroShortener() {
               strokeWidth="2.35"
               strokeLinecap="round"
               strokeLinejoin="round"
-              initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }}
+              initial={false}
               animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.32, delay: 1.25, ease: [0.22, 1, 0.36, 1] }}
             />
           </svg>
           <span
-            className="font-caveat font-bold text-[21px] xl:text-[32px] 2xl:text-[36px] leading-none tracking-[0.01em] text-left -rotate-[8deg] -mt-1.5 xl:-mt-2 whitespace-nowrap transition-transform duration-300 ease-out group-hover:-rotate-[6deg]"
+            className={`font-caveat font-bold leading-none tracking-[0.01em] text-left -rotate-[8deg] -mt-1.5 xl:-mt-2 whitespace-nowrap transition-transform duration-300 ease-out group-hover:-rotate-[6deg] ${
+              isFr
+                ? "text-[18px] xl:text-[27px] 2xl:text-[32px]"
+                : "text-[21px] xl:text-[32px] 2xl:text-[36px]"
+            }`}
           >
-            Try it for free
+            {tr("Try it for free", "Essayez gratuitement")}
           </span>
         </motion.button>
       </div>
@@ -846,16 +893,34 @@ export function HeroShortener() {
       {/* Greeting for authenticated users when no link has been shortened in this Hero yet */}
       {isAuthenticated && !activeLink && (
         <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 leading-[1.55] sm:leading-relaxed">
-          Welcome back,{" "}
-          <span className="font-semibold text-[#0A1F44] dark:text-white">
-            {userFirstName}
-          </span>
-          ! Any link you shorten here is saved straight to your account —{" "}
+          {isFr ? (
+            <>
+              Bon retour
+              {userFirstName ? (
+                <>
+                  ,{" "}
+                  <span className="font-semibold text-[#0A1F44] dark:text-white">
+                    {userFirstName}
+                  </span>
+                </>
+              ) : null}{" "}
+              ! Tout lien raccourci ici est enregistré directement sur votre
+              compte —{" "}
+            </>
+          ) : (
+            <>
+              Welcome back,{" "}
+              <span className="font-semibold text-[#0A1F44] dark:text-white">
+                {userFirstName || "there"}
+              </span>
+              ! Any link you shorten here is saved straight to your account —{" "}
+            </>
+          )}
           <Link
             href={dashboardHref}
             className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
           >
-            <span>Open Dashboard</span>
+            <span>{tr("Open Dashboard", "Ouvrir le tableau de bord")}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </p>
@@ -897,8 +962,10 @@ export function HeroShortener() {
               {/* Right: Live click count text + QR Code hover trigger button */}
               <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
                 <span className="font-mono text-[clamp(13px,min(3.6vw,1.8svh),15px)] sm:text-[14px] font-medium text-[#1D4ED8]/85 dark:text-[#BFDBFE]/90 tabular-nums whitespace-nowrap">
-                  {activeLink.clicksCount}{" "}
-                  {activeLink.clicksCount === 1 ? "click" : "clicks"}
+                  {formatNumber(activeLink.clicksCount)}{" "}
+                  {activeLink.clicksCount === 1
+                    ? tr("click", "clic")
+                    : tr("clicks", "clics")}
                 </span>
 
                 {/* QR Code Icon Trigger & Hover Popup */}
@@ -909,7 +976,7 @@ export function HeroShortener() {
                 >
                   <button
                     type="button"
-                    aria-label="Preview QR Code"
+                    aria-label={tr("Preview QR Code", "Aperçu du QR Code")}
                     aria-expanded={isQrHovered}
                     onClick={handleQrToggleClick}
                     className={`w-[clamp(34px,4.8svh,40px)] h-[clamp(34px,4.8svh,40px)] sm:w-8 sm:h-8 rounded-[8px] flex items-center justify-center border transition-all duration-150 cursor-pointer ${
@@ -932,7 +999,7 @@ export function HeroShortener() {
                         onMouseEnter={handleQrMouseEnter}
                         onMouseLeave={handleQrMouseLeave}
                         role="dialog"
-                        aria-label="QR Code options"
+                        aria-label={tr("QR Code options", "Options du QR Code")}
                         className="absolute right-0 bottom-full mb-2.5 z-50 w-[236px] rounded-[10px] bg-white/95 dark:bg-[#0D1320]/95 backdrop-blur-xl border border-[#E4E7EC] dark:border-white/15 p-3.5 shadow-[0_20px_48px_rgba(16,24,40,0.18)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.75)] text-left after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3"
                       >
                         <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-[#E4E7EC] dark:border-white/10">
@@ -950,7 +1017,10 @@ export function HeroShortener() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={qrDataUrl}
-                              alt={`QR Code for lsho.cc/${activeLink.slug}`}
+                              alt={tr(
+                                `QR Code for lsho.cc/${activeLink.slug}`,
+                                `QR Code pour lsho.cc/${activeLink.slug}`
+                              )}
                               className="w-full h-full object-contain select-none"
                             />
                           ) : (
@@ -961,11 +1031,11 @@ export function HeroShortener() {
                         {/* Color Options: Fully unlocked for authenticated users, locked padlocks for guests only */}
                         <div className="mt-3">
                           <div className="flex items-center justify-between text-[11px] font-medium text-[#475467] dark:text-zinc-400 mb-1.5">
-                            <span>Color</span>
+                            <span>{tr("Color", "Couleur")}</span>
                             <span className="text-[10.5px] text-[#0066FF] dark:text-[#60A5FA]">
                               {isAuthenticated
                                 ? activeColorName
-                                : "Account colors locked"}
+                                : tr("Account colors locked", "Compte requis")}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-1.5">
@@ -975,9 +1045,13 @@ export function HeroShortener() {
                               const isSelected = isAuthenticated
                                 ? selectedQrColor === swatch.hex
                                 : !swatch.guestLocked;
+                              const localizedName = tr(swatch.name, swatch.nameFr);
                               const swatchLabel = isLocked
-                                ? `${swatch.name} (Account required)`
-                                : swatch.name;
+                                ? tr(
+                                    `${swatch.name} (Account required)`,
+                                    `${swatch.nameFr} (Compte requis)`
+                                  )
+                                : localizedName;
 
                               return (
                                 <button
@@ -1027,7 +1101,10 @@ export function HeroShortener() {
                               type="button"
                               disabled={isExportingGif}
                               onClick={handleDownloadGif}
-                              title="Download animated GIF QR code"
+                              title={tr(
+                                "Download animated GIF QR code",
+                                "Télécharger le QR code GIF animé"
+                              )}
                               className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
                             >
                               {isExportingGif ? (
@@ -1041,7 +1118,10 @@ export function HeroShortener() {
                             <button
                               type="button"
                               onClick={handleLockedQrAction}
-                              title="Create a free account to export animated GIF QR codes"
+                              title={tr(
+                                "Create a free account to export animated GIF QR codes",
+                                "Créez un compte gratuit pour exporter des QR codes GIF animés"
+                              )}
                               className="h-8 px-2.5 rounded-[8px] bg-[#F2F4F7] dark:bg-white/[0.08] hover:bg-[#E4E7EC] dark:hover:bg-white/[0.14] border border-[#D0D5DD] dark:border-white/15 text-[#101828] dark:text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <Lock className="w-3 h-3 text-[#0066FF] dark:text-[#60A5FA] shrink-0" />
@@ -1068,16 +1148,36 @@ export function HeroShortener() {
             {/* Authenticated Greeting + Dashboard link OR Guest Account Creation Prompt */}
             {isAuthenticated ? (
               <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/90 dark:text-[#BFDBFE]/90 leading-[1.5] sm:leading-relaxed max-w-[580px]">
-                Welcome back,{" "}
-                <span className="font-semibold text-[#0A1F44] dark:text-white">
-                  {userFirstName}
-                </span>
-                ! This link is saved permanently in your workspace —{" "}
+                {isFr ? (
+                  <>
+                    Bon retour
+                    {userFirstName ? (
+                      <>
+                        ,{" "}
+                        <span className="font-semibold text-[#0A1F44] dark:text-white">
+                          {userFirstName}
+                        </span>
+                      </>
+                    ) : null}{" "}
+                    ! Ce lien est enregistré de façon permanente dans votre
+                    espace —{" "}
+                  </>
+                ) : (
+                  <>
+                    Welcome back,{" "}
+                    <span className="font-semibold text-[#0A1F44] dark:text-white">
+                      {userFirstName || "there"}
+                    </span>
+                    ! This link is saved permanently in your workspace —{" "}
+                  </>
+                )}
                 <Link
                   href={dashboardHref}
                   className="inline-flex items-center gap-1 font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
                 >
-                  <span>Go to your Dashboard</span>
+                  <span>
+                    {tr("Go to your Dashboard", "Accéder au tableau de bord")}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </p>
@@ -1087,10 +1187,12 @@ export function HeroShortener() {
                   href="/register?claim=1"
                   className="font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline"
                 >
-                  Create your account
+                  {tr("Create your account", "Créez votre compte")}
                 </Link>{" "}
-                to keep this link forever, customize its slug &amp; QR code, and
-                track every click in real time.
+                {tr(
+                  "to keep this link forever, customize its slug & QR code, and track every click in real time.",
+                  "pour conserver ce lien à vie, personnaliser son slug et son QR code, et suivre chaque clic en temps réel."
+                )}
               </p>
             )}
           </motion.div>

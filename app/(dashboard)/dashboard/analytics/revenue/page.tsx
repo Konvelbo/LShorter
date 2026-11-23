@@ -37,28 +37,107 @@ import { ColumnMaskToggle, ColumnDefinition } from "@/components/dashboard/analy
 import { KpiCardsCarousel } from "@/components/dashboard/analytics/kpi-cards-carousel";
 import { ReuiBarChart5 } from "@/components/examples/c-chart-5";
 import { AnalyticsRevenueSkeleton } from "@/components/ui/skeleton";
-import { formatDateRelative, formatNumber, formatCurrency, getCountryName } from "@/lib/utils";
+import { getCountryName } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { resolveCountryInfo } from "@/lib/country-flags";
 import { generateTimelineForRange } from "@/lib/analytics-generators";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
 
-const REVENUE_COLUMNS: ColumnDefinition[] = [
-  { key: "beneficiary", label: "Beneficiary (Avatar & Name)", defaultVisible: true },
-  { key: "revenue", label: "Revenue Generated (€)", defaultVisible: true },
-  { key: "clicks", label: "Associated Clicks", defaultVisible: true },
-  { key: "link", label: "Target Link", defaultVisible: true },
-  { key: "location", label: "Country", defaultVisible: true },
-  { key: "device", label: "Device & OS", defaultVisible: true },
-  { key: "timestamp", label: "Timestamp", defaultVisible: true },
-];
+const REVENUE_COLUMN_KEYS = [
+  "beneficiary",
+  "revenue",
+  "clicks",
+  "link",
+  "location",
+  "device",
+  "timestamp",
+] as const;
 
 function RevenueAnalyticsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { locale, tr, formatNumber, formatDate } = useI18n();
   const userId = session?.user?.id || "";
   const effectiveUserId = userId;
+
+  const revenueColumns = useMemo<ColumnDefinition[]>(
+    () => [
+      { key: "beneficiary", label: tr("Beneficiary (Avatar & Name)", "Bénéficiaire (Avatar & Nom)"), defaultVisible: true },
+      { key: "revenue", label: tr("Revenue Generated (€)", "Revenu généré (€)"), defaultVisible: true },
+      { key: "clicks", label: tr("Associated Clicks", "Clics associés"), defaultVisible: true },
+      { key: "link", label: tr("Target Link", "Lien cible"), defaultVisible: true },
+      { key: "location", label: tr("Country", "Pays"), defaultVisible: true },
+      { key: "device", label: tr("Device & OS", "Appareil & OS"), defaultVisible: true },
+      { key: "timestamp", label: tr("Timestamp", "Horodatage"), defaultVisible: true },
+    ],
+    [tr],
+  );
+
+  const formatEur = (amount?: number | null) =>
+    formatNumber(Number(amount || 0), {
+      style: "currency",
+      currency: "EUR",
+      maximumFractionDigits: 0,
+    });
+
+  const formatEurDetailed = (amount?: number | null) =>
+    formatNumber(Number(amount || 0), {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const formatRelativeTime = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      const diffMs = Date.now() - date.getTime();
+      if (isNaN(diffMs)) return dateString;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+
+      if (diffDay > 30) {
+        return formatDate(date, { day: "numeric", month: "short" });
+      }
+      if (diffDay > 0) {
+        return tr(
+          `${diffDay} day${diffDay > 1 ? "s" : ""} ago`,
+          `Il y a ${diffDay} jour${diffDay > 1 ? "s" : ""}`,
+        );
+      }
+      if (diffHour > 0) {
+        return tr(
+          `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`,
+          `Il y a ${diffHour} h`,
+        );
+      }
+      if (diffMin > 0) {
+        return tr(
+          `${diffMin} min${diffMin > 1 ? "s" : ""} ago`,
+          `Il y a ${diffMin} min`,
+        );
+      }
+      return tr("just now", "à l'instant");
+    } catch {
+      return dateString;
+    }
+  };
+
+  const localizeTechLabel = (val?: string | null) => {
+    const raw = String(val || "").trim();
+    const low = raw.toLowerCase();
+    if (!raw || low === "unknown" || low === "inconnu") {
+      return tr("Unknown", "Inconnu");
+    }
+    if (low === "desktop") return tr("Desktop", "Ordinateur");
+    if (low === "tablet" || low === "tablette") return tr("Tablet", "Tablette");
+    if (low === "mobile") return "Mobile";
+    return raw;
+  };
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -116,7 +195,7 @@ function RevenueAnalyticsContent() {
   const [pageSize, setPageSize] = useState<number>(8);
 
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(REVENUE_COLUMNS.map((c) => c.key))
+    new Set(REVENUE_COLUMN_KEYS)
   );
 
   const toggleColumn = (key: string) => {
@@ -132,7 +211,7 @@ function RevenueAnalyticsContent() {
   };
 
   const resetColumns = () => {
-    setVisibleColumns(new Set(REVENUE_COLUMNS.map((c) => c.key)));
+    setVisibleColumns(new Set(REVENUE_COLUMN_KEYS));
   };
 
   // Synchronize linkId from query string
@@ -338,10 +417,10 @@ function RevenueAnalyticsContent() {
   };
 
   const rangeLabels: Record<TimeRange, string> = {
-    day: "Last 24 hours",
-    week: "Last 7 days",
-    month: "Last 30 days",
-    year: "Last 12 months",
+    day: tr("Last 24 hours", "Dernières 24 heures"),
+    week: tr("Last 7 days", "7 derniers jours"),
+    month: tr("Last 30 days", "30 derniers jours"),
+    year: tr("Last 12 months", "12 derniers mois"),
   };
 
   const selectedLinkObj = useMemo(() => {
@@ -542,7 +621,18 @@ function RevenueAnalyticsContent() {
   const handleExportCSV = () => {
     try {
       setIsExporting(true);
-      const headers = ["ID", "Name", "Email", "Revenue (€)", "Clicks", "Link", "Country", "City", "Device", "Date"];
+      const headers = [
+        "ID",
+        tr("Name", "Nom"),
+        tr("Email", "E-mail"),
+        tr("Revenue (€)", "Revenu (€)"),
+        tr("Clicks", "Clics"),
+        tr("Link", "Lien"),
+        tr("Country", "Pays"),
+        tr("City", "Ville"),
+        tr("Device", "Appareil"),
+        tr("Date", "Date"),
+      ];
       const rows = filteredBeneficiaries.map((b) => [
         b.id,
         `"${b.name.replace(/"/g, '""')}"`,
@@ -552,7 +642,7 @@ function RevenueAnalyticsContent() {
         `"${b.slug}"`,
         b.countryCode,
         `"${b.city}"`,
-        b.device,
+        localizeTechLabel(b.device),
         b.timestamp,
       ]);
 
@@ -566,9 +656,11 @@ function RevenueAnalyticsContent() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast.success("Revenue data exported successfully!");
+      showToast.success(
+        tr("Revenue data exported successfully!", "Données de revenus exportées avec succès !"),
+      );
     } catch (err: any) {
-      showToast.error("Error exporting CSV.");
+      showToast.error(tr("Error exporting CSV.", "Erreur lors de l'exportation CSV."));
     } finally {
       setIsExporting(false);
     }
@@ -588,15 +680,18 @@ function RevenueAnalyticsContent() {
             className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-emerald-600 dark:text-neutral-400 dark:hover:text-emerald-400 transition-colors w-fit group"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-            <span>Back to global analytics</span>
+            <span>{tr("Back to global analytics", "Retour aux analyses globales")}</span>
           </Link>
           <div className="flex items-center gap-2 mt-1">
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-wide flex items-center gap-2">
-              <span>In-Depth Revenue Analytics</span>
+              <span>{tr("In-Depth Revenue Analytics", "Analyses détaillées des revenus")}</span>
             </h1>
           </div>
           <p className="text-xs text-zinc-500 dark:text-neutral-400">
-            Complete traceability of beneficiaries, average order values (AOV), earnings per click (EPC), and real-time conversions.
+            {tr(
+              "Complete traceability of beneficiaries, average order values (AOV), earnings per click (EPC), and real-time conversions.",
+              "Traçabilité complète des bénéficiaires, paniers moyens (AOV), gains par clic (EPC) et conversions en temps réel.",
+            )}
           </p>
         </div>
 
@@ -604,16 +699,21 @@ function RevenueAnalyticsContent() {
           {/* Link Filter Selector */}
           <div className="flex items-center gap-2 bg-zinc-50 dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] rounded-[10px] px-3 py-1.5 text-xs">
             <Filter className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-            <span className="text-zinc-500 dark:text-neutral-400 font-medium">Link:</span>
+            <span className="text-zinc-500 dark:text-neutral-400 font-medium">
+              {tr("Link:", "Lien :")}
+            </span>
             <select
               value={selectedLinkObj ? selectedLinkObj.id : "all"}
               onChange={(e) => handleLinkSelectChange(e.target.value)}
               className="bg-transparent text-zinc-900 dark:text-white font-semibold focus:outline-none cursor-pointer border-none"
             >
-              <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">All links ({links.length})</option>
+              <option value="all" className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
+                {tr(`All links (${links.length})`, `Tous les liens (${links.length})`)}
+              </option>
               {links.map((l: any) => (
                 <option key={l.id} value={l.id} className="bg-white dark:bg-[#141416] text-zinc-900 dark:text-white">
-                  {l.slug} ({formatNumber(l.clicks_count || l.clicksCount || 0)} clicks)
+                  {l.slug} ({formatNumber(Number(l.clicks_count || l.clicksCount || 0))}{" "}
+                  {tr("clicks", "clics")})
                 </option>
               ))}
             </select>
@@ -625,7 +725,9 @@ function RevenueAnalyticsContent() {
               setIsRefreshing(true);
               cfInvalidateCache("/api/analytics");
               await loadData(selectedRange, selectedLinkId, true);
-              showToast.success("Revenue data updated!");
+              showToast.success(
+                tr("Revenue data updated!", "Données de revenus mises à jour !"),
+              );
             }}
             disabled={isRefreshing}
             variant="outline"
@@ -633,7 +735,7 @@ function RevenueAnalyticsContent() {
             className="text-xs gap-1.5 border-zinc-300 dark:border-[#27272a] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#141416] dark:hover:bg-white/5 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-emerald-500 dark:text-emerald-400" : "text-zinc-500 dark:text-neutral-400"}`} />
-            <span>Refresh</span>
+            <span>{tr("Refresh", "Actualiser")}</span>
           </Button>
 
           {/* Export CSV Button pushed all the way to the right */}
@@ -645,7 +747,11 @@ function RevenueAnalyticsContent() {
             className="ml-auto sm:ml-0 text-xs gap-1.5 border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>{isExporting ? "Exporting..." : "Export CSV"}</span>
+            <span>
+              {isExporting
+                ? tr("Exporting...", "Exportation...")
+                : tr("Export CSV", "Exporter CSV")}
+            </span>
           </Button>
         </div>
       </div>
@@ -656,7 +762,7 @@ function RevenueAnalyticsContent() {
           <div className="flex items-center justify-between sm:justify-start gap-1.5 px-1 sm:px-2 text-zinc-500 dark:text-neutral-400 font-medium">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-              <span>Analysis period:</span>
+              <span>{tr("Analysis period:", "Période d'analyse :")}</span>
             </span>
             <span className="sm:hidden text-zinc-400 dark:text-neutral-500 text-[11px] font-medium">
               {rangeLabels[selectedRange]}
@@ -665,7 +771,12 @@ function RevenueAnalyticsContent() {
 
           <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100 dark:bg-[#0d0d10] border border-zinc-200 dark:border-[#1f1f24] rounded-[10px] sm:flex sm:items-center sm:bg-transparent sm:border-0 sm:p-0">
             {(["day", "week", "month", "year"] as TimeRange[]).map((r) => {
-              const labels: Record<TimeRange, string> = { day: "24h", week: "7 days", month: "30 days", year: "1 year" };
+              const labels: Record<TimeRange, string> = {
+                day: tr("24h", "24 h"),
+                week: tr("7 days", "7 jours"),
+                month: tr("30 days", "30 jours"),
+                year: tr("1 year", "1 an"),
+              };
               const isSel = selectedRange === r;
               return (
                 <button
@@ -696,22 +807,22 @@ function RevenueAnalyticsContent() {
         <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">
-              Total Revenue
+              {tr("Total Revenue", "Revenu total")}
             </span>
             <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
               <DollarSign className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none tracking-tight">
-            {formatCurrency(totalRevenue)}
+            {formatEur(totalRevenue)}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 truncate">
               <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-              <span>Net attributed revenue</span>
+              <span>{tr("Net attributed revenue", "Revenu net attribué")}</span>
             </span>
             <span className="text-xs text-zinc-500 dark:text-neutral-400 font-mono font-semibold">
-              {formatNumber(totalAssociatedClicks)} clicks
+              {formatNumber(totalAssociatedClicks)} {tr("clicks", "clics")}
             </span>
           </div>
         </div>
@@ -720,7 +831,7 @@ function RevenueAnalyticsContent() {
         <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
-              Customers &amp; Buyers
+              {tr("Customers & Buyers", "Clients & Acheteurs")}
             </span>
             <div className="w-9 h-9 rounded-[10px] bg-[#465FFF]/10 border border-[#465FFF]/20 flex items-center justify-center shrink-0">
               <UserCheck className="w-4.5 h-4.5 text-[#465FFF]" />
@@ -731,10 +842,15 @@ function RevenueAnalyticsContent() {
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate">
-              {totalBeneficiaries > 0 ? `${totalBeneficiaries} verified buyers` : "Active tracking"}
+              {totalBeneficiaries > 0
+                ? tr(
+                    `${formatNumber(totalBeneficiaries)} verified buyers`,
+                    `${formatNumber(totalBeneficiaries)} acheteurs vérifiés`,
+                  )
+                : tr("Active tracking", "Suivi actif")}
             </span>
             <span className="text-xs text-zinc-500 dark:text-neutral-400 font-mono font-semibold">
-              {conversionRate}% CR
+              {conversionRate}% {tr("CR", "TC")}
             </span>
           </div>
         </div>
@@ -743,18 +859,18 @@ function RevenueAnalyticsContent() {
         <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">
-              Earnings Per Click (EPC)
+              {tr("Earnings Per Click (EPC)", "Gains par clic (EPC)")}
             </span>
             <div className="w-9 h-9 rounded-[10px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
               <Sparkles className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none tracking-tight">
-            {epcValue.toFixed(2)}€
+            {formatEurDetailed(epcValue)}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
             <span className="text-xs text-zinc-600 dark:text-neutral-400 truncate">
-              Average yield per click
+              {tr("Average yield per click", "Rendement moyen par clic")}
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold">
               EPC
@@ -766,18 +882,18 @@ function RevenueAnalyticsContent() {
         <div className="min-h-[155px] p-6 sm:p-7 rounded-[14px] bg-white dark:bg-[#111113] border border-black/[0.08] dark:border-white/[0.08] text-[#09090B] dark:text-white shadow-sm flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-600 dark:text-neutral-400 uppercase tracking-wider truncate">
-              Average Order Value
+              {tr("Average Order Value", "Panier moyen (AOV)")}
             </span>
             <div className="w-9 h-9 rounded-[10px] bg-[#465FFF]/10 border border-[#465FFF]/20 flex items-center justify-center shrink-0">
               <CreditCard className="w-4.5 h-4.5 text-[#465FFF]" />
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-extrabold text-[#09090B] dark:text-white leading-none tracking-tight">
-            {formatCurrency(aov)}
+            {formatEur(aov)}
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-black/[0.08] dark:border-white/[0.08]">
             <span className="text-xs text-zinc-600 dark:text-neutral-400 truncate">
-              Average basket per buyer
+              {tr("Average basket per buyer", "Panier moyen par acheteur")}
             </span>
             <span className="text-xs text-[#465FFF] font-mono font-bold">
               AOV
@@ -795,15 +911,18 @@ function RevenueAnalyticsContent() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4" />
-                  <span>Chronological Revenue Trend</span>
+                  <span>{tr("Chronological Revenue Trend", "Évolution chronologique des revenus")}</span>
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                Time series of amounts generated over the period ({rangeLabels[selectedRange]}).
+                {tr(
+                  `Time series of amounts generated over the period (${rangeLabels[selectedRange]}).`,
+                  `Série chronologique des montants générés sur la période (${rangeLabels[selectedRange]}).`,
+                )}
               </p>
             </div>
             <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-[8px] border border-emerald-500/20">
-              Total: {formatCurrency(totalRevenue)}
+              {tr("Total:", "Total :")} {formatEur(totalRevenue)}
             </span>
           </div>
 
@@ -834,15 +953,20 @@ function RevenueAnalyticsContent() {
                     }
 
                     return {
-                      label: pt.label || (pt.date ? String(pt.date).slice(5, 10) : `D${i + 1}`),
-                      fullDate: pt.date ? `${pt.label || ""} (${String(pt.date).slice(0, 10)})` : pt.label || `Day ${i + 1}`,
-                      extraLabel: `${pt.clicks || 0} associated clicks`,
+                      label: pt.label || (pt.date ? String(pt.date).slice(5, 10) : `${tr("D", "J")}${i + 1}`),
+                      fullDate: pt.date
+                        ? `${pt.label || ""} (${String(pt.date).slice(0, 10)})`
+                        : pt.label || `${tr("Day", "Jour")} ${i + 1}`,
+                      extraLabel: tr(
+                        `${formatNumber(pt.clicks || 0)} associated clicks`,
+                        `${formatNumber(pt.clicks || 0)} clics associés`,
+                      ),
                       primary: dayRevNum,
                       secondary: daySalesCount,
                     };
                   })}
-                  primaryLabel="Attributed Revenue (€)"
-                  secondaryLabel="Confirmed Sales"
+                  primaryLabel={tr("Attributed Revenue (€)", "Revenu attribué (€)")}
+                  secondaryLabel={tr("Confirmed Sales", "Ventes confirmées")}
                   valuePrefix="€"
                   primaryColorLight="#10B981"
                   primaryColorDark="#34D399"
@@ -859,9 +983,12 @@ function RevenueAnalyticsContent() {
           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-neutral-400 pt-3">
             <span className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-              <span>Revenue & Attributed Conversions</span>
+              <span>{tr("Revenue & Attributed Conversions", "Revenus & Conversions attribuées")}</span>
             </span>
-            <span>Edge Attribution <strong className="text-zinc-900 dark:text-white">Cloudflare D1</strong></span>
+            <span>
+              {tr("Edge Attribution", "Attribution Edge")}{" "}
+              <strong className="text-zinc-900 dark:text-white">Cloudflare D1</strong>
+            </span>
           </div>
         </div>
 
@@ -871,17 +998,24 @@ function RevenueAnalyticsContent() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>Top Earning Links</span>
+                <span>{tr("Top Earning Links", "Liens les plus rentables")}</span>
               </h3>
-              <span className="text-[10px] text-zinc-500 dark:text-neutral-500">By amount</span>
+              <span className="text-[10px] text-zinc-500 dark:text-neutral-500">
+                {tr("By amount", "Par montant")}
+              </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-neutral-400 mb-4">
-              Links that generated the highest revenue over the period.
+              {tr(
+                "Links that generated the highest revenue over the period.",
+                "Liens ayant généré le plus de revenus sur la période.",
+              )}
             </p>
 
             <div className="flex flex-col gap-3">
               {links.length === 0 ? (
-                <p className="text-xs text-zinc-500 dark:text-neutral-500 italic">No links recorded.</p>
+                <p className="text-xs text-zinc-500 dark:text-neutral-500 italic">
+                  {tr("No links recorded.", "Aucun lien enregistré.")}
+                </p>
               ) : (
                 links.slice(0, 4).map((l: any) => {
                   const linkRev = Number(l.revenue || 0);
@@ -893,7 +1027,7 @@ function RevenueAnalyticsContent() {
                           /{l.slug}
                         </span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(linkRev)}
+                          {formatEur(linkRev)}
                         </span>
                       </div>
                       <div className="w-full h-1.5 bg-zinc-100 dark:bg-[#222226] rounded-full overflow-hidden">
@@ -910,12 +1044,12 @@ function RevenueAnalyticsContent() {
           </div>
 
           <div className="pt-4 border-t border-zinc-200 dark:border-[#222225] flex items-center justify-between text-xs text-zinc-500 dark:text-neutral-400">
-            <span>SDK Tracking</span>
+            <span>{tr("SDK Tracking", "Suivi SDK")}</span>
             <Link
               href="/dashboard/api-sdk"
               className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
             >
-              <span>API Docs</span>
+              <span>{tr("API Docs", "Docs API")}</span>
               <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
@@ -929,14 +1063,26 @@ function RevenueAnalyticsContent() {
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>Detailed Beneficiaries & Buyers List</span>
+                <span>
+                  {tr(
+                    "Detailed Beneficiaries & Buyers List",
+                    "Liste détaillée des bénéficiaires et acheteurs",
+                  )}
+                </span>
               </h3>
               <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-neutral-800 text-zinc-700 dark:text-neutral-300 text-[11px] font-mono">
-                {filteredBeneficiaries.length} transaction{filteredBeneficiaries.length > 1 ? "s" : ""}
+                {formatNumber(filteredBeneficiaries.length)}{" "}
+                {tr(
+                  filteredBeneficiaries.length > 1 ? "transactions" : "transaction",
+                  filteredBeneficiaries.length > 1 ? "transactions" : "transaction",
+                )}
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-              View each beneficiary&apos;s avatar, full name, email, associated clicks, and earned revenue.
+              {tr(
+                "View each beneficiary's avatar, full name, email, associated clicks, and earned revenue.",
+                "Consultez l'avatar, le nom complet, l'e-mail, les clics associés et le revenu généré par chaque bénéficiaire.",
+              )}
             </p>
           </div>
 
@@ -946,7 +1092,7 @@ function RevenueAnalyticsContent() {
               <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by name, email..."
+                placeholder={tr("Search by name, email...", "Rechercher par nom, e-mail...")}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -958,7 +1104,9 @@ function RevenueAnalyticsContent() {
 
             {/* Page Size Selector */}
             <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-[#0e0e11] border border-zinc-200 dark:border-[#27272a] rounded-[10px] px-2.5 py-1 text-xs text-zinc-700 dark:text-neutral-300">
-              <span className="text-zinc-500 dark:text-neutral-500 text-[11px]">Show:</span>
+              <span className="text-zinc-500 dark:text-neutral-500 text-[11px]">
+                {tr("Show:", "Afficher :")}
+              </span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -976,7 +1124,7 @@ function RevenueAnalyticsContent() {
 
             {/* Column Mask Toggle */}
             <ColumnMaskToggle
-              columns={REVENUE_COLUMNS}
+              columns={revenueColumns}
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onResetColumns={resetColumns}
@@ -990,27 +1138,43 @@ function RevenueAnalyticsContent() {
             <thead>
               <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
                 {visibleColumns.has("beneficiary") && (
-                  <th className="py-3.5 pl-5 sm:pl-6 pr-3 min-w-[200px]">Beneficiary / Buyer</th>
+                  <th className="py-3.5 pl-5 sm:pl-6 pr-3 min-w-[200px]">
+                    {tr("Beneficiary / Buyer", "Bénéficiaire / Acheteur")}
+                  </th>
                 )}
                 {visibleColumns.has("revenue") && (
-                  <th className="py-3.5 px-3 min-w-[120px]">Generated Revenue</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">
+                    {tr("Generated Revenue", "Revenu généré")}
+                  </th>
                 )}
                 {visibleColumns.has("clicks") && (
-                  <th className="py-3.5 px-3 min-w-[100px]">Associated Clicks</th>
+                  <th className="py-3.5 px-3 min-w-[100px]">
+                    {tr("Associated Clicks", "Clics associés")}
+                  </th>
                 )}
                 {visibleColumns.has("link") && (
-                  <th className="py-3.5 px-3 min-w-[120px]">Target Link</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">
+                    {tr("Target Link", "Lien cible")}
+                  </th>
                 )}
                 {visibleColumns.has("location") && (
-                  <th className="py-3.5 px-3 min-w-[130px]">Location</th>
+                  <th className="py-3.5 px-3 min-w-[130px]">
+                    {tr("Location", "Localisation")}
+                  </th>
                 )}
                 {visibleColumns.has("device") && (
-                  <th className="py-3.5 px-3 min-w-[110px]">Device & OS</th>
+                  <th className="py-3.5 px-3 min-w-[110px]">
+                    {tr("Device & OS", "Appareil & OS")}
+                  </th>
                 )}
                 {visibleColumns.has("timestamp") && (
-                  <th className="py-3.5 px-3 min-w-[120px]">Date & Time</th>
+                  <th className="py-3.5 px-3 min-w-[120px]">
+                    {tr("Date & Time", "Date & Heure")}
+                  </th>
                 )}
-                <th className="py-3.5 pl-3 pr-5 sm:pr-6 text-right min-w-[70px]">Actions</th>
+                <th className="py-3.5 pl-3 pr-5 sm:pr-6 text-right min-w-[70px]">
+                  {tr("Actions", "Actions")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E4E7EC] dark:divide-[#222225]/60 text-zinc-800 dark:text-neutral-200">
@@ -1019,9 +1183,14 @@ function RevenueAnalyticsContent() {
                   <td colSpan={8} className="py-12 text-center text-zinc-500 dark:text-neutral-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <UserCheck className="w-8 h-8 text-zinc-400 dark:text-neutral-600" />
-                      <p className="font-semibold text-sm text-zinc-700 dark:text-neutral-400">No beneficiaries found</p>
+                      <p className="font-semibold text-sm text-zinc-700 dark:text-neutral-400">
+                        {tr("No beneficiaries found", "Aucun bénéficiaire trouvé")}
+                      </p>
                       <p className="text-xs text-zinc-500 dark:text-neutral-500 max-w-sm">
-                        Conversions and payments tracked via API or SDK will automatically display each customer&apos;s avatar and details here.
+                        {tr(
+                          "Conversions and payments tracked via API or SDK will automatically display each customer's avatar and details here.",
+                          "Les conversions et paiements suivis via l'API ou le SDK afficheront automatiquement l'avatar et les informations de chaque client ici.",
+                        )}
                       </p>
                     </div>
                   </td>
@@ -1082,7 +1251,7 @@ function RevenueAnalyticsContent() {
                       {visibleColumns.has("revenue") && (
                         <td className="py-3.5 px-3 font-mono">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 text-[11px]">
-                            +{formatCurrency(b.revenue)}
+                            +{formatEur(b.revenue)}
                           </span>
                         </td>
                       )}
@@ -1092,7 +1261,13 @@ function RevenueAnalyticsContent() {
                         <td className="py-3.5 px-3 font-mono font-bold text-zinc-700 dark:text-neutral-300 text-xs">
                           <span className="flex items-center gap-1">
                             <MousePointerClick className="w-3 h-3 text-zinc-400 dark:text-neutral-500" />
-                            <span>{b.clicks} click{b.clicks > 1 ? "s" : ""}</span>
+                            <span>
+                              {formatNumber(b.clicks)}{" "}
+                              {tr(
+                                b.clicks > 1 ? "clicks" : "click",
+                                b.clicks > 1 ? "clics" : "clic",
+                              )}
+                            </span>
                           </span>
                         </td>
                       )}
@@ -1124,7 +1299,7 @@ function RevenueAnalyticsContent() {
                                 }}
                               />
                               <span className="truncate font-medium">
-                                {b.countryName || getCountryName(b.countryCode)}
+                                {getCountryName(b.countryCode, locale) || b.countryName}
                               </span>
                             </div>
                           ) : (
@@ -1143,7 +1318,9 @@ function RevenueAnalyticsContent() {
                               ) : (
                                 <Laptop className="w-3 h-3 text-purple-500 dark:text-purple-400" />
                               )}
-                              <span className="capitalize text-[11px]">{b.os || b.device}</span>
+                              <span className="capitalize text-[11px]">
+                                {localizeTechLabel(b.os || b.device)}
+                              </span>
                             </div>
                           ) : (
                             <span className="text-zinc-400 dark:text-neutral-500">—</span>
@@ -1154,7 +1331,7 @@ function RevenueAnalyticsContent() {
                       {/* 7. Date & Time */}
                       {visibleColumns.has("timestamp") && (
                         <td className="py-3.5 px-3 text-zinc-500 dark:text-neutral-400 whitespace-nowrap text-[11px]">
-                          {b.timestamp ? formatDateRelative(b.timestamp) : "—"}
+                          {b.timestamp ? formatRelativeTime(b.timestamp) : "—"}
                         </td>
                       )}
 
@@ -1162,7 +1339,7 @@ function RevenueAnalyticsContent() {
                       <td className="py-3.5 pl-3 pr-5 sm:pr-6 text-right relative whitespace-nowrap">
                         <details className="relative inline-block text-left">
                           <summary
-                            aria-label="Open link actions"
+                            aria-label={tr("Open link actions", "Ouvrir les actions du lien")}
                             className="list-none inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                           >
                             <MoreHorizontal className="w-4 h-4" />
@@ -1181,17 +1358,18 @@ function RevenueAnalyticsContent() {
                               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#465FFF] dark:text-[#7592FF] hover:bg-[#ECF3FF]/70 dark:hover:bg-[#465FFF]/15 transition-colors cursor-pointer"
                             >
                               <ExternalLink className="w-3.5 h-3.5 text-[#465FFF] dark:text-[#7592FF]" />
-                              <span>Open link in new tab</span>
+                              <span>{tr("Open link in new tab", "Ouvrir le lien dans un nouvel onglet")}</span>
                             </a>
                             <button
                               type="button"
                               onClick={() => {
                                 navigator.clipboard.writeText(shortLinkUrl);
+                                showToast.success(tr("Short link copied!", "Lien court copié !"));
                               }}
                               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 dark:text-neutral-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5 text-zinc-500" />
-                              <span>Copy short link</span>
+                              <span>{tr("Copy short link", "Copier le lien court")}</span>
                             </button>
                           </div>
                         </details>
@@ -1207,7 +1385,7 @@ function RevenueAnalyticsContent() {
           <div className="flex flex-col gap-2.5 md:hidden p-4 font-sans">
             {paginatedBeneficiaries.length === 0 ? (
               <div className="py-8 text-center text-zinc-500 dark:text-neutral-500 text-xs">
-                No beneficiaries found.
+                {tr("No beneficiaries found.", "Aucun bénéficiaire trouvé.")}
               </div>
             ) : (
               paginatedBeneficiaries.map((b) => {
@@ -1226,7 +1404,7 @@ function RevenueAnalyticsContent() {
                         {b.avatar ? (
                           <img
                             src={b.avatar}
-                            alt={b.name || "Buyer"}
+                            alt={b.name || tr("Buyer", "Acheteur")}
                             className="w-7 h-7 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
                           />
                         ) : (
@@ -1236,7 +1414,7 @@ function RevenueAnalyticsContent() {
                         )}
                         <div className="min-w-0">
                           <span className="font-semibold text-xs text-zinc-900 dark:text-white truncate block">
-                            {b.name || b.email || "Anonymous Buyer"}
+                            {b.name || b.email || tr("Anonymous Buyer", "Acheteur anonyme")}
                           </span>
                           {b.email && b.name && (
                             <span className="text-[10.5px] text-zinc-500 dark:text-neutral-400 truncate block font-mono">
@@ -1248,10 +1426,14 @@ function RevenueAnalyticsContent() {
 
                       <div className="text-right shrink-0">
                         <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 block">
-                          ${Number(b.revenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatEurDetailed(b.revenue)}
                         </span>
                         <span className="text-[10px] font-mono text-zinc-400">
-                          {b.clicks || 1} clic{(b.clicks || 1) > 1 ? "s" : ""}
+                          {formatNumber(b.clicks || 1)}{" "}
+                          {tr(
+                            (b.clicks || 1) > 1 ? "clicks" : "click",
+                            (b.clicks || 1) > 1 ? "clics" : "clic",
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1276,7 +1458,7 @@ function RevenueAnalyticsContent() {
                               (e.currentTarget as HTMLImageElement).style.display = "none";
                             }}
                           />
-                          <span>{getCountryName(b.countryCode) || b.countryCode}</span>
+                          <span>{getCountryName(b.countryCode, locale) || b.countryCode}</span>
                         </div>
                       )}
                     </div>
@@ -1284,17 +1466,17 @@ function RevenueAnalyticsContent() {
                     {/* Bottom Row: Timestamp + Copy Link Action */}
                     <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-400 pt-0.5">
                       <span className="font-mono text-[10.5px]">
-                        {b.timestamp ? formatDateRelative(b.timestamp) : "Recently"}
+                        {b.timestamp ? formatRelativeTime(b.timestamp) : tr("Recently", "Récemment")}
                       </span>
                       <button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(shortLinkUrl);
-                          showToast.success("Link copied!");
+                          showToast.success(tr("Link copied!", "Lien copié !"));
                         }}
                         className="px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
                       >
-                        Copy Link
+                        {tr("Copy Link", "Copier le lien")}
                       </button>
                     </div>
                   </div>
@@ -1307,15 +1489,19 @@ function RevenueAnalyticsContent() {
         {/* ─── Pagination Controls ────────────────────────────────────────── */}
         <div className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 dark:text-neutral-400 border-t border-zinc-200 dark:border-[#222225] mt-auto">
           <span>
-            Showing{" "}
+            {tr("Showing", "Affichage de")}{" "}
             <strong className="text-zinc-900 dark:text-white">
               {filteredBeneficiaries.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
             </strong>{" "}
-            to{" "}
+            {tr("to", "à")}{" "}
             <strong className="text-zinc-900 dark:text-white">
               {Math.min(currentPage * pageSize, filteredBeneficiaries.length)}
             </strong>{" "}
-            of <strong className="text-zinc-900 dark:text-white">{filteredBeneficiaries.length}</strong> beneficiary(ies)
+            {tr("of", "sur")}{" "}
+            <strong className="text-zinc-900 dark:text-white">
+              {formatNumber(filteredBeneficiaries.length)}
+            </strong>{" "}
+            {tr("beneficiary(ies)", "bénéficiaire(s)")}
           </span>
 
           <div className="flex items-center gap-2">
@@ -1327,11 +1513,11 @@ function RevenueAnalyticsContent() {
               className="h-8 px-2.5 text-xs border-zinc-300 dark:border-[#27272a] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#141416] text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white disabled:opacity-40 cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-              <span>Previous</span>
+              <span>{tr("Previous", "Précédent")}</span>
             </Button>
 
             <span className="px-2 py-1 bg-zinc-100 dark:bg-[#1a1a1e] rounded text-zinc-900 dark:text-white font-semibold">
-              Page {currentPage} / {totalPages}
+              {tr("Page", "Page")} {currentPage} / {totalPages}
             </span>
 
             <Button
@@ -1341,7 +1527,7 @@ function RevenueAnalyticsContent() {
               disabled={currentPage >= totalPages}
               className="h-8 px-2.5 text-xs border-zinc-300 dark:border-[#27272a] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#141416] text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white disabled:opacity-40 cursor-pointer"
             >
-              <span>Next</span>
+              <span>{tr("Next", "Suivant")}</span>
               <ChevronRight className="w-3.5 h-3.5 ml-1" />
             </Button>
           </div>

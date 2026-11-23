@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { cfAddDomain } from "@/lib/cloudflare-api";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface DomainDrawerProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export function DomainDrawer({
   domainsLimit = 3,
   onUpgrade,
 }: DomainDrawerProps) {
+  const { tr } = useI18n();
   const [domainInput, setDomainInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -87,13 +89,19 @@ export function DomainDrawer({
     ) {
       hasNonNormalized = true;
       issues.push(
-        "Protocole (http/https), slash (/) ou port détecté — saisissez uniquement l'hôte (ex: link.marque.com).",
+        tr(
+          "Protocol (http/https), slash (/), or port detected — enter only the hostname (e.g. link.brand.com).",
+          "Protocole (http/https), slash (/) ou port détecté — saisissez uniquement l'hôte (ex: link.marque.com)."
+        ),
       );
     }
     if (/[^\x00-\x7F]/.test(raw)) {
       hasNonNormalized = true;
       issues.push(
-        "Caractères accentués ou Unicode non normalisés détectés (utilisez l'alphabet ASCII a-z, 0-9, -).",
+        tr(
+          "Accented or non-ASCII Unicode characters detected (use ASCII a-z, 0-9, -).",
+          "Caractères accentués ou Unicode non normalisés détectés (utilisez l'alphabet ASCII a-z, 0-9, -)."
+        ),
       );
     }
     const invalidChars = raw
@@ -102,7 +110,12 @@ export function DomainDrawer({
     if (invalidChars && invalidChars.length > 0) {
       hasNonNormalized = true;
       const uniqueInvalid = Array.from(new Set(invalidChars)).join(" ");
-      issues.push(`Caractères spéciaux interdits détectés : ${uniqueInvalid}`);
+      issues.push(
+        tr(
+          `Disallowed special characters detected: ${uniqueInvalid}`,
+          `Caractères spéciaux interdits détectés : ${uniqueInvalid}`
+        )
+      );
     }
 
     const cleaned = raw
@@ -128,7 +141,10 @@ export function DomainDrawer({
 
     if (!hasNonNormalized && cleaned.length > 0 && !isSyntaxValid) {
       issues.push(
-        "Format de domaine incomplet ou extension TLD invalide (ex: link.mycompany.com).",
+        tr(
+          "Incomplete domain format or invalid TLD (e.g. link.mycompany.com).",
+          "Format de domaine incomplet ou extension TLD invalide (ex: link.mycompany.com)."
+        ),
       );
     }
 
@@ -138,7 +154,7 @@ export function DomainDrawer({
       issues,
       normalizedSuggestion: cleaned,
     };
-  }, [domainInput]);
+  }, [domainInput, tr]);
 
   // DNS validation via Cloudflare DNS over HTTPS
   const verifyDomainExistsOnDns = async (
@@ -158,7 +174,10 @@ export function DomainDrawer({
     if (reservedTlds.includes(tld)) {
       return {
         exists: false,
-        reason: `L'extension .${tld} est réservée et n'existe pas sur le réseau DNS public.`,
+        reason: tr(
+          `The .${tld} extension is reserved and does not exist on public DNS.`,
+          `L'extension .${tld} est réservée et n'existe pas sur le réseau DNS public.`
+        ),
       };
     }
 
@@ -193,7 +212,10 @@ export function DomainDrawer({
       if (!rootExists && !hostExists) {
         return {
           exists: false,
-          reason: `Le domaine "${rootDomain}" n'est pas encore enregistré ou ne possède aucun serveur de noms (NS) public.`,
+          reason: tr(
+            `Domain "${rootDomain}" is not registered yet or has no public nameservers (NS).`,
+            `Le domaine "${rootDomain}" n'est pas encore enregistré ou ne possède aucun serveur de noms (NS) public.`
+          ),
         };
       }
       return { exists: true };
@@ -207,19 +229,22 @@ export function DomainDrawer({
     setErrorMsg(null);
 
     if (!domainInput.trim()) {
-      setErrorMsg("Veuillez renseigner un nom de domaine.");
+      setErrorMsg(tr("Please enter a domain name.", "Veuillez renseigner un nom de domaine."));
       return;
     }
 
     if (!userId) {
-      setErrorMsg("Session expirée. Veuillez vous reconnecter.");
+      setErrorMsg(tr("Session expired. Please sign in again.", "Session expirée. Veuillez vous reconnecter."));
       return;
     }
 
     if (validation.hasNonNormalized || !validation.isValid) {
       const msg =
         validation.issues[0] ||
-        "Nom de domaine invalide ou contenant des caractères non autorisés.";
+        tr(
+          "Invalid domain name or disallowed characters.",
+          "Nom de domaine invalide ou contenant des caractères non autorisés."
+        );
       setErrorMsg(msg);
       showToast.error(msg);
       return;
@@ -228,7 +253,10 @@ export function DomainDrawer({
     if (domainsLimit !== -1 && domainsCount >= domainsLimit) {
       if (onUpgrade) onUpgrade();
       showToast.error(
-        `Votre forfait est limité à ${domainsLimit} domaines. Veuillez mettre à niveau pour en ajouter davantage.`,
+        tr(
+          `Your plan is limited to ${domainsLimit} domains. Upgrade to add more.`,
+          `Votre forfait est limité à ${domainsLimit} domaines. Veuillez mettre à niveau pour en ajouter davantage.`
+        ),
       );
       return;
     }
@@ -241,7 +269,10 @@ export function DomainDrawer({
       if (!dnsCheck.exists) {
         const errReason =
           dnsCheck.reason ||
-          `Le domaine "${cleanHost}" n'existe pas sur le réseau DNS public.`;
+          tr(
+            `Domain "${cleanHost}" does not exist on public DNS.`,
+            `Le domaine "${cleanHost}" n'existe pas sur le réseau DNS public.`
+          );
         setErrorMsg(errReason);
         showToast.error(errReason);
         setIsSubmitting(false);
@@ -259,11 +290,18 @@ export function DomainDrawer({
       try {
       } catch {}
 
-      showToast.success(`Domaine ${cleanHost} connecté avec succès !`);
+      showToast.success(
+        tr(
+          `Domain ${cleanHost} connected successfully!`,
+          `Domaine ${cleanHost} connecté avec succès !`
+        )
+      );
       await onCreated();
       onClose();
     } catch (err: any) {
-      const msg = err.message || "Erreur lors de la connexion du domaine.";
+      const msg =
+        err.message ||
+        tr("Error connecting domain.", "Erreur lors de la connexion du domaine.");
       setErrorMsg(msg);
       showToast.error(msg);
     } finally {
@@ -288,17 +326,20 @@ export function DomainDrawer({
             </div>
             <div>
               <h3 className="text-base font-bold text-zinc-950 dark:text-white">
-                Connecter un Domaine
+                {tr("Connect a Domain", "Connecter un Domaine")}
               </h3>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mt-0.5">
-                Utilisez votre propre marque pour vos redirections courtes
+                {tr(
+                  "Use your own brand for short redirects",
+                  "Utilisez votre propre marque pour vos redirections courtes"
+                )}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={tr("Close", "Fermer")}
             disabled={isSubmitting}
             className="p-1.5 rounded-[8px] text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
           >
@@ -321,9 +362,15 @@ export function DomainDrawer({
               <Info className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed">
                 <strong className="font-bold text-zinc-950 dark:text-white">
-                  Vous devez déjà être propriétaire du domaine.
+                  {tr(
+                    "You must already own the domain.",
+                    "Vous devez déjà être propriétaire du domaine."
+                  )}
                 </strong>{" "}
-                LShorter connecte votre domaine via Cloudflare Edge sans vendre de noms de domaine.
+                {tr(
+                  "LShorter connects your domain via Cloudflare Edge without selling domain names.",
+                  "LShorter connecte votre domaine via Cloudflare Edge sans vendre de noms de domaine."
+                )}
               </p>
             </div>
             <a
@@ -336,20 +383,20 @@ export function DomainDrawer({
               className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#FF5C35] hover:bg-[#DE3723] text-white text-xs font-bold transition-colors shadow-xs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Acheter sur Namecheap</span>
+              <span>{tr("Buy on Namecheap", "Acheter sur Namecheap")}</span>
             </a>
           </div>
 
           {/* Domain Input Field */}
           <div className="flex flex-col gap-2">
             <label htmlFor="custom-domain-name-input" className="text-xs font-bold text-zinc-950 dark:text-white">
-              Nom de domaine ou sous-domaine <span className="text-red-500">*</span>
+              {tr("Domain or subdomain name", "Nom de domaine ou sous-domaine")} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Input
                 id="custom-domain-name-input"
                 required
-                placeholder="ex: link.entreprise.com ou go.marque.io"
+                placeholder={tr("e.g. link.company.com or go.brand.io", "ex: link.entreprise.com ou go.marque.io")}
                 value={domainInput}
                 onChange={(e) => setDomainInput(e.target.value)}
                 disabled={isSubmitting}
@@ -371,11 +418,18 @@ export function DomainDrawer({
             ) : validation.isValid ? (
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" />
-                <span>Format valide : <strong className="font-bold">{validation.normalizedSuggestion}</strong></span>
+                <span>
+                  {tr("Valid format:", "Format valide :")}{" "}
+                  <strong className="font-bold">{validation.normalizedSuggestion}</strong>
+                </span>
               </p>
             ) : (
               <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Entrez un sous-domaine recommandé (ex: <code className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">link.votresite.com</code>) ou votre domaine racine.
+                {tr("Enter a recommended subdomain (e.g. ", "Entrez un sous-domaine recommandé (ex: ")}
+                <code className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">
+                  {tr("link.yoursite.com", "link.votresite.com")}
+                </code>
+                {tr(") or your root domain.", ") ou votre domaine racine.")}
               </span>
             )}
           </div>
@@ -385,24 +439,31 @@ export function DomainDrawer({
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-[#465FFF]" />
               <span className="text-xs font-bold text-zinc-950 dark:text-white">
-                Configuration DNS requise chez votre registrar
+                {tr("Required DNS configuration at your registrar", "Configuration DNS requise chez votre registrar")}
               </span>
             </div>
             <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
-              Ajoutez un enregistrement DNS de type <strong className="text-zinc-950 dark:text-white font-bold">CNAME</strong> chez votre hébergeur (Cloudflare, OVH, Namecheap, GoDaddy...) :
+              {tr("Add a ", "Ajoutez un enregistrement DNS de type ")}
+              <strong className="text-zinc-950 dark:text-white font-bold">CNAME</strong>
+              {tr(
+                " DNS record at your provider (Cloudflare, OVH, Namecheap, GoDaddy...):",
+                " chez votre hébergeur (Cloudflare, OVH, Namecheap, GoDaddy...) :"
+              )}
             </p>
             <div className="p-2.5 rounded-[6px] bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-[#27272a] font-mono text-xs flex items-center justify-between">
               <span className="text-zinc-900 dark:text-zinc-100 font-bold">CNAME &rarr; <code className="text-[#465FFF] font-bold">cname.lsho.cc</code></span>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">SSL Auto</span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                {tr("Auto SSL", "SSL Auto")}
+              </span>
             </div>
           </div>
 
           {/* Quota Indicator */}
           {domainsLimit !== -1 && (
             <div className="flex items-center justify-between text-xs font-semibold text-zinc-800 dark:text-zinc-200 px-1">
-              <span>Quota de votre forfait ({plan})</span>
+              <span>{tr(`Your plan quota (${plan})`, `Quota de votre forfait (${plan})`)}</span>
               <span className="font-bold text-zinc-950 dark:text-white">
-                {domainsCount} / {domainsLimit} domaine{domainsLimit > 1 ? "s" : ""}
+                {domainsCount} / {domainsLimit} {tr(domainsLimit > 1 ? "domains" : "domain", domainsLimit > 1 ? "domaines" : "domaine")}
               </span>
             </div>
           )}
@@ -416,7 +477,7 @@ export function DomainDrawer({
               disabled={isSubmitting}
               className="h-9 px-4 text-xs font-bold border-zinc-300 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
             >
-              Annuler
+              {tr("Cancel", "Annuler")}
             </Button>
             <Button
               type="submit"
@@ -427,12 +488,12 @@ export function DomainDrawer({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Vérification DNS...</span>
+                  <span>{tr("Verifying DNS...", "Vérification DNS...")}</span>
                 </>
               ) : (
                 <>
                   <Globe2 className="w-3.5 h-3.5" />
-                  <span>Connecter le Domaine</span>
+                  <span>{tr("Connect Domain", "Connecter le Domaine")}</span>
                 </>
               )}
             </Button>

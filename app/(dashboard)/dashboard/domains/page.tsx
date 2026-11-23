@@ -35,8 +35,10 @@ import { showToast } from "@/components/ui/toast-provider";
 import { useUndoDelete } from "@/components/ui/undo-delete-provider";
 import { getPlanLimits, triggerPlanUpgrade } from "@/lib/plan-guard";
 import { DomainDrawer } from "@/components/dashboard/domain-drawer";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function DomainsPage() {
+  const { tr } = useI18n();
   const { triggerUndoDelete } = useUndoDelete();
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -174,15 +176,28 @@ export default function DomainsPage() {
       if (!verifyRes.ok || !verifyJson?.verified) {
         showToast.error(
           verifyJson?.error ||
-            `L'enregistrement CNAME ou TXT de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`,
+            tr(
+              `The CNAME or TXT record for ${dom.domain} pointing to ${DEFAULT_DOMAIN} is not detected on DNS servers yet. Please verify your DNS zone.`,
+              `L'enregistrement CNAME ou TXT de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`
+            ),
         );
       } else {
-        showToast.success("Domain active and SSL certificate verified!");
+        showToast.success(
+          tr(
+            "Domain active and SSL certificate verified!",
+            "Domaine actif et certificat SSL vérifié !"
+          )
+        );
         cfInvalidateCache("/api/domains");
         loadDomains();
       }
     } catch {
-      showToast.error("Unable to verify DNS propagation right now.");
+      showToast.error(
+        tr(
+          "Unable to verify DNS propagation right now.",
+          "Impossible de vérifier la propagation DNS pour le moment."
+        )
+      );
     } finally {
       setIsVerifyingId(null);
     }
@@ -192,7 +207,7 @@ export default function DomainsPage() {
     triggerUndoDelete({
       id: dom.id,
       itemType: "domain",
-      title: "Domaine supprimé",
+      title: tr("Domain deleted", "Domaine supprimé"),
       description: dom.domain,
       confirmText: dom.domain,
       onExecute: async () => {
@@ -202,7 +217,9 @@ export default function DomainsPage() {
           cfInvalidateCache("/api/domains");
         } catch {
           loadDomains();
-          showToast.error("Erreur lors de la suppression du domaine.");
+          showToast.error(
+            tr("Error deleting domain.", "Erreur lors de la suppression du domaine.")
+          );
           return false;
         }
       },
@@ -240,11 +257,13 @@ export default function DomainsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Custom Domains
+            {tr("Custom Domains", "Domaines personnalisés")}
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Use your own white-label domain names (e.g. link.my-brand.com) with
-            Cloudflare SSL included.
+            {tr(
+              "Use your own white-label domain names (e.g. link.my-brand.com) with Cloudflare SSL included.",
+              "Utilisez vos propres noms de domaine en marque blanche (ex. link.ma-marque.com) avec SSL Cloudflare inclus."
+            )}
           </p>
         </div>
 
@@ -255,7 +274,7 @@ export default function DomainsPage() {
               cfInvalidateCache("/api/domains");
               await loadDomains();
               setIsRefreshing(false);
-              showToast.success("Domains list refreshed!");
+              showToast.success(tr("Domains list refreshed!", "Liste des domaines actualisée !"));
             }}
             variant="outline"
             disabled={isRefreshing}
@@ -264,7 +283,7 @@ export default function DomainsPage() {
             <RefreshCw
               className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#465FFF]" : "text-slate-500 dark:text-slate-400"}`}
             />
-            <span>Refresh</span>
+            <span>{tr("Refresh", "Actualiser")}</span>
           </Button>
 
           <Button
@@ -273,7 +292,7 @@ export default function DomainsPage() {
             className="h-8.5 px-3 text-xs font-semibold tracking-wide gap-1.5 shrink-0 bg-[#465FFF] hover:bg-[#3b51e6] text-white shadow-xs rounded-lg cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>ADD A DOMAIN</span>
+            <span>{tr("ADD A DOMAIN", "AJOUTER UN DOMAINE")}</span>
           </Button>
         </div>
       </div>
@@ -294,8 +313,11 @@ export default function DomainsPage() {
         domainsLimit={domainsLimit}
         onUpgrade={() =>
           triggerPlanUpgrade({
-            featureName: "Custom Domains",
-            reason: `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+            featureName: tr("Custom Domains", "Domaines personnalisés"),
+            reason: tr(
+              `Your ${plan} plan is limited to ${domainsLimit} custom domains. Upgrade to add more.`,
+              `Votre forfait ${plan} est limité à ${domainsLimit} domaines personnalisés. Passez au niveau supérieur pour en ajouter davantage.`
+            ),
             targetPlan: plan === "FREE" ? "PRO" : "BUSINESS",
           })
         }
@@ -309,7 +331,7 @@ export default function DomainsPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
-            placeholder="Search for a domain name..."
+            placeholder={tr("Search for a domain name...", "Rechercher un nom de domaine...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-10 pl-9 pr-3 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#465FFF]"
@@ -327,7 +349,7 @@ export default function DomainsPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            All ({domains.length})
+            {tr("All", "Tous")} ({domains.length})
           </button>
 
           <button
@@ -339,7 +361,7 @@ export default function DomainsPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            Active ({activeCount})
+            {tr("Active", "Actifs")} ({activeCount})
           </button>
 
           <button
@@ -351,7 +373,7 @@ export default function DomainsPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            Pending ({pendingCount})
+            {tr("Pending", "En attente")} ({pendingCount})
           </button>
         </div>
 
@@ -363,9 +385,9 @@ export default function DomainsPage() {
             onChange={(e) => setSortBy(e.target.value as any)}
             className="h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 px-2.5 text-xs focus:outline-none focus:border-[#465FFF] cursor-pointer"
           >
-            <option value="date">Most recent</option>
-            <option value="name">Name (A-Z)</option>
-            <option value="links">Most links</option>
+            <option value="date">{tr("Most recent", "Plus récents")}</option>
+            <option value="name">{tr("Name (A-Z)", "Nom (A-Z)")}</option>
+            <option value="links">{tr("Most links", "Plus de liens")}</option>
           </select>
         </div>
       </div>
@@ -374,7 +396,7 @@ export default function DomainsPage() {
       <div className="flex flex-col gap-6">
         {filteredDomains.length === 0 ? (
           <div className="p-8 rounded-[10px] bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800 text-center text-slate-500 dark:text-slate-400 text-xs shadow-xs">
-            No domains match your search criteria.
+            {tr("No domains match your search criteria.", "Aucun domaine ne correspond à vos critères de recherche.")}
           </div>
         ) : (
           filteredDomains.map((dom) => (
@@ -392,13 +414,13 @@ export default function DomainsPage() {
                     <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <span>{dom.domain}</span>
                       {dom.status === "active" ? (
-                        <Badge variant="active">Active & SSL Secured</Badge>
+                        <Badge variant="active">{tr("Active & SSL Secured", "Actif & SSL sécurisé")}</Badge>
                       ) : (
-                        <Badge variant="expire">Pending DNS</Badge>
+                        <Badge variant="expire">{tr("Pending DNS", "DNS en attente")}</Badge>
                       )}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      ID: {dom.id} · {dom.linksCount} associated links
+                      ID: {dom.id} · {dom.linksCount} {tr("associated links", "liens associés")}
                     </p>
                     {(() => {
                       const name =
@@ -408,7 +430,7 @@ export default function DomainsPage() {
                       return (
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800 mt-1 truncate">
                           <span className="text-slate-500 text-[10px] font-semibold shrink-0">
-                            Owner:
+                            {tr("Owner:", "Propriétaire :")}
                           </span>
                           {name && (
                             <span className="text-slate-800 dark:text-slate-200 font-medium truncate">
@@ -443,15 +465,15 @@ export default function DomainsPage() {
                       />
                       <span>
                         {isVerifyingId === dom.id
-                          ? "Verifying..."
-                          : "Verify Domain"}
+                          ? tr("Verifying...", "Vérification...")
+                          : tr("Verify Domain", "Vérifier le domaine")}
                       </span>
                     </Button>
                   )}
                   <button
                     onClick={() => promptDeleteDomainWithUndo(dom)}
                     className="p-2 rounded-[8px] hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                    title="Supprimer ce domaine"
+                    title={tr("Delete this domain", "Supprimer ce domaine")}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -461,19 +483,21 @@ export default function DomainsPage() {
               {/* DNS Records Table */}
               <div>
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2.5">
-                  Required DNS configuration at your registrar (OVH, GoDaddy,
-                  Cloudflare, Namecheap, etc.):
+                  {tr(
+                    "Required DNS configuration at your registrar (OVH, GoDaddy, Cloudflare, Namecheap, etc.):",
+                    "Configuration DNS requise chez votre registrar (OVH, GoDaddy, Cloudflare, Namecheap, etc.) :"
+                  )}
                 </span>
 
                 <div className="overflow-x-auto rounded-[10px] border border-slate-200 dark:border-slate-800">
                   <table className="hidden sm:table w-full text-left text-xs text-slate-600 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-900/70">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
-                        <th className="py-2.5 px-3">Type</th>
-                        <th className="py-2.5 px-3">Host Name</th>
-                        <th className="py-2.5 px-3">Value / Target</th>
+                        <th className="py-2.5 px-3">{tr("Type", "Type")}</th>
+                        <th className="py-2.5 px-3">{tr("Host Name", "Hôte")}</th>
+                        <th className="py-2.5 px-3">{tr("Value / Target", "Valeur / Cible")}</th>
                         <th className="py-2.5 px-3">TTL</th>
-                        <th className="py-2.5 px-3 text-right">Copy</th>
+                        <th className="py-2.5 px-3 text-right">{tr("Copy", "Copier")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800">
@@ -498,7 +522,7 @@ export default function DomainsPage() {
                             <button
                               onClick={() => handleCopy(rec.value)}
                               className="p-1.5 rounded-[6px] hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                              title="Copy value"
+                              title={tr("Copy value", "Copier la valeur")}
                             >
                               {copiedValue === rec.value ? (
                                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -526,26 +550,28 @@ export default function DomainsPage() {
                           <span className="text-[11px] text-slate-500 font-mono">TTL: {rec.ttl}</span>
                         </div>
                         <div className="text-xs">
-                          <span className="text-[10px] uppercase text-slate-400 block font-normal">Hôte (Host)</span>
+                          <span className="text-[10px] uppercase text-slate-400 block font-normal">{tr("Host", "Hôte")}</span>
                           <span className="font-mono text-slate-800 dark:text-slate-200 text-xs">{rec.name}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60">
                           <div className="min-w-0">
-                            <span className="text-[10px] uppercase text-slate-400 block font-normal">Valeur (Target)</span>
+                            <span className="text-[10px] uppercase text-slate-400 block font-normal">{tr("Value (Target)", "Valeur (Cible)")}</span>
                             <span className="font-mono text-[#0066FF] dark:text-[#5294FF] text-xs truncate block">{rec.value}</span>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleCopy(rec.value)}
                             className="h-7 px-2 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                            title="Copier la valeur"
+                            title={tr("Copy value", "Copier la valeur")}
                           >
                             {copiedValue === rec.value ? (
                               <Check className="w-3.5 h-3.5 text-emerald-500" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
-                            <span className="text-[11px] font-normal">{copiedValue === rec.value ? "Copié" : "Copier"}</span>
+                            <span className="text-[11px] font-normal">
+                              {copiedValue === rec.value ? tr("Copied", "Copié") : tr("Copy", "Copier")}
+                            </span>
                           </button>
                         </div>
                       </div>
@@ -558,9 +584,10 @@ export default function DomainsPage() {
               <div className="flex items-start gap-2 p-3.5 rounded-[8px] bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 text-xs text-slate-700 dark:text-slate-300">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  Let&apos;s Encrypt SSL certificates are automatically issued
-                  and renewed by Cloudflare Edge servers once DNS propagation
-                  completes (5 min to 48 hours).
+                  {tr(
+                    "Let's Encrypt SSL certificates are automatically issued and renewed by Cloudflare Edge servers once DNS propagation completes (5 min to 48 hours).",
+                    "Les certificats SSL Let's Encrypt sont automatiquement émis et renouvelés par les serveurs Cloudflare Edge dès la propagation DNS terminée (5 min à 48 h)."
+                  )}
                 </span>
               </div>
             </div>

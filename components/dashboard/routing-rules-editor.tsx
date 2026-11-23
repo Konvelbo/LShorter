@@ -37,6 +37,7 @@ import { PlanType } from "@/types";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { cn } from "@/lib/utils";
 import { ALL_WORLD_COUNTRIES, WorldCountry, getCountry, getCountryFlagUrl } from "@/lib/constants/countries";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export { ALL_WORLD_COUNTRIES, getCountry, getCountryFlagUrl };
 export type { WorldCountry };
@@ -69,6 +70,8 @@ function CountryFlagDropdown({
   value: string;
   onSelect: (code: string) => void;
 }) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -133,7 +136,11 @@ function CountryFlagDropdown({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search country or ISO code (e.g. France, FR, US)..."
+              placeholder={
+                isFr
+                  ? "Rechercher un pays ou code ISO (ex. France, FR, US)..."
+                  : "Search country or ISO code (e.g. France, FR, US)..."
+              }
               autoFocus
               className="w-full h-8 rounded-lg bg-zinc-50 dark:bg-[#1a1a1e] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#27272a] px-2.5 text-xs placeholder:text-zinc-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#465FFF]"
             />
@@ -141,7 +148,7 @@ function CountryFlagDropdown({
           <div className="max-h-56 overflow-y-auto p-1 divide-y divide-zinc-50 dark:divide-white/[0.02]">
             {filtered.length === 0 ? (
               <div className="py-4 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                No matching country found
+                {isFr ? "Aucun pays correspondant" : "No matching country found"}
               </div>
             ) : (
               filtered.map((c) => {
@@ -187,13 +194,17 @@ function CountryFlagDropdown({
 }
 
 export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: RoutingRulesEditorProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const isProPlan = userPlan === "PRO" || userPlan === "BUSINESS" || userPlan === "ENTERPRISE";
 
   const handleAddRule = () => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
-        featureName: "Dynamic Routing",
+        reason: isFr
+          ? "Le routage dynamique intelligent est une fonctionnalité exclusive aux forfaits Pro et Business."
+          : "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
+        featureName: isFr ? "Routage dynamique" : "Dynamic Routing",
         targetPlan: "PRO",
       });
       return;
@@ -201,7 +212,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
 
     const newRule: RoutingRule = {
       id: `rule_${Date.now()}`,
-      title: `Rule ${rules.length + 1}`,
+      title: isFr ? `Règle ${rules.length + 1}` : `Rule ${rules.length + 1}`,
       isCollapsed: false,
       conditions: [
         {
@@ -228,7 +239,9 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
     const remaining = rules.filter((r) => r.id !== ruleId);
     const updated = remaining.map((r, idx) => ({
       ...r,
-      title: /^Rule \d+$/i.test(r.title) ? `Rule ${idx + 1}` : (r.title || `Rule ${idx + 1}`),
+      title: /^(Rule|Règle) \d+$/i.test(r.title)
+        ? (isFr ? `Règle ${idx + 1}` : `Rule ${idx + 1}`)
+        : (r.title || (isFr ? `Règle ${idx + 1}` : `Rule ${idx + 1}`)),
     }));
     onChange(updated);
   };
@@ -254,7 +267,9 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   const handleAddCondition = (ruleId: string) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Combined multi-condition routing (AND) is reserved for Pro members.",
+        reason: isFr
+          ? "Le routage combiné multi-conditions (ET) est réservé aux membres Pro."
+          : "Combined multi-condition routing (AND) is reserved for Pro members.",
         targetPlan: "PRO",
       });
       return;
@@ -302,8 +317,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
   ) => {
     if (!isProPlan) {
       triggerPlanUpgrade({
-        reason: "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
-        featureName: "Dynamic Routing",
+        reason: isFr
+          ? "Le routage dynamique intelligent est une fonctionnalité exclusive aux forfaits Pro et Business."
+          : "Smart dynamic routing is an exclusive feature for Pro and Business plans.",
+        featureName: isFr ? "Routage dynamique" : "Dynamic Routing",
         targetPlan: "PRO",
       });
       return;
@@ -375,10 +392,10 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
       <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-[#27272a]">
         <h4 className="font-bold text-sm tracking-wider uppercase text-zinc-950 dark:text-white flex items-center gap-2">
           <Globe2 className="w-4 h-4 text-brand" />
-          <span>ROUTING RULES</span>
+          <span>{isFr ? "RÈGLES DE ROUTAGE" : "ROUTING RULES"}</span>
         </h4>
         <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
-          Smart multi-condition redirection
+          {isFr ? "Redirection intelligente multi-conditions" : "Smart multi-condition redirection"}
         </span>
       </div>
 
@@ -424,7 +441,7 @@ export function RoutingRulesEditor({ rules, onChange, userPlan = "FREEMIUM" }: R
         className="w-full sm:w-fit px-4 py-2.5 rounded-[10px] bg-white dark:bg-white/5 hover:bg-[#ECF3FF] dark:hover:bg-white/10 hover:-translate-y-0.5 active:translate-y-0 text-zinc-800 dark:text-neutral-200 hover:text-[#465FFF] dark:hover:text-white border border-zinc-200 dark:border-[#27272a] hover:border-[#465FFF] font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-2xs"
       >
         <Plus className="w-4 h-4 text-brand" />
-        <span>Add rule</span>
+        <span>{isFr ? "Ajouter une règle" : "Add rule"}</span>
       </button>
     </div>
   );
@@ -465,6 +482,8 @@ function SortableRuleCard({
   selectClassName,
   optionClassName,
 }: SortableRuleCardProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const conditions = Array.isArray(rule?.conditions) ? rule.conditions : [];
   const {
     attributes,
@@ -499,16 +518,16 @@ function SortableRuleCard({
             className="p-1.5 -ml-1 text-zinc-400 dark:text-neutral-500 hover:text-zinc-800 dark:hover:text-neutral-200 cursor-grab active:cursor-grabbing touch-none rounded-[6px] hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors focus:outline-none select-none"
             {...attributes}
             {...listeners}
-            title="Glisser pour réorganiser (Drag to reorder priority)"
-            aria-label={`Drag to reorder ${rule.title}`}
+            title={isFr ? "Glisser pour réorganiser la priorité" : "Drag to reorder priority"}
+            aria-label={isFr ? `Glisser pour réorganiser ${rule.title}` : `Drag to reorder ${rule.title}`}
           >
             <GripVertical className="w-4 h-4" />
           </button>
           <span className="font-bold text-sm text-zinc-950 dark:text-white">
-            {rule.title || `Rule ${index + 1}`}
+            {rule.title || (isFr ? `Règle ${index + 1}` : `Rule ${index + 1}`)}
           </span>
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-300 font-semibold">
-            Priority #{index + 1}
+            {isFr ? `Priorité #${index + 1}` : `Priority #${index + 1}`}
           </span>
         </div>
 
@@ -521,12 +540,12 @@ function SortableRuleCard({
             {rule.isCollapsed ? (
               <>
                 <ChevronDown className="w-3.5 h-3.5" />
-                <span>Expand</span>
+                <span>{isFr ? "Déplier" : "Expand"}</span>
               </>
             ) : (
               <>
                 <ChevronUp className="w-3.5 h-3.5" />
-                <span>Collapse</span>
+                <span>{isFr ? "Replier" : "Collapse"}</span>
               </>
             )}
           </button>
@@ -535,7 +554,7 @@ function SortableRuleCard({
             type="button"
             onClick={() => onDeleteRule(rule.id)}
             className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-[8px] transition-colors cursor-pointer"
-            title="Delete rule"
+            title={isFr ? "Supprimer la règle" : "Delete rule"}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -555,7 +574,7 @@ function SortableRuleCard({
                 <div className="flex items-center justify-between sm:contents">
                   <div className="sm:col-span-1 text-xs font-bold">
                     <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[6px] bg-[#ECF3FF] dark:bg-white/5 text-[#465FFF] font-mono font-bold">
-                      {condIdx === 0 ? "If" : "And"}
+                      {condIdx === 0 ? (isFr ? "Si" : "If") : (isFr ? "Et" : "And")}
                     </span>
                   </div>
 
@@ -564,7 +583,7 @@ function SortableRuleCard({
                       type="button"
                       onClick={() => onDeleteCondition(rule.id, cond.id)}
                       className="sm:hidden text-red-500 dark:text-red-400 hover:text-red-600 p-1 rounded-[8px]"
-                      title="Delete condition"
+                      title={isFr ? "Supprimer la condition" : "Delete condition"}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -585,11 +604,11 @@ function SortableRuleCard({
                       }
                       className={selectClassName}
                     >
-                      <option value="pays" className={optionClassName}>Country (Pays)</option>
+                      <option value="pays" className={optionClassName}>{isFr ? "Pays" : "Country"}</option>
                       <option value="continent" className={optionClassName}>Continent</option>
-                      <option value="navigateur" className={optionClassName}>Browser (Navigateur)</option>
-                      <option value="plateforme" className={optionClassName}>Platform (OS)</option>
-                      <option value="appareil" className={optionClassName}>Device</option>
+                      <option value="navigateur" className={optionClassName}>{isFr ? "Navigateur" : "Browser"}</option>
+                      <option value="plateforme" className={optionClassName}>{isFr ? "Plateforme (OS)" : "Platform (OS)"}</option>
+                      <option value="appareil" className={optionClassName}>{isFr ? "Appareil" : "Device"}</option>
                     </select>
                   </div>
 
@@ -604,8 +623,8 @@ function SortableRuleCard({
                       }
                       className={cn(selectClassName, "text-center")}
                     >
-                      <option value="est" className={optionClassName}>is</option>
-                      <option value="nest_pas" className={optionClassName}>is not</option>
+                      <option value="est" className={optionClassName}>{isFr ? "est" : "is"}</option>
+                      <option value="nest_pas" className={optionClassName}>{isFr ? "n'est pas" : "is not"}</option>
                     </select>
                   </div>
                 </div>
@@ -671,9 +690,9 @@ function SortableRuleCard({
                       }
                       className={selectClassName}
                     >
-                      <option value="mobile" className={optionClassName}>Mobile (Smartphones)</option>
-                      <option value="tablet" className={optionClassName}>Tablet</option>
-                      <option value="desktop" className={optionClassName}>Desktop Computer</option>
+                      <option value="mobile" className={optionClassName}>{isFr ? "Mobile (Smartphones)" : "Mobile (Smartphones)"}</option>
+                      <option value="tablet" className={optionClassName}>{isFr ? "Tablette" : "Tablet"}</option>
+                      <option value="desktop" className={optionClassName}>{isFr ? "Ordinateur de bureau" : "Desktop Computer"}</option>
                     </select>
                   )}
 
@@ -687,13 +706,13 @@ function SortableRuleCard({
                       }
                       className={selectClassName}
                     >
-                      <option value="africa" className={optionClassName}>Africa (Afrique)</option>
+                      <option value="africa" className={optionClassName}>{isFr ? "Afrique" : "Africa"}</option>
                       <option value="europe" className={optionClassName}>Europe</option>
-                      <option value="north_america" className={optionClassName}>North America (Amérique du Nord)</option>
-                      <option value="south_america" className={optionClassName}>South America (Amérique du Sud)</option>
-                      <option value="asia" className={optionClassName}>Asia (Asie)</option>
-                      <option value="oceania" className={optionClassName}>Oceania (Océanie)</option>
-                      <option value="middle_east" className={optionClassName}>Middle East (Moyen-Orient)</option>
+                      <option value="north_america" className={optionClassName}>{isFr ? "Amérique du Nord" : "North America"}</option>
+                      <option value="south_america" className={optionClassName}>{isFr ? "Amérique du Sud" : "South America"}</option>
+                      <option value="asia" className={optionClassName}>{isFr ? "Asie" : "Asia"}</option>
+                      <option value="oceania" className={optionClassName}>{isFr ? "Océanie" : "Oceania"}</option>
+                      <option value="middle_east" className={optionClassName}>{isFr ? "Moyen-Orient" : "Middle East"}</option>
                     </select>
                   )}
                 </div>
@@ -705,7 +724,7 @@ function SortableRuleCard({
                       type="button"
                       onClick={() => onDeleteCondition(rule.id, cond.id)}
                       className="text-zinc-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 p-1.5 hover:bg-red-500/10 rounded-[10px] transition-colors cursor-pointer"
-                      title="Delete condition"
+                      title={isFr ? "Supprimer la condition" : "Delete condition"}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -722,7 +741,7 @@ function SortableRuleCard({
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#ECF3FF] dark:bg-[#465FFF]/15 text-[#465FFF] dark:text-[#7592FF] hover:bg-[#465FFF] hover:!text-white border border-[#465FFF]/30 font-semibold text-xs shadow-2xs hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add condition</span>
+                <span>{isFr ? "Ajouter une condition" : "Add condition"}</span>
               </button>
             </div>
           </div>
@@ -730,7 +749,7 @@ function SortableRuleCard({
           {/* Target URL Destination ("Then redirect to") */}
           <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-100 dark:border-[#222225]">
             <label className="text-xs font-bold text-zinc-950 dark:text-white">
-              Then redirect to <span className="text-brand">*</span>
+              {isFr ? "Alors rediriger vers" : "Then redirect to"} <span className="text-brand">*</span>
             </label>
             {(() => {
               const trimmed = (rule.destinationUrl || "").trim();
@@ -767,7 +786,9 @@ function SortableRuleCard({
                     <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-[10px] px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
                       <span className="font-medium">
-                        Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo).
+                        {isFr
+                          ? "Format d'URL invalide. Saisissez une adresse web valide (ex. https://shop.example.com/promo)."
+                          : "Invalid URL format. Must be a valid Web address (e.g. https://shop.example.com/promo)."}
                       </span>
                     </div>
                   )}

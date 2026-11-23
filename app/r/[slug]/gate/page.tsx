@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CloakedViewer } from "@/components/cloaked-viewer";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export default function PasswordGatePage() {
   const params = useParams();
   const slug = params?.slug as string;
+  const { tr } = useI18n();
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +38,7 @@ export default function PasswordGatePage() {
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
-      setPasswordError("Please enter the password.");
+      setPasswordError(tr("Please enter the password.", "Veuillez saisir le mot de passe."));
       return;
     }
 
@@ -61,7 +63,40 @@ export default function PasswordGatePage() {
           window.location.replace(data.fallbackUrl || `/r/${slug}/paused`);
           return;
         }
-        setPasswordError(data.error || "Incorrect password.");
+        if (res.status === 401) {
+          setPasswordError(
+            tr(
+              "Incorrect password. Please try again.",
+              "Mot de passe incorrect. Veuillez réessayer."
+            )
+          );
+        } else if (res.status === 404) {
+          setPasswordError(tr("Link not found.", "Lien introuvable."));
+        } else if (res.status === 429 || data.code === "RATE_LIMITED") {
+          const retryAfter = res.headers.get("Retry-After");
+          setPasswordError(
+            retryAfter
+              ? tr(
+                  `Too many failed attempts. Please try again in ${retryAfter} seconds.`,
+                  `Trop de tentatives infructueuses. Veuillez réessayer dans ${retryAfter} secondes.`
+                )
+              : tr(
+                  "Too many failed attempts. Please try again shortly.",
+                  "Trop de tentatives infructueuses. Veuillez réessayer dans quelques instants."
+                )
+          );
+        } else if (res.status >= 500) {
+          setPasswordError(
+            tr(
+              "Server error. Please try again.",
+              "Erreur serveur. Veuillez réessayer."
+            )
+          );
+        } else {
+          setPasswordError(
+            data.error || tr("Incorrect password.", "Mot de passe incorrect.")
+          );
+        }
         setIsVerifying(false);
         return;
       }
@@ -79,7 +114,12 @@ export default function PasswordGatePage() {
         window.location.replace(data.targetUrl);
       }
     } catch (err: any) {
-      setPasswordError("Server communication error.");
+      setPasswordError(
+        tr(
+          "Server communication error.",
+          "Erreur de communication avec le serveur."
+        )
+      );
       setIsVerifying(false);
     }
   };
@@ -119,17 +159,20 @@ export default function PasswordGatePage() {
           </div>
 
           <h1 className="text-xl font-bold text-white mb-2 tracking-tight">
-            Password Protected Link
+            {tr("Password Protected Link", "Lien protégé par mot de passe")}
           </h1>
           <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
-            The author has secured this short link. Enter the required PIN or password to unlock destination.
+            {tr(
+              "The author has secured this short link. Enter the required PIN or password to unlock destination.",
+              "L'auteur a sécurisé ce lien court. Saisissez le code PIN ou le mot de passe requis pour accéder à la destination."
+            )}
           </p>
         </div>
 
         <form onSubmit={handleUnlock} className="flex flex-col gap-4">
           <div>
             <label className="block text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1.5">
-              Access Password / PIN
+              {tr("Access Password / PIN", "Mot de passe / Code PIN d'accès")}
             </label>
             <div className="relative">
               <input
@@ -139,7 +182,7 @@ export default function PasswordGatePage() {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError(null);
                 }}
-                placeholder="Enter password..."
+                placeholder={tr("Enter password...", "Saisissez le mot de passe...")}
                 autoFocus
                 className={`w-full px-4 py-3 rounded-[10px] bg-[#1a1a1e] border text-sm text-white placeholder-neutral-500 transition-all outline-none pr-11 ${
                   passwordError
@@ -151,7 +194,11 @@ export default function PasswordGatePage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer p-1"
-                aria-label={showPassword ? "Hide" : "Show"}
+                aria-label={
+                  showPassword
+                    ? tr("Hide password", "Masquer le mot de passe")
+                    : tr("Show password", "Afficher le mot de passe")
+                }
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -173,12 +220,12 @@ export default function PasswordGatePage() {
             {isVerifying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Verifying...</span>
+                <span>{tr("Verifying...", "Vérification...")}</span>
               </>
             ) : (
               <>
                 <Unlock className="w-4 h-4" />
-                <span>Unlock &amp; Continue</span>
+                <span>{tr("Unlock & Continue", "Déverrouiller et continuer")}</span>
                 <ArrowRight className="w-4 h-4 ml-0.5" />
               </>
             )}
@@ -186,7 +233,7 @@ export default function PasswordGatePage() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-[#1e1e24] flex items-center justify-center text-[11px] text-neutral-500 gap-1.5">
-          <span>Secured by</span>
+          <span>{tr("Secured by", "Sécurisé par")}</span>
           <span className="font-semibold text-neutral-400">LShorter Edge Gate</span>
         </div>
       </div>

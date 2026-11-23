@@ -99,7 +99,7 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col w-full max-w-full bg-[#FFFFFF] dark:bg-[#09090B] transition-colors duration-300">
+    <main className="flex flex-col w-full max-w-full bg-[#FFFFFF] dark:bg-[#09090B]">
       <FaqStructuredData />
 
       {/* 1. Uncluttered Hero + Live Guest Link Shortener Console */}

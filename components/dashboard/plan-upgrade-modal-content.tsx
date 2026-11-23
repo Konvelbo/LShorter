@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function PlanUpgradeModalContent({
   reason,
@@ -14,6 +15,7 @@ export function PlanUpgradeModalContent({
   reason: string | null;
   onClose: () => void;
 }) {
+  const { tr } = useI18n();
   const { data: session } = useSession();
   const userId = session?.user?.id || "";
   const convexUser = useQuery(
@@ -36,7 +38,12 @@ export function PlanUpgradeModalContent({
     targetPlan: "PRO" | "BUSINESS" | "ENTERPRISE"
   ) => {
     if (currentPlan === targetPlan) {
-      showToast.info(`You are already subscribed to the ${targetPlan} plan.`);
+      showToast.info(
+        tr(
+          `You are already subscribed to the ${targetPlan} plan.`,
+          `Vous êtes déjà abonné au forfait ${targetPlan}.`
+        )
+      );
       return;
     }
 
@@ -62,11 +69,18 @@ export function PlanUpgradeModalContent({
       }
 
       showToast.error(
-        data.error || "Unable to initiate Dodo Payments checkout session."
+        data.error ||
+          tr(
+            "Unable to initiate Dodo Payments checkout session.",
+            "Impossible de démarrer la session de paiement Dodo Payments."
+          )
       );
     } catch {
       showToast.error(
-        "Unable to initiate checkout session. Please try again."
+        tr(
+          "Unable to initiate checkout session. Please try again.",
+          "Impossible de démarrer la session de paiement. Veuillez réessayer."
+        )
       );
     } finally {
       setLoadingPlan(null);
@@ -85,7 +99,7 @@ export function PlanUpgradeModalContent({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close modal"
+          aria-label={tr("Close modal", "Fermer la fenêtre")}
           className="absolute right-4 top-4 text-zinc-400 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white p-1.5 rounded-[8px] hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
@@ -97,11 +111,14 @@ export function PlanUpgradeModalContent({
           </div>
           <div>
             <h3 className="text-xl sm:text-[22px] font-bold text-zinc-900 dark:text-white tracking-tight leading-snug">
-              Upgrade Your Performance
+              {tr("Upgrade Your Performance", "Boostez vos performances")}
             </h3>
             <p className="text-xs sm:text-[13px] text-zinc-500 dark:text-neutral-400 mt-1 leading-relaxed">
               {reason ||
-                "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links."}
+                tr(
+                  "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links.",
+                  "Passez au forfait Pro pour configurer des alertes de clics, revenus et expiration sur chacun de vos liens."
+                )}
             </p>
           </div>
         </div>
@@ -109,7 +126,7 @@ export function PlanUpgradeModalContent({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-7">
           <div className="relative p-5 sm:p-6 rounded-[10px] bg-[#F8FAFF] dark:bg-[#181920] border-[1.5px] border-[#1D4ED8] dark:border-[#3B82F6] flex flex-col justify-between shadow-xs transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-1 hover:z-10">
             <div className="absolute -top-3 left-5 px-2.5 py-0.5 rounded-[6px] bg-[#1D4ED8] text-white text-[11px] font-bold tracking-wide">
-              Offer -75%
+              {tr("Offer -75%", "Offre -75%")}
             </div>
 
             <div>
@@ -123,7 +140,7 @@ export function PlanUpgradeModalContent({
                     $3.75
                   </span>
                   <span className="text-xs text-zinc-500 dark:text-neutral-400 font-medium">
-                    / 2 months
+                    {tr("/ 2 months", "/ 2 mois")}
                   </span>
                 </div>
                 <span className="text-sm text-zinc-400 dark:text-neutral-500 line-through font-medium">
@@ -132,12 +149,15 @@ export function PlanUpgradeModalContent({
               </div>
 
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2">
-                You save $22.50 over 2 months
+                {tr(
+                  "You save $22.50 over 2 months",
+                  "Économisez $22.50 sur 2 mois"
+                )}
               </p>
 
               <div className="my-4 py-2.5 border-y border-zinc-200/80 dark:border-[#27272a] text-xs text-zinc-500 dark:text-neutral-400">
                 <strong className="font-bold text-zinc-900 dark:text-white">
-                  150,000 clicks
+                  {tr("150,000 clicks", "150 000 clics")}
                 </strong>{" "}
                 · +$3 / 50k
               </div>
@@ -147,22 +167,37 @@ export function PlanUpgradeModalContent({
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>
                     <strong className="font-semibold text-zinc-900 dark:text-white">
-                      6 domains
+                      {tr("6 domains", "6 domaines")}
                     </strong>{" "}
-                    and 1,000 active links
+                    {tr("and 1,000 active links", "et 1 000 liens actifs")}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Dynamic Smart Routing (country + OS/device)</span>
+                  <span>
+                    {tr(
+                      "Dynamic Smart Routing (country + OS/device)",
+                      "Routage intelligent dynamique (pays + OS/appareil)"
+                    )}
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>PIN codes and destination masking</span>
+                  <span>
+                    {tr(
+                      "PIN codes and destination masking",
+                      "Codes PIN et masquage de destination"
+                    )}
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>5 webhooks and 5 retargeting pixels</span>
+                  <span>
+                    {tr(
+                      "5 webhooks and 5 retargeting pixels",
+                      "5 webhooks et 5 pixels de reciblage"
+                    )}
+                  </span>
                 </li>
               </ul>
             </div>
@@ -180,16 +215,16 @@ export function PlanUpgradeModalContent({
               {loadingPlan === "PRO" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Activating...</span>
+                  <span>{tr("Activating...", "Activation...")}</span>
                 </span>
               ) : currentPlan === "PRO" ? (
-                <span>Current plan</span>
+                <span>{tr("Current plan", "Forfait actuel")}</span>
               ) : (
                 <>
                   <span>
                     {currentPlan === "BUSINESS" || currentPlan === "ENTERPRISE"
-                      ? "Switch to Pro · $3.75"
-                      : "Upgrade to Pro · $3.75"}
+                      ? tr("Switch to Pro · $3.75", "Passer à Pro · $3.75")
+                      : tr("Upgrade to Pro · $3.75", "Passer au Pro · $3.75")}
                   </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
@@ -199,7 +234,7 @@ export function PlanUpgradeModalContent({
 
           <div className="relative p-5 sm:p-6 rounded-[10px] bg-white dark:bg-[#141416] border border-zinc-200 dark:border-[#27272a] hover:border-zinc-300 dark:hover:border-neutral-600 flex flex-col justify-between transition-[transform,border-color] duration-200 ease-out hover:scale-[1.02] hover:-translate-y-1 hover:z-10 shadow-xs">
             <div className="absolute -top-3 left-5 px-2.5 py-0.5 rounded-[6px] bg-[#047857] text-white text-[11px] font-bold tracking-wide">
-              Offer -60%
+              {tr("Offer -60%", "Offre -60%")}
             </div>
 
             <div>
@@ -213,7 +248,7 @@ export function PlanUpgradeModalContent({
                     $19.60
                   </span>
                   <span className="text-xs text-zinc-500 dark:text-neutral-400 font-medium">
-                    / 2 months
+                    {tr("/ 2 months", "/ 2 mois")}
                   </span>
                 </div>
                 <span className="text-sm text-zinc-400 dark:text-neutral-500 line-through font-medium">
@@ -222,12 +257,15 @@ export function PlanUpgradeModalContent({
               </div>
 
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2">
-                You save $58.80 over 2 months
+                {tr(
+                  "You save $58.80 over 2 months",
+                  "Économisez $58.80 sur 2 mois"
+                )}
               </p>
 
               <div className="my-4 py-2.5 border-y border-zinc-200/80 dark:border-[#27272a] text-xs text-zinc-500 dark:text-neutral-400">
                 <strong className="font-bold text-zinc-900 dark:text-white">
-                  500,000 clicks
+                  {tr("500,000 clicks", "500 000 clics")}
                 </strong>{" "}
                 · +$8 / 125k
               </div>
@@ -237,22 +275,37 @@ export function PlanUpgradeModalContent({
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <span>
                     <strong className="font-semibold text-zinc-900 dark:text-white">
-                      15 domains
+                      {tr("15 domains", "15 domaines")}
                     </strong>{" "}
-                    and unlimited links
+                    {tr("and unlimited links", "et liens illimités")}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Multi-condition rule engine</span>
+                  <span>
+                    {tr(
+                      "Multi-condition rule engine",
+                      "Moteur de règles multi-conditions"
+                    )}
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Unlimited webhooks and pixels</span>
+                  <span>
+                    {tr(
+                      "Unlimited webhooks and pixels",
+                      "Webhooks et pixels illimités"
+                    )}
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <span>5 team seats and certified PDF invoices</span>
+                  <span>
+                    {tr(
+                      "5 team seats and certified PDF invoices",
+                      "5 membres d'équipe et factures PDF certifiées"
+                    )}
+                  </span>
                 </li>
               </ul>
             </div>
@@ -270,13 +323,18 @@ export function PlanUpgradeModalContent({
               {loadingPlan === "BUSINESS" ? (
                 <span className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Activating...</span>
+                  <span>{tr("Activating...", "Activation...")}</span>
                 </span>
               ) : currentPlan === "BUSINESS" ? (
-                <span>Current plan</span>
+                <span>{tr("Current plan", "Forfait actuel")}</span>
               ) : (
                 <>
-                  <span>Upgrade to Business · $19.60</span>
+                  <span>
+                    {tr(
+                      "Upgrade to Business · $19.60",
+                      "Passer au Business · $19.60"
+                    )}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -285,8 +343,10 @@ export function PlanUpgradeModalContent({
         </div>
 
         <p className="text-center text-xs text-zinc-400 dark:text-neutral-500 mt-6">
-          Instant activation: switch or upgrade your plan in 1 click from your
-          settings.
+          {tr(
+            "Instant activation: switch or upgrade your plan in 1 click from your settings.",
+            "Activation instantanée : changez ou améliorez votre forfait en 1 clic depuis vos paramètres."
+          )}
         </p>
       </div>
     </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { SectionRailFrame } from "@/components/marketing/swiss-frame";
 import { Skiper67 } from "@/components/ui/skiper67";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type VideoLang = "en" | "fr";
 
@@ -11,6 +12,7 @@ export interface VideoChapter {
   time: string;
   seconds: number;
   label: string;
+  labelFr: string;
 }
 
 const DEMO_VIDEO_SOURCES: Record<
@@ -21,33 +23,110 @@ const DEMO_VIDEO_SOURCES: Record<
     src: "/videos/demo-walkthrough-en.mp4?v=2",
     poster: "/videos/demo-walkthrough-en-poster.jpg?v=3",
     chapters: [
-      { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
-      { id: "dashboard", time: "01:29", seconds: 89, label: "Dashboard & links" },
-      { id: "tools", time: "02:02", seconds: 122, label: "Smart routing, PathLock & QR" },
-      { id: "analytics", time: "04:04", seconds: 244, label: "Analytics & real sales" },
-      { id: "api", time: "05:04", seconds: 304, label: "Integration API & 5 SDKs" },
-      { id: "offer", time: "05:57", seconds: 357, label: "Launch offer -75% Pro" },
+      {
+        id: "intro",
+        time: "00:00",
+        seconds: 0,
+        label: "What is a link shortener",
+        labelFr: "Qu'est-ce qu'un raccourcisseur ?",
+      },
+      {
+        id: "dashboard",
+        time: "01:29",
+        seconds: 89,
+        label: "Dashboard & links",
+        labelFr: "Tableau de bord & liens",
+      },
+      {
+        id: "tools",
+        time: "02:02",
+        seconds: 122,
+        label: "Smart routing, PathLock & QR",
+        labelFr: "Routage intelligent, PathLock & QR",
+      },
+      {
+        id: "analytics",
+        time: "04:04",
+        seconds: 244,
+        label: "Analytics & real sales",
+        labelFr: "Analyses & ventes réelles",
+      },
+      {
+        id: "api",
+        time: "05:04",
+        seconds: 304,
+        label: "Integration API & 5 SDKs",
+        labelFr: "API d'intégration & 5 SDK",
+      },
+      {
+        id: "offer",
+        time: "05:57",
+        seconds: 357,
+        label: "Launch offer -75% Pro",
+        labelFr: "Offre lancement -75 % Pro",
+      },
     ],
   },
   fr: {
     src: "/videos/demo-walkthrough-fr.mp4?v=2",
     poster: "/videos/demo-walkthrough-fr-poster.jpg?v=3",
     chapters: [
-      { id: "intro", time: "00:00", seconds: 0, label: "What is a link shortener" },
-      { id: "dashboard", time: "01:32", seconds: 92, label: "Dashboard & links" },
-      { id: "tools", time: "02:09", seconds: 129, label: "Smart routing, PathLock & QR" },
-      { id: "analytics", time: "04:07", seconds: 247, label: "Analytics & real sales" },
-      { id: "api", time: "05:07", seconds: 307, label: "Integration API & 5 SDKs" },
-      { id: "offer", time: "06:01", seconds: 361, label: "Launch offer -75% Pro" },
+      {
+        id: "intro",
+        time: "00:00",
+        seconds: 0,
+        label: "What is a link shortener",
+        labelFr: "Qu'est-ce qu'un raccourcisseur ?",
+      },
+      {
+        id: "dashboard",
+        time: "01:32",
+        seconds: 92,
+        label: "Dashboard & links",
+        labelFr: "Tableau de bord & liens",
+      },
+      {
+        id: "tools",
+        time: "02:09",
+        seconds: 129,
+        label: "Smart routing, PathLock & QR",
+        labelFr: "Routage intelligent, PathLock & QR",
+      },
+      {
+        id: "analytics",
+        time: "04:07",
+        seconds: 247,
+        label: "Analytics & real sales",
+        labelFr: "Analyses & ventes réelles",
+      },
+      {
+        id: "api",
+        time: "05:07",
+        seconds: 307,
+        label: "Integration API & 5 SDKs",
+        labelFr: "API d'intégration & 5 SDK",
+      },
+      {
+        id: "offer",
+        time: "06:01",
+        seconds: 361,
+        label: "Launch offer -75% Pro",
+        labelFr: "Offre lancement -75 % Pro",
+      },
     ],
   },
 };
 
 export function DemoVideoSection() {
-  const [lang, setLang] = useState<VideoLang>("en");
+  const { locale, tr } = useI18n();
+  const [lang, setLang] = useState<VideoLang>(locale);
   const [isPopOverOpen, setIsPopOverOpen] = useState(false);
   const [seekSeconds, setSeekSeconds] = useState<number | null>(null);
   const [activeChapterId, setActiveChapterId] = useState<string>("intro");
+
+  useEffect(() => {
+    setLang(locale);
+  }, [locale]);
 
   const activeSource = DEMO_VIDEO_SOURCES[lang];
   const chapters = activeSource.chapters;
@@ -81,18 +160,25 @@ export function DemoVideoSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-10">
           <div className="lg:col-span-7">
             <h2 className="text-[30px] sm:text-[40px] font-semibold tracking-[-0.03em] leading-[1.08] text-[#09090B] dark:text-white text-balance">
-              See the full workflow in six minutes
+              {tr(
+                "See the full workflow in six minutes",
+                "Découvrez tout le flux en six minutes"
+              )}
             </h2>
           </div>
           <div className="lg:col-span-5 flex flex-col items-start lg:items-end gap-4">
             <p className="text-[15.5px] text-[#52525B] dark:text-zinc-400 leading-[1.6] text-pretty lg:text-right">
-              Start from what a link shortener does, explore Smart Routing,
-              PathLock™, Dynamic QR codes, revenue analytics, and our
-              integration API — available in English and French.
+              {tr(
+                "Start from what a link shortener does, explore Smart Routing, PathLock™, Dynamic QR codes, revenue analytics, and our integration API — available in English and French.",
+                "Partez des bases d'un raccourcisseur de lien, puis explorez le routage intelligent, PathLock™, les QR codes dynamiques, les analyses de revenus et notre API d'intégration — disponible en anglais et en français."
+              )}
             </p>
             <div
               role="group"
-              aria-label="Demo video language"
+              aria-label={tr(
+                "Demo video language",
+                "Langue de la vidéo de démonstration"
+              )}
               className="inline-flex items-center rounded-full border border-[#E4E7EC] dark:border-white/12 bg-[#F8F9FB] dark:bg-white/[0.04] p-1"
             >
               {(
@@ -129,8 +215,14 @@ export function DemoVideoSection() {
           <Skiper67
             videoSrc={activeSource.src}
             thumbnailSrc={activeSource.poster}
-            thumbnailAlt={`LShorter 6-minute product walkthrough (${lang.toUpperCase()})`}
-            caption="Click the video to play"
+            thumbnailAlt={tr(
+              `LShorter 6-minute product walkthrough (${lang.toUpperCase()})`,
+              `Présentation produit LShorter en 6 minutes (${lang.toUpperCase()})`
+            )}
+            caption={tr(
+              "Click the video to play",
+              "Cliquez pour lancer la vidéo"
+            )}
             initialSeekSeconds={seekSeconds}
             isOpen={isPopOverOpen}
             onOpenChange={setIsPopOverOpen}
@@ -165,7 +257,7 @@ export function DemoVideoSection() {
                     {ch.time}
                   </div>
                   <div className="text-[13px] font-medium leading-snug">
-                    {ch.label}
+                    {tr(ch.label, ch.labelFr)}
                   </div>
                 </button>
               );

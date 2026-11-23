@@ -18,6 +18,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface ActiveEdgeStreamProps {
   /** Total number of clicks tracked for current filter */
@@ -57,6 +58,9 @@ export function ActiveEdgeStreamChart({
   variant = "compact",
   className = "",
 }: ActiveEdgeStreamProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
+  const dateLocale = isFr ? "fr-FR" : "en-US";
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -166,7 +170,7 @@ export function ActiveEdgeStreamChart({
         uniqueCountriesCount: countries.size,
         peakBucketClicks: peak,
       };
-    }, [events, liveEvents24hCount, variant, referenceNowMs]);
+    }, [events, liveEvents24hCount, variant, referenceNowMs, dateLocale]);
 
   const capturedCount = events.length;
   const hasActivity = capturedCount > 0 || totalClicks > 0;
@@ -178,7 +182,7 @@ export function ActiveEdgeStreamChart({
         <div
           className={`rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] p-5 sm:p-6 mb-6 h-[440px] animate-pulse flex flex-col justify-between ${className}`}
           role="region"
-          aria-label="Active edge telemetry loading skeleton"
+          aria-label={isFr ? "Chargement de la télémétrie Edge" : "Active edge telemetry loading skeleton"}
         >
           <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
           <div className="h-[240px] w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl" />
@@ -190,10 +194,10 @@ export function ActiveEdgeStreamChart({
       <div
         className={`w-full h-[125px] flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 rounded-lg animate-pulse ${className}`}
         role="region"
-        aria-label="Edge stream loading skeleton"
+        aria-label={isFr ? "Chargement du flux Edge" : "Edge stream loading skeleton"}
       >
         <span className="text-xs text-[#667085] dark:text-[#a1a1aa]">
-          Loading edge stream...
+          {isFr ? "Chargement du flux Edge..." : "Loading edge stream..."}
         </span>
       </div>
     );
@@ -207,7 +211,7 @@ export function ActiveEdgeStreamChart({
       <div
         className={`rounded-[10px] bg-white dark:bg-[#141416] border border-[#E4E7EC] dark:border-[#222225] shadow-sm dark:shadow-2xl p-5 sm:p-6 mb-6 transition-all duration-300 ${className}`}
         role="region"
-        aria-label="Active edge stream telemetry monitor"
+        aria-label={isFr ? "Moniteur de télémétrie du flux Edge actif" : "Active edge stream telemetry monitor"}
       >
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#E4E7EC] dark:border-[#222225]">
@@ -226,19 +230,21 @@ export function ActiveEdgeStreamChart({
                     }`}
                   />
                 </span>
-                LIVE EDGE TELEMETRY
+                {isFr ? "TÉLÉMÉTRIE EDGE EN DIRECT" : "LIVE EDGE TELEMETRY"}
               </span>
               <span className="text-xs font-mono text-[#667085] dark:text-[#a1a1aa]">
-                Cloudflare D1 Click Ledger
+                {isFr ? "Journal de clics Cloudflare D1" : "Cloudflare D1 Click Ledger"}
               </span>
             </div>
 
             <h2 className="text-lg sm:text-xl font-bold text-[#101828] dark:text-[#fafafa] flex items-center gap-2 tracking-tight">
-              Active Edge Stream Throughput
+              {isFr ? "Débit du flux Edge actif" : "Active Edge Stream Throughput"}
             </h2>
 
             <p className="text-xs text-[#667085] dark:text-[#a1a1aa]">
-              Authentic chronological click distribution recorded from real HTTP 302 edge redirects.
+              {isFr
+                ? "Répartition chronologique authentique des clics enregistrés à partir des vraies redirections HTTP 302 Edge."
+                : "Authentic chronological click distribution recorded from real HTTP 302 edge redirects."}
             </p>
           </div>
 
@@ -248,17 +254,17 @@ export function ActiveEdgeStreamChart({
               <div className="flex items-center gap-1.5 text-xs">
                 <Activity className="w-3.5 h-3.5 text-[#0066FF]" aria-hidden="true" />
                 <span className="text-[#667085] dark:text-[#a1a1aa] font-medium">
-                  Captured:
+                  {isFr ? "Capturés :" : "Captured:"}
                 </span>
                 <span className="font-mono font-bold text-[#101828] dark:text-[#fafafa]">
-                  {formatNumber(capturedCount)} clicks
+                  {formatNumber(capturedCount)} {isFr ? "clics" : "clicks"}
                 </span>
               </div>
               <div className="hidden sm:block h-3 w-px bg-[#E4E7EC] dark:bg-[#222225]" />
               <div className="flex items-center gap-1.5 text-xs">
                 <Globe2 className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
                 <span className="text-[#667085] dark:text-[#a1a1aa] font-medium">
-                  Countries:
+                  {isFr ? "Pays :" : "Countries:"}
                 </span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                   {uniqueCountriesCount}
@@ -272,46 +278,46 @@ export function ActiveEdgeStreamChart({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
           <div className="p-3 rounded-lg bg-[#F9FAFB] dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225]">
             <div className="text-[11px] font-medium text-[#667085] dark:text-[#a1a1aa]">
-              Captured Period Events
+              {isFr ? "Événements de la période" : "Captured Period Events"}
             </div>
             <div className="text-xl font-bold font-mono text-[#0066FF] dark:text-[#5294FF] mt-0.5">
               {formatNumber(capturedCount)}
             </div>
             <div className="text-[10.5px] text-[#667085] dark:text-[#a1a1aa] mt-1 flex items-center gap-1">
               <Radio className="w-3 h-3 text-emerald-500" aria-hidden="true" />
-              <span>Verified D1 events</span>
+              <span>{isFr ? "Événements D1 vérifiés" : "Verified D1 events"}</span>
             </div>
           </div>
 
           <div className="p-3 rounded-lg bg-[#F9FAFB] dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225]">
             <div className="text-[11px] font-medium text-[#667085] dark:text-[#a1a1aa]">
-              24h Captured Events
+              {isFr ? "Événements capturés (24h)" : "24h Captured Events"}
             </div>
             <div className="text-xl font-bold text-[#101828] dark:text-[#fafafa] mt-0.5">
               {formatNumber(real24hCount)}
             </div>
             <div className="text-[10.5px] text-[#667085] dark:text-[#a1a1aa] mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" aria-hidden="true" />
-              <span>Last 24 hours</span>
+              <span>{isFr ? "Dernières 24 heures" : "Last 24 hours"}</span>
             </div>
           </div>
 
           <div className="p-3 rounded-lg bg-[#F9FAFB] dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225]">
             <div className="text-[11px] font-medium text-[#667085] dark:text-[#a1a1aa]">
-              Peak Interval Clicks
+              {isFr ? "Pic sur un intervalle" : "Peak Interval Clicks"}
             </div>
             <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
               {formatNumber(peakBucketClicks)}
             </div>
             <div className="text-[10.5px] text-[#667085] dark:text-[#a1a1aa] mt-1 flex items-center gap-1">
               <TrendingUp className="w-3 h-3 text-emerald-500" aria-hidden="true" />
-              <span>Max in single window</span>
+              <span>{isFr ? "Max sur une fenêtre" : "Max in single window"}</span>
             </div>
           </div>
 
           <div className="p-3 rounded-lg bg-[#F9FAFB] dark:bg-[#09090b] border border-[#E4E7EC] dark:border-[#222225]">
             <div className="text-[11px] font-medium text-[#667085] dark:text-[#a1a1aa]">
-              Total Redirect Clicks
+              {isFr ? "Total des redirections" : "Total Redirect Clicks"}
             </div>
             <div className="text-xl font-bold text-[#101828] dark:text-[#fafafa] mt-0.5">
               {formatNumber(totalClicks)}
@@ -320,9 +326,9 @@ export function ActiveEdgeStreamChart({
               <Wifi className="w-3 h-3 text-[#0066FF]" aria-hidden="true" />
               <span>
                 {activeLinksCount === 1
-                  ? "1 filtered link"
+                  ? (isFr ? "1 lien filtré" : "1 filtered link")
                   : activeLinksCount > 1
-                    ? `${activeLinksCount} active links`
+                    ? (isFr ? `${activeLinksCount} liens actifs` : `${activeLinksCount} active links`)
                     : "Cloudflare Edge"}
               </span>
             </div>
@@ -333,7 +339,7 @@ export function ActiveEdgeStreamChart({
         <div
           className="relative w-full h-[220px] sm:h-[250px] bg-[#F9FAFB] dark:bg-[#09090b] rounded-xl p-3 border border-[#E4E7EC] dark:border-[#222225] overflow-hidden"
           role="region"
-          aria-label="Active edge throughput area chart"
+          aria-label={isFr ? "Graphique de débit Edge actif" : "Active edge throughput area chart"}
         >
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
@@ -380,14 +386,14 @@ export function ActiveEdgeStreamChart({
                   return (
                     <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white/95 dark:bg-[#141416]/95 p-3 shadow-xl backdrop-blur-md text-xs space-y-1.5 min-w-[190px]">
                       <div className="flex items-center justify-between text-[11px] text-[#667085] dark:text-[#a1a1aa] border-b border-[#E4E7EC] dark:border-[#222225] pb-1.5">
-                        <span className="font-semibold">Window</span>
+                        <span className="font-semibold">{isFr ? "Fenêtre" : "Window"}</span>
                         <span className="text-[#0066FF] dark:text-[#5294FF] font-mono font-bold">
                           {data.time}
                         </span>
                       </div>
                       <div className="flex items-center justify-between font-mono text-[#101828] dark:text-[#fafafa]">
                         <span className="text-[#667085] dark:text-[#a1a1aa]">
-                          Recorded Clicks:
+                          {isFr ? "Clics enregistrés :" : "Recorded Clicks:"}
                         </span>
                         <span className="text-[#0066FF] dark:text-[#5294FF] font-bold text-sm">
                           {data.value}
@@ -426,7 +432,7 @@ export function ActiveEdgeStreamChart({
                   : "text-[#667085] dark:text-[#a1a1aa]"
               }
             >
-              {formatNumber(capturedCount)} CLICKS
+              {formatNumber(capturedCount)} {isFr ? "CLICS" : "CLICKS"}
             </span>
           </div>
         </div>
@@ -441,7 +447,7 @@ export function ActiveEdgeStreamChart({
     <div
       className={`relative w-full h-[125px] overflow-hidden ${className}`}
       role="region"
-      aria-label="Active edge stream throughput chart"
+      aria-label={isFr ? "Graphique de débit du flux Edge actif" : "Active edge stream throughput chart"}
     >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
@@ -467,13 +473,13 @@ export function ActiveEdgeStreamChart({
               return (
                 <div className="rounded-xl border border-[#E4E7EC] dark:border-[#222225] bg-white/95 dark:bg-[#141416]/95 p-2.5 shadow-xl backdrop-blur-md text-xs space-y-1">
                   <div className="flex items-center justify-between gap-3 text-[11px] text-[#667085] dark:text-[#a1a1aa] border-b border-[#E4E7EC] dark:border-[#222225] pb-1">
-                    <span>Window</span>
+                    <span>{isFr ? "Fenêtre" : "Window"}</span>
                     <span className="text-[#0066FF] dark:text-[#5294FF] font-mono font-bold">
                       {data.time}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4 font-mono font-semibold text-[#101828] dark:text-[#fafafa]">
-                    <span>Clicks:</span>
+                    <span>{isFr ? "Clics :" : "Clicks:"}</span>
                     <span className="text-[#0066FF] dark:text-[#5294FF] text-sm">
                       {data.value}
                     </span>
@@ -508,7 +514,7 @@ export function ActiveEdgeStreamChart({
               : "text-[#667085] dark:text-[#a1a1aa]"
           }
         >
-          {formatNumber(capturedCount)} EVENTS
+          {formatNumber(capturedCount)} {isFr ? "ÉVÉNEMENTS" : "EVENTS"}
         </span>
       </div>
     </div>

@@ -18,18 +18,8 @@ export function PlanUpgradeModal() {
   useEffect(() => {
     const handleUpgradeRequest = (e: Event) => {
       const customEvent = e as CustomEvent<{ reason?: string }>;
-      const rawReason = customEvent.detail?.reason;
-      const isFrenchReason =
-        rawReason &&
-        (rawReason.includes("forfait") ||
-          rawReason.includes("Passez") ||
-          rawReason.includes("fonctionnalité") ||
-          rawReason.includes("réservé"));
-      setReason(
-        !rawReason || isFrenchReason
-          ? "Upgrade to the Pro plan to configure click, revenue, and expiration alerts on your individual links."
-          : rawReason
-      );
+      const rawReason = customEvent.detail?.reason?.trim();
+      setReason(rawReason || null);
       setIsOpen(true);
     };
 

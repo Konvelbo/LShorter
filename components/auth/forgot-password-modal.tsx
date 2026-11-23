@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   sendPasswordResetPinAction,
   verifyResetPinAction,
@@ -37,6 +38,7 @@ export function ForgotPasswordModal({
   initialEmail = "",
   onSuccess,
 }: ForgotPasswordModalProps) {
+  const { tr } = useI18n();
   const [step, setStep] = useState<"email" | "pin" | "password">("email");
   const [email, setEmail] = useState(initialEmail);
   const [pin, setPin] = useState("");
@@ -97,7 +99,7 @@ export function ForgotPasswordModal({
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
-      showToast.error("Please enter your email address.");
+      showToast.error(tr("Please enter your email address.", "Veuillez saisir votre adresse e-mail."));
       return;
     }
 
@@ -110,16 +112,16 @@ export function ForgotPasswordModal({
         }
         showToast.success(
           res.isDevFallback
-            ? "PIN code generated (test mode active)!"
-            : "PIN code sent to your email successfully!"
+            ? tr("PIN code generated (test mode active)!", "Code PIN généré (mode test actif) !")
+            : tr("PIN code sent to your email successfully!", "Code PIN envoyé par e-mail avec succès !")
         );
         setStep("pin");
         setCountdown(60); // 60s cooldown
       } else {
-        showToast.error(res.message || "Error sending PIN code.");
+        showToast.error(res.message || tr("Error sending PIN code.", "Erreur lors de l'envoi du code PIN."));
       }
     } catch (err: any) {
-      showToast.error("An error occurred while sending the code.");
+      showToast.error(tr("An error occurred while sending the code.", "Une erreur est survenue lors de l'envoi du code."));
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +132,7 @@ export function ForgotPasswordModal({
     e.preventDefault();
     const cleanPin = pin.trim();
     if (cleanPin.length !== 6) {
-      showToast.error("PIN code must be 6 digits.");
+      showToast.error(tr("PIN code must be 6 digits.", "Le code PIN doit comporter 6 chiffres."));
       return;
     }
 
@@ -143,13 +145,13 @@ export function ForgotPasswordModal({
       });
 
       if (res.valid) {
-        showToast.success("PIN code verified successfully!");
+        showToast.success(tr("PIN code verified successfully!", "Code PIN vérifié avec succès !"));
         setStep("password");
       } else {
-        showToast.error(res.message || "Invalid or expired PIN code.");
+        showToast.error(res.message || tr("Invalid or expired PIN code.", "Code PIN invalide ou expiré."));
       }
     } catch {
-      showToast.error("Error verifying PIN code.");
+      showToast.error(tr("Error verifying PIN code.", "Erreur lors de la vérification du code PIN."));
     } finally {
       setIsLoading(false);
     }
@@ -159,11 +161,11 @@ export function ForgotPasswordModal({
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) {
-      showToast.error("Password must be at least 8 characters long.");
+      showToast.error(tr("Password must be at least 8 characters long.", "Le mot de passe doit contenir au moins 8 caractères."));
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast.error("Passwords do not match.");
+      showToast.error(tr("Passwords do not match.", "Les mots de passe ne correspondent pas."));
       return;
     }
 
@@ -177,14 +179,14 @@ export function ForgotPasswordModal({
       });
 
       if (res.success) {
-        showToast.success("Password reset successfully! You can now log in.");
+        showToast.success(tr("Password reset successfully! You can now log in.", "Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter."));
         if (onSuccess) onSuccess();
         onClose();
       } else {
-        showToast.error(res.message || "Error resetting password.");
+        showToast.error(res.message || tr("Error resetting password.", "Erreur lors de la réinitialisation du mot de passe."));
       }
     } catch {
-      showToast.error("Unexpected error updating password.");
+      showToast.error(tr("Unexpected error updating password.", "Erreur inattendue lors de la mise à jour du mot de passe."));
     } finally {
       setIsLoading(false);
     }
@@ -229,22 +231,22 @@ export function ForgotPasswordModal({
               </div>
               <div>
                 <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
-                  FORGOT PASSWORD?
+                  {tr("FORGOT PASSWORD?", "MOT DE PASSE OUBLIÉ ?")}
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                  Receive a 6-digit security code via email.
+                  {tr("Receive a 6-digit security code via email.", "Recevez un code de sécurité à 6 chiffres par e-mail.")}
                 </p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                Account email address
+                {tr("Account email address", "Adresse e-mail du compte")}
               </label>
               <Input
                 type="email"
                 required
-                placeholder="your-email@example.com"
+                placeholder={tr("your-email@example.com", "votre-email@exemple.com")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoFocus
@@ -257,7 +259,7 @@ export function ForgotPasswordModal({
               disabled={isLoading || !email.trim()}
               className="w-full h-11 text-xs font-bold uppercase tracking-wider gap-2 mt-2"
             >
-              {isLoading ? "Sending code..." : "Send PIN Code"}
+              {isLoading ? tr("Sending code...", "Envoi du code...") : tr("Send PIN Code", "Envoyer le code PIN")}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
@@ -272,17 +274,17 @@ export function ForgotPasswordModal({
               </div>
               <div>
                 <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
-                  VERIFICATION CODE
+                  {tr("VERIFICATION CODE", "CODE DE VÉRIFICATION")}
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                  Code sent to <span className="text-zinc-900 dark:text-white font-medium">{email}</span>
+                  {tr("Code sent to", "Code envoyé à")} <span className="text-zinc-900 dark:text-white font-medium">{email}</span>
                 </p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5 text-center">
-                Enter the 6-digit PIN code
+                {tr("Enter the 6-digit PIN code", "Saisissez le code PIN à 6 chiffres")}
               </label>
               <input
                 ref={pinInputRef}
@@ -297,7 +299,7 @@ export function ForgotPasswordModal({
                 className="w-full h-14 rounded-[10px] bg-zinc-50 dark:bg-[#1a1a1e] border-2 border-zinc-200 dark:border-[#27272a] focus:border-brand text-center font-mono text-3xl font-bold tracking-[0.6em] text-zinc-900 dark:text-white focus:outline-none transition-colors"
               />
               <p className="text-[11px] text-zinc-500 dark:text-neutral-500 text-center mt-2">
-                ⏱️ This code expires in 15 minutes.
+                {tr("This code expires in 15 minutes.", "Ce code expire dans 15 minutes.")}
               </p>
             </div>
 
@@ -307,7 +309,7 @@ export function ForgotPasswordModal({
               disabled={isLoading || pin.length !== 6}
               className="w-full h-11 text-xs font-bold uppercase tracking-wider gap-2 mt-1"
             >
-              {isLoading ? "Verifying..." : "Verify Code"}
+              {isLoading ? tr("Verifying...", "Vérification...") : tr("Verify Code", "Vérifier le code")}
               <CheckCircle2 className="w-4 h-4" />
             </Button>
 
@@ -318,7 +320,7 @@ export function ForgotPasswordModal({
                 className="text-zinc-500 dark:text-neutral-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Change email
+                {tr("Change email", "Changer d'e-mail")}
               </button>
 
               <button
@@ -328,7 +330,7 @@ export function ForgotPasswordModal({
                 className="text-brand hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1 cursor-pointer font-medium"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-                {countdown > 0 ? `Resend (${countdown}s)` : "Resend code"}
+                {countdown > 0 ? tr(`Resend (${countdown}s)`, `Renvoyer (${countdown}s)`) : tr("Resend code", "Renvoyer le code")}
               </button>
             </div>
           </form>
@@ -343,23 +345,23 @@ export function ForgotPasswordModal({
               </div>
               <div>
                 <h3 className="font-bebas text-2xl text-zinc-900 dark:text-white tracking-wide">
-                  NEW PASSWORD
+                  {tr("NEW PASSWORD", "NOUVEAU MOT DE PASSE")}
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-neutral-400">
-                  Set your new secure account password.
+                  {tr("Set your new secure account password.", "Définissez votre nouveau mot de passe sécurisé.")}
                 </p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                New password
+                {tr("New password", "Nouveau mot de passe")}
               </label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="Minimum 8 characters"
+                  placeholder={tr("Minimum 8 characters", "8 caractères minimum")}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="pr-10"
@@ -378,7 +380,7 @@ export function ForgotPasswordModal({
               {newPassword && (
                 <div className="flex flex-col gap-1 mt-2 text-[11px]">
                   <div className="flex justify-between text-zinc-500 dark:text-neutral-400">
-                    <span>Strength</span>
+                    <span>{tr("Strength", "Robustesse")}</span>
                     <span className="text-zinc-900 dark:text-white font-bold">{passwordStrength}%</span>
                   </div>
                   <div className="w-full h-1.5 rounded-[10px] bg-zinc-200 dark:bg-[#27272a] overflow-hidden">
@@ -399,13 +401,13 @@ export function ForgotPasswordModal({
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 mb-1.5">
-                Confirm new password
+                {tr("Confirm new password", "Confirmer le nouveau mot de passe")}
               </label>
               <div className="relative">
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
                   required
-                  placeholder="Re-enter your password"
+                  placeholder={tr("Re-enter your password", "Saisissez à nouveau votre mot de passe")}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="pr-10"
@@ -426,7 +428,7 @@ export function ForgotPasswordModal({
               disabled={isLoading || !newPassword || newPassword !== confirmPassword}
               className="w-full h-11 text-xs font-bold uppercase tracking-wider gap-2 mt-2"
             >
-              {isLoading ? "Saving..." : "Save & Sign In"}
+              {isLoading ? tr("Saving...", "Enregistrement...") : tr("Save & Sign In", "Enregistrer & se connecter")}
               <CheckCircle2 className="w-4 h-4" />
             </Button>
           </form>

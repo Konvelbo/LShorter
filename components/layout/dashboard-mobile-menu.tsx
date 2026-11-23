@@ -41,100 +41,13 @@ interface SubNavItem {
 }
 
 interface NavItem {
+  id: string;
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   subItems?: SubNavItem[];
 }
-
-const navMenu: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Short Links", href: "/dashboard/links", icon: Link2 },
-  {
-    name: "Analytics",
-    href: "/dashboard/analytics",
-    icon: BarChart2,
-    subItems: [
-      { id: "traffic", name: "Traffic Overview", href: "/dashboard/analytics" },
-      {
-        id: "geo-map",
-        name: "Geography & Continents",
-        href: "/dashboard/analytics/geo",
-      },
-      {
-        id: "conversions",
-        name: "Customers & Revenue",
-        href: "/dashboard/analytics/revenue",
-      },
-      {
-        id: "devices",
-        name: "Devices & Formats",
-        href: "/dashboard/analytics/devices",
-      },
-      {
-        id: "sources",
-        name: "Traffic Sources",
-        href: "/dashboard/analytics/sources",
-      },
-      {
-        id: "live",
-        name: "Live Click Stream",
-        href: "/dashboard/analytics/live",
-      },
-    ],
-  },
-  { name: "QR Studio", href: "/dashboard/qr-code", icon: QrCode },
-  { name: "Custom Domains", href: "/dashboard/domains", icon: Globe2 },
-];
-
-const navOthers: NavItem[] = [
-  {
-    name: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-    subItems: [
-      {
-        id: "profile",
-        name: "Profile & Account",
-        href: "/dashboard/settings?tab=profile",
-      },
-      {
-        id: "billing",
-        name: "Billing & Invoices",
-        href: "/dashboard/settings?tab=billing",
-      },
-      { id: "api", name: "API Keys", href: "/dashboard/settings?tab=api" },
-      {
-        id: "domains",
-        name: "Domain Routing",
-        href: "/dashboard/settings?tab=domains",
-      },
-      {
-        id: "webhooks",
-        name: "Webhooks",
-        href: "/dashboard/settings?tab=webhooks",
-      },
-      {
-        id: "pixels",
-        name: "Retargeting Pixels",
-        href: "/dashboard/settings?tab=pixels",
-      },
-      {
-        id: "security",
-        name: "Security & 2FA",
-        href: "/dashboard/settings?tab=security",
-      },
-      {
-        id: "notifications",
-        name: "Notifications",
-        href: "/dashboard/settings?tab=notifications",
-      },
-      { id: "data", name: "Data & GDPR", href: "/dashboard/settings?tab=data" },
-      { id: "about", name: "About", href: "/dashboard/settings?tab=about" },
-    ],
-  },
-];
 
 export interface DashboardMobileMenuProps {
   isOpen: boolean;
@@ -177,6 +90,138 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
 }: DashboardMobileMenuProps) {
   const pathname = usePathname();
   const { locale, toggleLocale, t, tr } = useI18n();
+
+  const navMenu: NavItem[] = React.useMemo(
+    () => [
+      {
+        id: "Dashboard",
+        name: tr("Dashboard", "Tableau de bord"),
+        href: "/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        id: "Short Links",
+        name: tr("Short Links", "Liens courts"),
+        href: "/dashboard/links",
+        icon: Link2,
+      },
+      {
+        id: "Analytics",
+        name: tr("Analytics", "Analytiques"),
+        href: "/dashboard/analytics",
+        icon: BarChart2,
+        subItems: [
+          {
+            id: "traffic",
+            name: tr("Traffic Overview", "Vue du trafic"),
+            href: "/dashboard/analytics",
+          },
+          {
+            id: "geo-map",
+            name: tr("Geography & Continents", "Géographie & Continents"),
+            href: "/dashboard/analytics/geo",
+          },
+          {
+            id: "conversions",
+            name: tr("Customers & Revenue", "Clients & Revenus"),
+            href: "/dashboard/analytics/revenue",
+          },
+          {
+            id: "devices",
+            name: tr("Devices & Formats", "Appareils & Formats"),
+            href: "/dashboard/analytics/devices",
+          },
+          {
+            id: "sources",
+            name: tr("Traffic Sources", "Sources de trafic"),
+            href: "/dashboard/analytics/sources",
+          },
+          {
+            id: "live",
+            name: tr("Live Click Stream", "Flux de clics en direct"),
+            href: "/dashboard/analytics/live",
+          },
+        ],
+      },
+      {
+        id: "QR Studio",
+        name: tr("QR Studio", "Studio QR"),
+        href: "/dashboard/qr-code",
+        icon: QrCode,
+      },
+      {
+        id: "Custom Domains",
+        name: tr("Custom Domains", "Domaines personnalisés"),
+        href: "/dashboard/domains",
+        icon: Globe2,
+      },
+    ],
+    [tr],
+  );
+
+  const navOthers: NavItem[] = React.useMemo(
+    () => [
+      {
+        id: "Settings",
+        name: tr("Settings", "Paramètres"),
+        href: "/dashboard/settings",
+        icon: Settings,
+        subItems: [
+          {
+            id: "profile",
+            name: tr("Profile & Account", "Profil & Compte"),
+            href: "/dashboard/settings?tab=profile",
+          },
+          {
+            id: "billing",
+            name: tr("Billing & Invoices", "Facturation & Factures"),
+            href: "/dashboard/settings?tab=billing",
+          },
+          {
+            id: "api",
+            name: tr("API Keys", "Clés API"),
+            href: "/dashboard/settings?tab=api",
+          },
+          {
+            id: "domains",
+            name: tr("Domain Routing", "Routage de domaine"),
+            href: "/dashboard/settings?tab=domains",
+          },
+          {
+            id: "webhooks",
+            name: tr("Webhooks", "Webhooks"),
+            href: "/dashboard/settings?tab=webhooks",
+          },
+          {
+            id: "pixels",
+            name: tr("Retargeting Pixels", "Pixels de reciblage"),
+            href: "/dashboard/settings?tab=pixels",
+          },
+          {
+            id: "security",
+            name: tr("Security & 2FA", "Sécurité & 2FA"),
+            href: "/dashboard/settings?tab=security",
+          },
+          {
+            id: "notifications",
+            name: tr("Notifications", "Notifications"),
+            href: "/dashboard/settings?tab=notifications",
+          },
+          {
+            id: "data",
+            name: tr("Data & GDPR", "Données & RGPD"),
+            href: "/dashboard/settings?tab=data",
+          },
+          {
+            id: "about",
+            name: tr("About", "À propos"),
+            href: "/dashboard/settings?tab=about",
+          },
+        ],
+      },
+    ],
+    [tr],
+  );
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     Analytics: true,
   });
@@ -236,8 +281,8 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
     };
   }, [pathname]);
 
-  const toggleSubmenu = (name: string) => {
-    setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }));
+  const toggleSubmenu = (id: string) => {
+    setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const isSubItemActive = (sub: SubNavItem) => {
@@ -253,7 +298,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
   };
 
   const isParentActive = (item: NavItem) => {
-    if (item.name === "Dashboard" || item.href === "/dashboard")
+    if (item.id === "Dashboard" || item.href === "/dashboard")
       return pathname === "/dashboard";
     return pathname.startsWith(item.href);
   };
@@ -298,8 +343,8 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 type="button"
                 onClick={() => setIsNotifModalOpen(true)}
                 className="relative p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
-                aria-label="Notifications"
-                title="Notifications"
+                aria-label={t("topbar.notifications")}
+                title={t("topbar.notifications")}
               >
                 <Bell className="w-5 h-5 stroke-[1.75]" />
                 {unreadCount > 0 && (
@@ -318,8 +363,8 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                   onOpenSearch();
                 }}
                 className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
-                aria-label="Search"
-                title="Search (⌘K)"
+                aria-label={tr("Search", "Rechercher")}
+                title={tr("Search (⌘K)", "Rechercher (⌘K)")}
               >
                 <Search className="w-5 h-5 stroke-[1.75]" />
               </button>
@@ -329,11 +374,11 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 type="button"
                 onClick={toggleTheme}
                 className="p-2 text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none active:scale-90"
-                aria-label="Toggle theme"
+                aria-label={tr("Toggle theme", "Basculer le thème")}
                 title={
                   theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
+                    ? t("nav.lightMode")
+                    : t("nav.darkMode")
                 }
               >
                 {theme === "dark" ? (
@@ -349,7 +394,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
               type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-white active:scale-90 transition-all cursor-pointer"
-              aria-label="Close menu"
+              aria-label={t("nav.closeMenu")}
             >
               <X className="w-4 h-4 stroke-[1.75]" />
             </button>
@@ -362,23 +407,23 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
             {/* Section MENU */}
             <div>
               <span className="block px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted">
-                Menu
+                {tr("Menu", "Menu")}
               </span>
               <div className="flex flex-col gap-1">
                 {navMenu.map((item) => {
                   const hasSubs = Boolean(
                     item.subItems && item.subItems.length > 0,
                   );
-                  const isExpanded = openMenus[item.name] ?? false;
+                  const isExpanded = openMenus[item.id] ?? false;
                   const active = isParentActive(item);
                   const Icon = item.icon;
 
                   return (
-                    <div key={item.name} className="mobile-nav-item">
+                    <div key={item.id} className="mobile-nav-item">
                       {hasSubs ? (
                         <button
                           type="button"
-                          onClick={() => toggleSubmenu(item.name)}
+                          onClick={() => toggleSubmenu(item.id)}
                           className={cn(
                             "w-full flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer",
                             active
@@ -457,23 +502,23 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
             {/* Section OTHERS */}
             <div>
               <span className="block px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-wider ds-text-muted">
-                Others
+                {tr("Others", "Autres")}
               </span>
               <div className="flex flex-col gap-1">
                 {navOthers.map((item) => {
                   const hasSubs = Boolean(
                     item.subItems && item.subItems.length > 0,
                   );
-                  const isExpanded = openMenus[item.name] ?? false;
+                  const isExpanded = openMenus[item.id] ?? false;
                   const active = isParentActive(item);
                   const Icon = item.icon;
 
                   return (
-                    <div key={item.name} className="mobile-nav-item">
+                    <div key={item.id} className="mobile-nav-item">
                       {hasSubs ? (
                         <button
                           type="button"
-                          onClick={() => toggleSubmenu(item.name)}
+                          onClick={() => toggleSubmenu(item.id)}
                           className={cn(
                             "w-full flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer",
                             active
@@ -552,7 +597,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
               className="w-full h-10 rounded-[10px] bg-[#0066FF] hover:bg-[#0055d4] active:scale-[0.98] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Create link</span>
+              <span>{tr("Create link", "Créer un lien")}</span>
             </button>
 
             {/* Profil utilisateur en dessous (avatar à gauche, nom + email à droite colonne 1) */}
@@ -608,7 +653,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
             <div className="flex items-center justify-between pb-3 border-b ds-border">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold ds-text-primary">
-                  Notifications
+                  {t("topbar.notifications")}
                 </span>
                 {unreadCount > 0 && (
                   <span className="rounded-full bg-[#ECF3FF] dark:bg-[#465FFF]/20 text-[#0066FF] dark:text-[#7592FF] text-[10.5px] font-bold px-2 py-0.5">
@@ -623,13 +668,14 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                     onClick={markAllNotificationsRead}
                     className="text-xs font-medium text-[#0066FF] dark:text-[#7592FF] hover:underline cursor-pointer"
                   >
-                    Tout marquer lu
+                    {tr("Mark all as read", "Tout marquer lu")}
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => setIsNotifModalOpen(false)}
                   className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-muted hover:text-primary transition-colors cursor-pointer"
+                  aria-label={t("common.close")}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -640,7 +686,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
             <div className="flex-1 overflow-y-auto pt-3 pb-2 flex flex-col gap-2">
               {mergedNotifications.length === 0 ? (
                 <div className="py-8 text-center text-xs ds-text-muted">
-                  Aucune notification pour le moment.
+                  {tr("No notifications yet.", "Aucune notification pour le moment.")}
                 </div>
               ) : (
                 mergedNotifications.slice(0, 10).map((notif) => {
@@ -674,7 +720,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                           {notif.title}
                         </span>
                         <span className="text-[10px] ds-text-muted shrink-0">
-                          {d.toLocaleTimeString([], {
+                          {d.toLocaleTimeString(locale === "fr" ? "fr-FR" : "en-US", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}

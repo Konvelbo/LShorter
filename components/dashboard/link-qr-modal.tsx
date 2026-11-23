@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { ShortLink } from "@/types";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface LinkQRModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ const SOBER_SWATCHES = [
 ];
 
 export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
+  const { tr } = useI18n();
   const [selectedColor, setSelectedColor] = useState("#09090B");
   const [bgColor] = useState("#FFFFFF");
   const [includeQuietZone, setIncludeQuietZone] = useState(true);
@@ -129,7 +131,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       try {
         await navigator.share({
           title: `QR Code — ${link.slug}`,
-          text: `Access ${cleanShortUrl}`,
+          text: tr(`Access ${cleanShortUrl}`, `Accéder à ${cleanShortUrl}`),
           url: cleanShortUrl,
         });
         return;
@@ -154,14 +156,14 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Link QR Code"
+        aria-label={tr("Link QR Code", "QR Code du lien")}
         className="relative w-full max-w-[400px] rounded-[12px] bg-white dark:bg-[#0F0F11] text-[#09090B] dark:text-[#FAFAFA] border border-black/[0.08] dark:border-white/[0.08] p-5 shadow-2xl"
       >
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close modal"
+          aria-label={tr("Close modal", "Fermer la fenêtre")}
           className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-[7px] text-[#71717A] hover:text-[#09090B] dark:text-[#A1A1AA] dark:hover:text-[#FAFAFA] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
@@ -174,7 +176,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           </div>
           <div className="min-w-0">
             <h3 className="text-[15px] font-semibold tracking-tight text-[#09090B] dark:text-[#FAFAFA]">
-              Link QR Code
+              {tr("Link QR Code", "QR Code du lien")}
             </h3>
             <p className="text-xs text-[#71717A] dark:text-[#A1A1AA] font-mono truncate">
               {cleanShortUrl}
@@ -195,7 +197,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           {/* Color Swatches */}
           <div className="flex items-center justify-between">
             <span className="font-medium text-[#52525B] dark:text-[#A1A1AA]">
-              Foreground
+              {tr("Foreground", "Couleur")}
             </span>
             <div className="flex items-center gap-1.5">
               {SOBER_SWATCHES.map((c) => {
@@ -206,7 +208,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
                     type="button"
                     onClick={() => setSelectedColor(c.hex)}
                     title={c.name}
-                    aria-label={`Select ${c.name} color`}
+                    aria-label={tr(`Select ${c.name} color`, `Choisir la couleur ${c.name}`)}
                     className={`w-5 h-5 rounded-full border transition-all cursor-pointer ${
                       isSelected
                         ? "ring-2 ring-[#09090B] dark:ring-[#FAFAFA] ring-offset-2 ring-offset-white dark:ring-offset-[#0F0F11] scale-105"
@@ -230,7 +232,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
                 onChange={(e) => setIncludeQuietZone(e.target.checked)}
                 className="w-3.5 h-3.5 rounded-[4px] accent-[#09090B] dark:accent-[#FAFAFA] cursor-pointer"
               />
-              <span>Quiet zone margin</span>
+              <span>{tr("Quiet zone margin", "Marge de sécurité")}</span>
             </label>
             <span className="text-[11px] font-mono text-[#71717A] dark:text-[#8E8E93]">
               1024 × 1024px
@@ -266,12 +268,12 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
             {sharedCopied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Copied</span>
+                <span>{tr("Copied", "Copié")}</span>
               </>
             ) : (
               <>
                 <Share2 className="w-3.5 h-3.5" />
-                <span>Share</span>
+                <span>{tr("Share", "Partager")}</span>
               </>
             )}
           </button>
@@ -290,7 +292,7 @@ export function LinkQRModal({ isOpen, onClose, link }: LinkQRModalProps) {
           className="w-full h-9 px-3 rounded-[8px] bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/[0.08] dark:border-white/[0.08] text-[#52525B] dark:text-[#D4D4D8] hover:text-[#09090B] dark:hover:text-[#FAFAFA] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <Sliders className="w-3.5 h-3.5" />
-          <span>Customize in QR Studio</span>
+          <span>{tr("Customize in QR Studio", "Personnaliser dans QR Studio")}</span>
           <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
         </button>
       </div>

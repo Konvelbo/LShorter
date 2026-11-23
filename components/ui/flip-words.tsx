@@ -15,10 +15,12 @@ export const FlipWords = ({
 }) => {
   const [currentWord, setCurrentWord] = useState(words[0]);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [hasCycled, setHasCycled] = useState<boolean>(false);
 
   const startAnimation = useCallback(() => {
     const nextIndex = (words.indexOf(currentWord) + 1) % words.length;
     setCurrentWord(words[nextIndex]);
+    setHasCycled(true);
     setIsAnimating(true);
   }, [currentWord, words]);
 
@@ -34,16 +36,21 @@ export const FlipWords = ({
   return (
     <span className="relative inline-block align-baseline whitespace-nowrap">
       <AnimatePresence
+        initial={false}
         mode="popLayout"
         onExitComplete={() => {
           setIsAnimating(false);
         }}
       >
         <motion.span
-          initial={{
-            opacity: 0,
-            y: 12,
-          }}
+          initial={
+            hasCycled
+              ? {
+                  opacity: 0,
+                  y: 12,
+                }
+              : false
+          }
           animate={{
             opacity: 1,
             y: 0,
@@ -67,7 +74,7 @@ export const FlipWords = ({
           {currentWord.split(" ").map((word, wordIndex) => (
             <motion.span
               key={word + wordIndex}
-              initial={{ opacity: 0, y: 10 }}
+              initial={hasCycled ? { opacity: 0, y: 10 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 delay: wordIndex * 0.18,
@@ -78,7 +85,7 @@ export const FlipWords = ({
               {word.split("").map((letter, letterIndex) => (
                 <motion.span
                   key={word + letterIndex}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={hasCycled ? { opacity: 0, y: 10 } : false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
                     delay: wordIndex * 0.18 + letterIndex * 0.032,

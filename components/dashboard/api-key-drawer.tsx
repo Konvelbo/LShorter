@@ -9,6 +9,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { cfCreateApiKey } from "@/lib/cloudflare-api";
 import { ApiKeyItem } from "@/types";
 import { getPlanLimits } from "@/lib/plan-guard";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface ApiKeyDrawerProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function ApiKeyDrawer({
   userPlan = "FREE",
   userEmail,
 }: ApiKeyDrawerProps) {
+  const { tr } = useI18n();
   const [name, setName] = useState("");
   const [scope, setScope] = useState<"read" | "read_write">("read_write");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,11 +54,11 @@ export function ApiKeyDrawer({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg("Veuillez renseigner un nom pour cette clé API.");
+      setErrorMsg(tr("Please enter a name for this API key.", "Veuillez renseigner un nom pour cette clé API."));
       return;
     }
     if (!userId) {
-      setErrorMsg("Session expirée. Veuillez rafraîchir la page.");
+      setErrorMsg(tr("Session expired. Please refresh the page.", "Session expirée. Veuillez rafraîchir la page."));
       return;
     }
 
@@ -89,14 +91,14 @@ export function ApiKeyDrawer({
         try {
         } catch {}
 
-        showToast.success("Clé API créée avec succès !");
+        showToast.success(tr("API key created successfully!", "Clé API créée avec succès !"));
         onCreated(generatedKeyData);
         onClose();
       } else {
-        throw new Error("Réponse inattendue du serveur lors de la création.");
+        throw new Error(tr("Unexpected server response during creation.", "Réponse inattendue du serveur lors de la création."));
       }
     } catch (err: any) {
-      const msg = err.message || "Erreur lors de la création de la clé API.";
+      const msg = err.message || tr("Error creating API key.", "Erreur lors de la création de la clé API.");
       setErrorMsg(msg);
       showToast.error(msg);
     } finally {
@@ -121,17 +123,17 @@ export function ApiKeyDrawer({
             </div>
             <div>
               <h3 className="text-base font-bold text-zinc-950 dark:text-white">
-                Nouvelle Clé API
+                {tr("New API Key", "Nouvelle Clé API")}
               </h3>
               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mt-0.5">
-                Générez un jeton sécurisé pour vos intégrations logicielles
+                {tr("Generate a secure token for your software integrations", "Générez un jeton sécurisé pour vos intégrations logicielles")}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={tr("Close", "Fermer")}
             disabled={isSubmitting}
             className="p-1.5 rounded-[8px] text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
           >
@@ -150,30 +152,33 @@ export function ApiKeyDrawer({
           {/* Name Field */}
           <div className="flex flex-col gap-2">
             <label htmlFor="api-key-name-input" className="text-xs font-bold text-zinc-950 dark:text-white">
-              Nom de l&apos;application / Service <span className="text-red-500">*</span>
+              {tr("Application / Service Name", "Nom de l'application / Service")} <span className="text-red-500">*</span>
             </label>
             <Input
               id="api-key-name-input"
               required
-              placeholder="ex: Bot Telegram, Zapier, Backend Node.js..."
+              placeholder={tr("e.g. Telegram Bot, Zapier, Node.js Backend...", "ex: Bot Telegram, Zapier, Backend Node.js...")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isSubmitting}
               className="h-10 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-xs font-medium text-zinc-950 dark:text-white"
             />
             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-              Ce libellé vous permet d&apos;identifier facilement la source des requêtes dans vos journaux d&apos;activité.
+              {tr(
+                "This label helps you easily identify the source of requests in your activity logs.",
+                "Ce libellé vous permet d'identifier facilement la source des requêtes dans vos journaux d'activité."
+              )}
             </span>
           </div>
 
           {/* Scope Selector (Accessible Radiogroup) */}
           <div className="flex flex-col gap-2.5">
             <label className="text-xs font-bold text-zinc-950 dark:text-white flex items-center justify-between">
-              <span>Niveau de permission</span>
-              <span className="text-xs text-brand font-bold">Sécurité renforcée</span>
+              <span>{tr("Permission level", "Niveau de permission")}</span>
+              <span className="text-xs text-brand font-bold">{tr("Enhanced security", "Sécurité renforcée")}</span>
             </label>
 
-            <div role="radiogroup" aria-label="Niveau de permission" className="grid grid-cols-1 gap-3">
+            <div role="radiogroup" aria-label={tr("Permission level", "Niveau de permission")} className="grid grid-cols-1 gap-3">
               {/* Option 1: Read & Write */}
               <button
                 type="button"
@@ -204,14 +209,17 @@ export function ApiKeyDrawer({
                 <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-zinc-950 dark:text-white">
-                      Read &amp; Write
+                      {tr("Read & Write", "Lecture & Écriture")}
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Recommandé
+                      {tr("Recommended", "Recommandé")}
                     </span>
                   </div>
                   <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                    Permet de raccourcir des URLs, configurer le ciblage et lire les analyses de performance.
+                    {tr(
+                      "Allows shortening URLs, configuring targeting rules, and reading performance analytics.",
+                      "Permet de raccourcir des URLs, configurer le ciblage et lire les analyses de performance."
+                    )}
                   </p>
                 </div>
               </button>
@@ -245,10 +253,13 @@ export function ApiKeyDrawer({
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
                   <span className="text-xs font-bold text-zinc-950 dark:text-white">
-                    Read Only
+                    {tr("Read Only", "Lecture seule")}
                   </span>
                   <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                    Lecture seule des métriques de clics et des informations de vos liens existants.
+                    {tr(
+                      "Read-only access to click metrics and existing link metadata.",
+                      "Lecture seule des métriques de clics et des informations de vos liens existants."
+                    )}
                   </p>
                 </div>
               </button>
@@ -260,10 +271,13 @@ export function ApiKeyDrawer({
             <Shield className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-blue-950 dark:text-blue-200">
-                Protection des opérations sensibles
+                {tr("Sensitive operation protection", "Protection des opérations sensibles")}
               </span>
               <p className="text-xs font-medium text-blue-900 dark:text-blue-300 leading-relaxed">
-                Toutes les actions destructives (suppression définitive de liens, de domaines ou de compte) requièrent impérativement une session sur l&apos;interface principale.
+                {tr(
+                  "All destructive actions (permanent deletion of links, domains, or account) strictly require an active session in the main dashboard.",
+                  "Toutes les actions destructives (suppression définitive de liens, de domaines ou de compte) requièrent impérativement une session sur l'interface principale."
+                )}
               </p>
             </div>
           </div>
@@ -277,7 +291,7 @@ export function ApiKeyDrawer({
               disabled={isSubmitting}
               className="h-9 px-4 text-xs font-bold border-zinc-300 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
             >
-              Annuler
+              {tr("Cancel", "Annuler")}
             </Button>
             <Button
               type="submit"
@@ -288,12 +302,12 @@ export function ApiKeyDrawer({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Génération en cours...</span>
+                  <span>{tr("Generating...", "Génération en cours...")}</span>
                 </>
               ) : (
                 <>
                   <KeyRound className="w-3.5 h-3.5" />
-                  <span>Générer la Clé API</span>
+                  <span>{tr("Generate API Key", "Générer la Clé API")}</span>
                 </>
               )}
             </Button>

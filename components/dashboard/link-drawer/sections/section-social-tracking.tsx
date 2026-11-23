@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast-provider";
 import { triggerPlanUpgrade } from "@/lib/plan-guard";
 import { cropAndCompressImage, compressImageFile, CroppedAreaPixels } from "@/lib/image-compress";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SectionSocialTrackingProps {
   slug?: string;
@@ -123,6 +124,8 @@ export function SectionSocialTracking({
   isProPlan = false,
   slug = "",
 }: SectionSocialTrackingProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [hasImageError, setHasImageError] = useState(false);
   const activeImage = previewImage || cfNormalizeImageUrl(ogImage);
   const hasCustomImage = Boolean(activeImage && (!hasImageError || previewImage));
@@ -204,11 +207,19 @@ export function SectionSocialTracking({
   // Handle local file selection from file input or drag-and-drop
   const handleProcessFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      showToast.error("Veuillez sélectionner un fichier image valide (JPG, PNG, WebP).");
+      showToast.error(
+        isFr
+          ? "Veuillez sélectionner un fichier image valide (JPG, PNG, WebP)."
+          : "Please select a valid image file (JPG, PNG, WebP)."
+      );
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      showToast.error("La taille du fichier image doit être inférieure à 10 Mo.");
+      showToast.error(
+        isFr
+          ? "La taille du fichier image doit être inférieure à 10 Mo."
+          : "Image file size must be under 10 MB."
+      );
       return;
     }
 
@@ -291,14 +302,20 @@ export function SectionSocialTracking({
         setTwitterCard(cropFormat);
         setPreviewImage(dataUrl);
         setOgImage(dataUrl);
-        showToast.success("Bannière mise à jour avec succès !");
+        showToast.success(
+          isFr ? "Bannière mise à jour avec succès !" : "Banner updated successfully!"
+        );
       }
 
       setIsCropMode(false);
       setCropSourceImage("");
     } catch (err) {
       console.error("[InlineCrop] Error cropping image:", err);
-      showToast.error("Impossible de recadrer l'image. Veuillez réessayer.");
+      showToast.error(
+        isFr
+          ? "Impossible de recadrer l'image. Veuillez réessayer."
+          : "Unable to crop image. Please try again."
+      );
     } finally {
       setIsProcessingCrop(false);
     }
@@ -313,7 +330,9 @@ export function SectionSocialTracking({
     }
     setIsCropMode(false);
     setCropSourceImage("");
-    showToast.success("Bannière personnalisée supprimée.");
+    showToast.success(
+      isFr ? "Bannière personnalisée supprimée." : "Custom banner removed."
+    );
   };
 
   const getPixelInfo = (p: any) => {
@@ -400,10 +419,12 @@ export function SectionSocialTracking({
 
       <div>
         <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
-          Réseaux sociaux, tracking &amp; pixels
+          {isFr ? "Réseaux sociaux, tracking & pixels" : "Social preview, UTM tracking & pixels"}
         </h2>
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
-          Configurez les paramètres UTM, associez vos pixels et personnalisez vos cartes de partage social.
+          {isFr
+            ? "Configurez les paramètres UTM, associez vos pixels et personnalisez vos cartes de partage social."
+            : "Configure UTM parameters, attach retargeting pixels, and customize your social share cards."}
         </p>
       </div>
 
@@ -412,12 +433,14 @@ export function SectionSocialTracking({
         <div className="flex items-center gap-2 pb-1.5 border-b border-zinc-200 dark:border-zinc-800">
           <Tag className="w-4 h-4 text-[#0066FF] dark:text-[#60a5fa]" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white">
-            Campagne &amp; Paramètres UTM
+            {isFr ? "Campagne & Paramètres UTM" : "Campaign & UTM Parameters"}
           </h3>
         </div>
 
         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 -mt-1">
-          Balisez l&apos;URL de destination pour suivre les clics et conversions dans Google Analytics, Mixpanel ou vos plateformes publicitaires.
+          {isFr
+            ? "Balisez l'URL de destination pour suivre les clics et conversions dans Google Analytics, Mixpanel ou vos plateformes publicitaires."
+            : "Tag the destination URL to track clicks and conversions in Google Analytics, Mixpanel, or your ad platforms."}
         </p>
 
         {/* 2-Column UTM Inputs */}
@@ -492,7 +515,7 @@ export function SectionSocialTracking({
         {computeFinalUrlWithUtm && targetUrl && (
           <div className="p-3 rounded-[8px] bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
             <span className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 block mb-1">
-              URL Finale de Destination
+              {isFr ? "URL Finale de Destination" : "Final Destination URL"}
             </span>
             <span className="text-xs font-mono font-medium text-zinc-950 dark:text-white break-all select-all">
               {computeFinalUrlWithUtm()}
@@ -506,7 +529,7 @@ export function SectionSocialTracking({
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-zinc-950 dark:text-white flex items-center gap-1.5">
             <Target className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#60a5fa]" />
-            <span>Pixels de Retargeting</span>
+            <span>{isFr ? "Pixels de Retargeting" : "Retargeting Pixels"}</span>
             {!isProPlan && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                 PRO
@@ -515,7 +538,9 @@ export function SectionSocialTracking({
           </label>
           {selectedPixels.length > 0 && (
             <span className="text-[11px] font-semibold text-[#0066FF] dark:text-[#60a5fa]">
-              {selectedPixels.length} associé{selectedPixels.length > 1 ? "s" : ""}
+              {isFr
+                ? `${selectedPixels.length} associé${selectedPixels.length > 1 ? "s" : ""}`
+                : `${selectedPixels.length} attached`}
             </span>
           )}
         </div>
@@ -526,8 +551,10 @@ export function SectionSocialTracking({
             onClick={() => {
               if (!isProPlan) {
                 triggerPlanUpgrade({
-                  featureName: "Retargeting Pixels",
-                  reason: "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
+                  featureName: isFr ? "Pixels de Retargeting" : "Retargeting Pixels",
+                  reason: isFr
+                    ? "Les pixels de retargeting (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) sont réservés aux forfaits payants (Pro, Business, Enterprise)."
+                    : "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
                   targetPlan: "PRO",
                 });
                 return;
@@ -537,7 +564,11 @@ export function SectionSocialTracking({
             className="w-full py-2.5 px-3 rounded-[8px] border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-[#0066FF] dark:hover:border-[#0066FF] bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-[#0066FF]/5 text-xs text-zinc-800 dark:text-zinc-200 hover:text-[#0066FF] dark:hover:text-[#5294FF] flex items-center justify-center gap-2 transition-all cursor-pointer font-semibold select-none"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Sélectionner ou associer un pixel de retargeting</span>
+            <span>
+              {isFr
+                ? "Sélectionner ou associer un pixel de retargeting"
+                : "Select or attach a retargeting pixel"}
+            </span>
           </button>
         ) : (
           <div className="flex flex-col gap-2">
@@ -558,7 +589,7 @@ export function SectionSocialTracking({
                       type="button"
                       onClick={() => handleRemovePixel(info.id)}
                       className="p-0.5 rounded text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer ml-0.5"
-                      title="Désassocier ce pixel"
+                      title={isFr ? "Désassocier ce pixel" : "Detach this pixel"}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -571,8 +602,10 @@ export function SectionSocialTracking({
               onClick={() => {
                 if (!isProPlan) {
                   triggerPlanUpgrade({
-                    featureName: "Retargeting Pixels",
-                    reason: "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
+                    featureName: isFr ? "Pixels de Retargeting" : "Retargeting Pixels",
+                    reason: isFr
+                      ? "Les pixels de retargeting (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) sont réservés aux forfaits payants (Pro, Business, Enterprise)."
+                      : "Retargeting Pixels (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads) are reserved for paid plans (Pro, Business, Enterprise).",
                     targetPlan: "PRO",
                   });
                   return;
@@ -582,7 +615,7 @@ export function SectionSocialTracking({
               className="self-start text-xs font-semibold text-[#0066FF] dark:text-[#5294FF] hover:underline inline-flex items-center gap-1.5 pt-0.5 cursor-pointer"
             >
               <Pencil className="w-3 h-3" />
-              <span>Modifier la sélection des pixels</span>
+              <span>{isFr ? "Modifier la sélection des pixels" : "Edit pixel selection"}</span>
             </button>
           </div>
         )}
@@ -603,7 +636,7 @@ export function SectionSocialTracking({
         <div className="flex items-center gap-2 pb-1.5 border-b border-zinc-200 dark:border-zinc-800">
           <Share2 className="w-4 h-4 text-[#0066FF] dark:text-[#60a5fa]" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white">
-            Partage &amp; Aperçu Réseaux Sociaux
+            {isFr ? "Partage & Aperçu Réseaux Sociaux" : "Sharing & Social Card Preview"}
           </h3>
         </div>
 
@@ -612,7 +645,7 @@ export function SectionSocialTracking({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-zinc-950 dark:text-white">
-                Titre de la carte sociale (Open Graph)
+                {isFr ? "Titre de la carte sociale (Open Graph)" : "Social card title (Open Graph)"}
               </label>
               <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                 {ogTitle.length}/70
@@ -621,7 +654,11 @@ export function SectionSocialTracking({
             <Input
               type="text"
               maxLength={70}
-              placeholder="Titre accrocheur pour Twitter, Facebook, LinkedIn..."
+              placeholder={
+                isFr
+                  ? "Titre accrocheur pour Twitter, Facebook, LinkedIn..."
+                  : "Catchy headline for X, Facebook, LinkedIn..."
+              }
               value={ogTitle}
               onChange={(e) => setOgTitle(e.target.value)}
               className="h-9 text-xs text-zinc-950 dark:text-white"
@@ -631,7 +668,9 @@ export function SectionSocialTracking({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-zinc-950 dark:text-white">
-                Description de la carte sociale (Open Graph)
+                {isFr
+                  ? "Description de la carte sociale (Open Graph)"
+                  : "Social card description (Open Graph)"}
               </label>
               <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                 {ogDescription.length}/160
@@ -640,7 +679,11 @@ export function SectionSocialTracking({
             <textarea
               rows={2}
               maxLength={160}
-              placeholder="Brève description affichée lors du partage sur les plateformes sociales..."
+              placeholder={
+                isFr
+                  ? "Brève description affichée lors du partage sur les plateformes sociales..."
+                  : "Short description shown when shared across social platforms..."
+              }
               value={ogDescription}
               onChange={(e) => setOgDescription(e.target.value)}
               className="w-full bg-white dark:bg-[#16181d] text-zinc-950 dark:text-white border border-zinc-300 dark:border-[#27272a] focus:border-[#0066FF] dark:focus:border-[#3b82f6] focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] rounded-[8px] px-3 py-2 text-xs outline-none transition-colors placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-normal resize-vertical min-h-[58px]"
@@ -651,7 +694,7 @@ export function SectionSocialTracking({
         {/* 2. Banner Format Selector */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-zinc-950 dark:text-white">
-            Format de la bannière sociale
+            {isFr ? "Format de la bannière sociale" : "Social banner format"}
           </label>
           <div className="flex gap-1.5 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
             <button
@@ -672,7 +715,7 @@ export function SectionSocialTracking({
               )}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#0066FF]" />
-              <span>Bannière large (1200×630)</span>
+              <span>{isFr ? "Bannière large (1200×630)" : "Large banner (1200×630)"}</span>
             </button>
 
             <button
@@ -693,13 +736,15 @@ export function SectionSocialTracking({
               )}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Bannière compacte (1:1)</span>
+              <span>{isFr ? "Bannière compacte (1:1)" : "Compact banner (1:1)"}</span>
             </button>
           </div>
           <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 leading-relaxed flex items-start gap-1.5 mt-0.5">
             <Info className="w-3.5 h-3.5 shrink-0 text-[#0066FF] dark:text-[#60a5fa] mt-0.5" />
             <span>
-              Les réseaux sociaux mettent en cache le format de la bannière dès le premier partage du lien.
+              {isFr
+                ? "Les réseaux sociaux mettent en cache le format de la bannière dès le premier partage du lien."
+                : "Social networks cache the banner format the first time a link is shared."}
             </span>
           </p>
         </div>
@@ -716,10 +761,12 @@ export function SectionSocialTracking({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-zinc-950 dark:text-white">
-                    Ajuster et recadrer la bannière
+                    {isFr ? "Ajuster et recadrer la bannière" : "Adjust and crop banner"}
                   </h4>
                   <p className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                    Positionnez et zoomez pour un rendu optimal sur vos partages
+                    {isFr
+                      ? "Positionnez et zoomez pour un rendu optimal sur vos partages"
+                      : "Pan and zoom for an optimal look when shared"}
                   </p>
                 </div>
               </div>
@@ -739,7 +786,7 @@ export function SectionSocialTracking({
                       : "text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
                   )}
                 >
-                  Large 1200×630
+                  {isFr ? "Large 1200×630" : "Wide 1200×630"}
                 </button>
                 <button
                   type="button"
@@ -754,7 +801,7 @@ export function SectionSocialTracking({
                       : "text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
                   )}
                 >
-                  Carré 600×600
+                  {isFr ? "Carré 600×600" : "Square 600×600"}
                 </button>
               </div>
             </div>
@@ -793,7 +840,7 @@ export function SectionSocialTracking({
                   type="button"
                   onClick={() => setZoom((z) => Math.max(1, Number((z - 0.1).toFixed(2))))}
                   className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                  title="Dézoomer"
+                  title={isFr ? "Dézoomer" : "Zoom out"}
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
                 </button>
@@ -812,7 +859,7 @@ export function SectionSocialTracking({
                   type="button"
                   onClick={() => setZoom((z) => Math.min(3, Number((z + 0.1).toFixed(2))))}
                   className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                  title="Zoomer"
+                  title={isFr ? "Zoomer" : "Zoom in"}
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                 </button>
@@ -824,7 +871,7 @@ export function SectionSocialTracking({
                     setZoom(1);
                   }}
                   className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                  title="Réinitialiser"
+                  title={isFr ? "Réinitialiser" : "Reset"}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
@@ -834,7 +881,7 @@ export function SectionSocialTracking({
                 </span>
               </div>
 
-              {/* Buttons: Annuler & Valider */}
+              {/* Buttons: Cancel & Apply */}
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button
                   type="button"
@@ -842,7 +889,7 @@ export function SectionSocialTracking({
                   disabled={isProcessingCrop}
                   className="px-3 py-1.5 rounded-[8px] border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  Annuler
+                  {isFr ? "Annuler" : "Cancel"}
                 </button>
                 <button
                   type="button"
@@ -853,12 +900,12 @@ export function SectionSocialTracking({
                   {isProcessingCrop ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Application...</span>
+                      <span>{isFr ? "Application..." : "Applying..."}</span>
                     </>
                   ) : (
                     <>
                       <Check className="w-3.5 h-3.5" />
-                      <span>Valider le recadrage</span>
+                      <span>{isFr ? "Valider le recadrage" : "Apply crop"}</span>
                     </>
                   )}
                 </button>
@@ -873,16 +920,22 @@ export function SectionSocialTracking({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={activeImage}
-                  alt="Bannière active"
+                  alt={isFr ? "Bannière active" : "Active banner"}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-semibold text-zinc-950 dark:text-white truncate">
-                  Bannière personnalisée active
+                  {isFr ? "Bannière personnalisée active" : "Custom banner active"}
                 </span>
                 <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                  {twitterCard === "summary" ? "Format 600×600 (1:1)" : "Format 1200×630 (1.91:1)"}
+                  {twitterCard === "summary"
+                    ? isFr
+                      ? "Format 600×600 (1:1)"
+                      : "600×600 format (1:1)"
+                    : isFr
+                      ? "Format 1200×630 (1.91:1)"
+                      : "1200×630 format (1.91:1)"}
                 </span>
               </div>
             </div>
@@ -892,25 +945,25 @@ export function SectionSocialTracking({
                 type="button"
                 onClick={handleStartCropExisting}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-100 transition-colors cursor-pointer"
-                title="Ajuster le recadrage ou le zoom"
+                title={isFr ? "Ajuster le recadrage ou le zoom" : "Adjust crop or zoom"}
               >
                 <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
-                <span>Ajuster</span>
+                <span>{isFr ? "Ajuster" : "Adjust"}</span>
               </button>
               <button
                 type="button"
                 onClick={() => activeFileInputRef.current?.click()}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-100 transition-colors cursor-pointer"
-                title="Remplacer par une autre image"
+                title={isFr ? "Remplacer par une autre image" : "Replace with another image"}
               >
                 <Upload className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
-                <span>Remplacer</span>
+                <span>{isFr ? "Remplacer" : "Replace"}</span>
               </button>
               <button
                 type="button"
                 onClick={handleClearBannerAction}
                 className="p-1 rounded-[6px] text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                title="Supprimer la bannière personnalisée"
+                title={isFr ? "Supprimer la bannière personnalisée" : "Remove custom banner"}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -934,10 +987,12 @@ export function SectionSocialTracking({
               <Upload className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-zinc-950 dark:text-white">
-              Importer une bannière personnalisée
+              {isFr ? "Importer une bannière personnalisée" : "Upload a custom banner"}
             </span>
             <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 mt-0.5">
-              Glissez-déposez ou cliquez · JPG, PNG, WebP (max 10 Mo)
+              {isFr
+                ? "Glissez-déposez ou cliquez · JPG, PNG, WebP (max 10 Mo)"
+                : "Drag and drop or click · JPG, PNG, WebP (max 10 MB)"}
             </span>
           </div>
         )}
@@ -945,7 +1000,7 @@ export function SectionSocialTracking({
         {/* 4. Social Network Switcher Tabs */}
         <div className="flex flex-col gap-1.5 pt-1">
           <label className="text-xs font-semibold text-zinc-950 dark:text-white">
-            Aperçu sur les réseaux sociaux
+            {isFr ? "Aperçu sur les réseaux sociaux" : "Social network preview"}
           </label>
           <div className="grid grid-cols-4 gap-1 p-1 rounded-[8px] bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
             {(
@@ -1010,16 +1065,21 @@ export function SectionSocialTracking({
                   ) : (
                     <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
                       <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                      <span className="text-[11px] font-medium">Aperçu de l&apos;image</span>
+                      <span className="text-[11px] font-medium">
+                        {isFr ? "Aperçu de l'image" : "Image preview"}
+                      </span>
                     </div>
                   )}
                 </div>
                 <div className="px-1">
                   <span className="text-xs font-bold text-zinc-950 dark:text-white block truncate">
-                    {ogTitle || "Titre du lien partagé"}
+                    {ogTitle || (isFr ? "Titre du lien partagé" : "Shared link title")}
                   </span>
                   <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 leading-snug mt-0.5">
-                    {ogDescription || "Aperçu de la description partagée sur WhatsApp."}
+                    {ogDescription ||
+                      (isFr
+                        ? "Aperçu de la description partagée sur WhatsApp."
+                        : "Preview of the description shared on WhatsApp.")}
                   </span>
                   <span className="text-[11px] font-semibold text-[#0066FF] dark:text-[#60a5fa] font-mono block mt-1">
                     https://{domainName || "lsho.cc"}/{slug || "..."}
@@ -1058,7 +1118,9 @@ export function SectionSocialTracking({
                   ) : (
                     <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
                       <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                      <span className="text-[10px] font-medium">Format 1:1</span>
+                      <span className="text-[10px] font-medium">
+                        {isFr ? "Format 1:1" : "1:1 ratio"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1067,10 +1129,13 @@ export function SectionSocialTracking({
                     {(domainName || "lsho.cc").toUpperCase()}
                   </span>
                   <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
-                    {ogTitle || "Titre du lien sur Facebook"}
+                    {ogTitle || (isFr ? "Titre du lien sur Facebook" : "Link title on Facebook")}
                   </span>
                   <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
-                    {ogDescription || "Description du contenu affichée dans le fil d'actualité Facebook."}
+                    {ogDescription ||
+                      (isFr
+                        ? "Description du contenu affichée dans le fil d'actualité Facebook."
+                        : "Content description displayed in the Facebook feed.")}
                   </span>
                 </div>
               </div>
@@ -1099,7 +1164,7 @@ export function SectionSocialTracking({
                       <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs">
                           <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
-                          <span>Ajuster / Recadrer</span>
+                          <span>{isFr ? "Ajuster / Recadrer" : "Adjust / Crop"}</span>
                         </span>
                       </div>
                     </>
@@ -1107,7 +1172,9 @@ export function SectionSocialTracking({
                     <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
                       <ImageIcon className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
                       <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                        Aperçu de la bannière (1200 × 630 px)
+                        {isFr
+                          ? "Aperçu de la bannière (1200 × 630 px)"
+                          : "Banner preview (1200 × 630 px)"}
                       </span>
                     </div>
                   )}
@@ -1117,10 +1184,13 @@ export function SectionSocialTracking({
                     {(domainName || "lsho.cc").toUpperCase()}
                   </span>
                   <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
-                    {ogTitle || "Titre du lien sur Facebook"}
+                    {ogTitle || (isFr ? "Titre du lien sur Facebook" : "Link title on Facebook")}
                   </span>
                   <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
-                    {ogDescription || "Description du contenu affichée dans le fil d'actualité Facebook."}
+                    {ogDescription ||
+                      (isFr
+                        ? "Description du contenu affichée dans le fil d'actualité Facebook."
+                        : "Content description displayed in the Facebook feed.")}
                   </span>
                 </div>
               </div>
@@ -1156,16 +1226,19 @@ export function SectionSocialTracking({
                   ) : (
                     <div className="p-2 text-center flex flex-col items-center gap-1 text-zinc-600 dark:text-zinc-300">
                       <ImageIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                      <span className="text-[10px] font-medium">Format 1:1</span>
+                      <span className="text-[10px] font-medium">
+                        {isFr ? "Format 1:1" : "1:1 ratio"}
+                      </span>
                     </div>
                   )}
                 </div>
                 <div className="p-3.5 flex flex-col justify-center min-w-0 flex-1 bg-zinc-50/60 dark:bg-[#151821]">
                   <span className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-white block truncate">
-                    {ogTitle || "Titre professionnel LinkedIn"}
+                    {ogTitle || (isFr ? "Titre professionnel LinkedIn" : "LinkedIn post title")}
                   </span>
                   <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-1 mt-0.5">
-                    {ogDescription || "Description affichée sur LinkedIn."}
+                    {ogDescription ||
+                      (isFr ? "Description affichée sur LinkedIn." : "Description shown on LinkedIn.")}
                   </span>
                   <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 font-mono block mt-1">
                     {domainName || "lsho.cc"}
@@ -1197,7 +1270,7 @@ export function SectionSocialTracking({
                       <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs">
                           <CropIcon className="w-3.5 h-3.5 text-[#0066FF]" />
-                          <span>Ajuster / Recadrer</span>
+                          <span>{isFr ? "Ajuster / Recadrer" : "Adjust / Crop"}</span>
                         </span>
                       </div>
                     </>
@@ -1205,17 +1278,22 @@ export function SectionSocialTracking({
                     <div className="py-5 px-4 flex flex-col items-center justify-center text-center gap-1.5">
                       <ImageIcon className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
                       <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                        Aperçu de la bannière (1200 × 630 px)
+                        {isFr
+                          ? "Aperçu de la bannière (1200 × 630 px)"
+                          : "Banner preview (1200 × 630 px)"}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="p-3.5 bg-zinc-50/70 dark:bg-[#151821]">
                   <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate">
-                    {ogTitle || "Titre professionnel LinkedIn"}
+                    {ogTitle || (isFr ? "Titre professionnel LinkedIn" : "LinkedIn post title")}
                   </span>
                   <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
-                    {ogDescription || "Description affichée lors du partage sur LinkedIn."}
+                    {ogDescription ||
+                      (isFr
+                        ? "Description affichée lors du partage sur LinkedIn."
+                        : "Description shown when shared on LinkedIn.")}
                   </span>
                   <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 font-mono block mt-1">
                     {domainName || "lsho.cc"}
@@ -1275,7 +1353,7 @@ export function SectionSocialTracking({
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#0066FF] hover:bg-[#0055d4] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                       >
                         <CropIcon className="w-3.5 h-3.5" />
-                        <span>Ajuster</span>
+                        <span>{isFr ? "Ajuster" : "Adjust"}</span>
                       </button>
                       <button
                         type="button"
@@ -1286,7 +1364,7 @@ export function SectionSocialTracking({
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white text-zinc-950 text-xs font-semibold shadow-xs hover:bg-zinc-100 transition-colors cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
-                        <span>Remplacer</span>
+                        <span>{isFr ? "Remplacer" : "Replace"}</span>
                       </button>
                       <button
                         type="button"
@@ -1295,7 +1373,7 @@ export function SectionSocialTracking({
                           handleClearBannerAction();
                         }}
                         className="p-1.5 rounded-[6px] bg-red-600/90 hover:bg-red-600 text-white shadow-xs transition-colors cursor-pointer"
-                        title="Supprimer la bannière"
+                        title={isFr ? "Supprimer la bannière" : "Remove banner"}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -1317,22 +1395,29 @@ export function SectionSocialTracking({
                     </div>
                     <div className="my-auto py-1">
                       <div className="text-sm font-black text-zinc-950 line-clamp-1 leading-tight">
-                        {ogTitle || "Titre de votre lien partagé"}
+                        {ogTitle || (isFr ? "Titre de votre lien partagé" : "Your shared link title")}
                       </div>
                       <div className="text-[11px] font-medium text-zinc-700 line-clamp-2 mt-1 leading-snug">
-                        {ogDescription || "Votre description apparaîtra automatiquement ici sur la bannière."}
+                        {ogDescription ||
+                          (isFr
+                            ? "Votre description apparaîtra automatiquement ici sur la bannière."
+                            : "Your description will appear automatically here on the banner.")}
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[9px] font-semibold text-zinc-500 border-t border-zinc-900/10 pt-1.5">
-                      <span className="text-[#2563EB] font-bold">Bannière auto-générée (1200×630)</span>
-                      <span>Cliquez pour importer une image</span>
+                      <span className="text-[#2563EB] font-bold">
+                        {isFr ? "Bannière auto-générée (1200×630)" : "Auto-generated banner (1200×630)"}
+                      </span>
+                      <span>
+                        {isFr ? "Cliquez pour importer une image" : "Click to upload an image"}
+                      </span>
                     </div>
                   </div>
                 )}
                 {/* Authentic X/Twitter Large Card Title Pill Overlay */}
                 <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center">
                   <span className="max-w-full truncate px-2 py-0.5 rounded-[5px] bg-black/75 text-white text-[11px] font-semibold backdrop-blur-xs">
-                    {ogTitle || "Titre de votre lien partagé"}
+                    {ogTitle || (isFr ? "Titre de votre lien partagé" : "Your shared link title")}
                   </span>
                 </div>
               </div>
@@ -1341,10 +1426,20 @@ export function SectionSocialTracking({
               <div className="px-3.5 py-2.5 bg-white dark:bg-[#12141a] flex flex-col gap-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
                   <Globe2 className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
-                  <span>From {domainName || "lsho.cc"}</span>
+                  <span>
+                    {isFr ? `De ${domainName || "lsho.cc"}` : `From ${domainName || "lsho.cc"}`}
+                  </span>
                 </div>
                 <p className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 leading-snug">
-                  Sur X (Twitter), le format Large affiche uniquement l&apos;image et le titre en superposition. Pour afficher le texte de description à côté sur X, utilisez le format <strong className="text-zinc-900 dark:text-zinc-200">Compact (1:1)</strong>. Sur LinkedIn, WhatsApp, Facebook et Discord, la description s&apos;affiche dans les deux formats.
+                  {isFr ? (
+                    <>
+                      Sur X (Twitter), le format Large affiche uniquement l&apos;image et le titre en superposition. Pour afficher le texte de description à côté sur X, utilisez le format <strong className="text-zinc-900 dark:text-zinc-200">Compact (1:1)</strong>. Sur LinkedIn, WhatsApp, Facebook et Discord, la description s&apos;affiche dans les deux formats.
+                    </>
+                  ) : (
+                    <>
+                      On X (Twitter), the Large format shows only the image with an overlaid title. To display description text alongside it on X, use the <strong className="text-zinc-900 dark:text-zinc-200">Compact (1:1)</strong> format. On LinkedIn, WhatsApp, Facebook, and Discord, the description appears in both formats.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -1383,7 +1478,7 @@ export function SectionSocialTracking({
                           handleStartCropExisting();
                         }}
                         className="p-1 rounded-[5px] bg-[#0066FF] text-white cursor-pointer"
-                        title="Ajuster"
+                        title={isFr ? "Ajuster" : "Adjust"}
                       >
                         <CropIcon className="w-3.5 h-3.5" />
                       </button>
@@ -1394,7 +1489,7 @@ export function SectionSocialTracking({
                           activeFileInputRef.current?.click();
                         }}
                         className="p-1 rounded-[5px] bg-white text-zinc-950 cursor-pointer"
-                        title="Remplacer"
+                        title={isFr ? "Remplacer" : "Replace"}
                       >
                         <Upload className="w-3.5 h-3.5 text-[#0066FF]" />
                       </button>
@@ -1405,7 +1500,7 @@ export function SectionSocialTracking({
                           handleClearBannerAction();
                         }}
                         className="p-1 rounded-[5px] bg-red-600 text-white cursor-pointer"
-                        title="Supprimer"
+                        title={isFr ? "Supprimer" : "Remove"}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -1428,10 +1523,13 @@ export function SectionSocialTracking({
                   <span>{domainName || "lsho.cc"}</span>
                 </div>
                 <span className="text-sm font-bold text-zinc-950 dark:text-white block truncate mt-0.5">
-                  {ogTitle || "Titre de la carte compacte"}
+                  {ogTitle || (isFr ? "Titre de la carte compacte" : "Compact card title")}
                 </span>
                 <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 mt-0.5">
-                  {ogDescription || "Description compacte pour Twitter / X."}
+                  {ogDescription ||
+                    (isFr
+                      ? "Description compacte pour Twitter / X."
+                      : "Compact description for Twitter / X.")}
                 </span>
               </div>
             </div>

@@ -29,9 +29,24 @@ import {
 } from "@/lib/cloudflare-api";
 import { AnalyticsSourcesSkeleton } from "@/components/ui/skeleton";
 import { formatNumber } from "@/lib/utils";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type ChannelCategory = "Direct" | "Social" | "Search" | "Referral";
 type DateRangeOption = "day" | "week" | "month" | "year";
+
+function formatChannelLabel(channel: ChannelCategory, isFr: boolean): string {
+  if (!isFr) return channel;
+  switch (channel) {
+    case "Direct":
+      return "Direct";
+    case "Social":
+      return "Réseaux sociaux";
+    case "Search":
+      return "Recherche";
+    case "Referral":
+      return "Référent";
+  }
+}
 
 interface ClassifiedReferrer {
   raw: string;
@@ -295,24 +310,24 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
   };
 }
 
-function formatDeviceLabel(rawDevice?: string | null): string {
+function formatDeviceLabel(rawDevice?: string | null, isFr = false): string {
   const low = String(rawDevice || "").trim().toLowerCase();
   if (!low || low === "unknown" || low === "inconnu" || low === "—") {
-    return "Unknown";
+    return isFr ? "Inconnu" : "Unknown";
   }
   if (low === "mobile" || low === "phone" || low === "smartphone") {
     return "Mobile";
   }
   if (low === "desktop" || low === "pc" || low === "computer") {
-    return "Desktop";
+    return isFr ? "Ordinateur" : "Desktop";
   }
   if (low === "tablet" || low === "tablette" || low === "ipad") {
-    return "Tablet";
+    return isFr ? "Tablette" : "Tablet";
   }
   return low.charAt(0).toUpperCase() + low.slice(1);
 }
 
-function formatEventTime(rawTimestamp?: string | number | null): string {
+function formatEventTime(rawTimestamp?: string | number | null, isFr = false): string {
   if (!rawTimestamp) return "—";
   let normalized: string | number = rawTimestamp;
   if (typeof rawTimestamp === "string") {
@@ -323,7 +338,7 @@ function formatEventTime(rawTimestamp?: string | number | null): string {
   }
   const parsed = new Date(normalized);
   if (isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleTimeString("en-GB", {
+  return parsed.toLocaleTimeString(isFr ? "fr-FR" : "en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -335,6 +350,8 @@ function getLinkClicks(link: RawLinkRecord): number {
 }
 
 export default function SourcesAnalyticsPage() {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const { data: session, status } = useSession();
   const router = useRouter();
   const userId = session?.user?.id || "";
@@ -898,30 +915,32 @@ export default function SourcesAnalyticsPage() {
               className="flex items-center gap-1.5 text-xs ds-text-muted hover:text-[#0066FF] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Analytics</span>
+              <span>{isFr ? "Retour aux analytiques" : "Back to Analytics"}</span>
             </Link>
             <span className="text-zinc-400 dark:text-neutral-600">/</span>
             <span className="text-xs text-[#0066FF] font-semibold flex items-center gap-1">
               <Share2 className="w-3 h-3" />
-              <span>Traffic Sources</span>
+              <span>{isFr ? "Sources de trafic" : "Traffic Sources"}</span>
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight ds-text-primary flex flex-wrap items-center gap-2.5">
-            <span>Traffic Sources</span>
+            <span>{isFr ? "Sources de trafic" : "Traffic Sources"}</span>
             <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#0066FF]/10 text-[#0066FF] border border-[#0066FF]/30">
-              Channel Attribution
+              {isFr ? "Attribution des canaux" : "Channel Attribution"}
             </span>
           </h1>
           <p className="text-xs sm:text-sm ds-text-muted mt-1">
-            Channels, referrers and campaigns that drive clicks to your links.
+            {isFr
+              ? "Canaux, référents et campagnes qui génèrent des clics vers vos liens."
+              : "Channels, referrers and campaigns that drive clicks to your links."}
           </p>
         </div>
 
         {/* Global Controls: Period & Link Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
           <select
-            aria-label="Filter by link"
+            aria-label={isFr ? "Filtrer par lien" : "Filter by link"}
             value={selectedLinkObj ? selectedLinkObj.id : selectedLinkId}
             onChange={(e) => {
               setSelectedLinkId(e.target.value);
@@ -931,10 +950,12 @@ export default function SourcesAnalyticsPage() {
             }}
             className="px-3 py-1.5 rounded-[10px] ds-input text-xs font-semibold cursor-pointer"
           >
-            <option value="all">All links combined ({links.length})</option>
+            <option value="all">
+              {isFr ? `Tous les liens combinés (${links.length})` : `All links combined (${links.length})`}
+            </option>
             {links.map((l) => (
               <option key={l.id} value={l.id}>
-                /{l.slug} ({getLinkClicks(l)} clicks)
+                /{l.slug} ({getLinkClicks(l)} {isFr ? "clics" : "clicks"})
               </option>
             ))}
           </select>
@@ -942,13 +963,13 @@ export default function SourcesAnalyticsPage() {
           <div
             className="flex items-center gap-1 p-1 rounded-[10px] ds-card text-xs shadow-xs"
             role="group"
-            aria-label="Date range"
+            aria-label={isFr ? "Période" : "Date range"}
           >
             {(
               [
                 { id: "day", label: "24h" },
-                { id: "week", label: "7d" },
-                { id: "month", label: "30d" },
+                { id: "week", label: isFr ? "7j" : "7d" },
+                { id: "month", label: isFr ? "30j" : "30d" },
                 { id: "year", label: "12m" },
               ] as const
             ).map((r) => (
@@ -975,14 +996,14 @@ export default function SourcesAnalyticsPage() {
 
           <button
             type="button"
-            aria-label="Refresh"
+            aria-label={isFr ? "Actualiser" : "Refresh"}
             onClick={() => {
               setIsRefreshing(true);
               cfInvalidateCache();
               void loadData(selectedRange, selectedLinkId, false, true);
             }}
             className="p-2 rounded-[10px] ds-card ds-text-secondary hover:ds-text-primary hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-            title="Refresh"
+            title={isFr ? "Actualiser" : "Refresh"}
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${
@@ -999,7 +1020,7 @@ export default function SourcesAnalyticsPage() {
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Attributed clicks
+              {isFr ? "Clics attribués" : "Attributed clicks"}
             </span>
             <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
               <MousePointerClick className="w-4 h-4 text-[#0066FF]" />
@@ -1013,8 +1034,10 @@ export default function SourcesAnalyticsPage() {
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs ds-text-muted font-mono">
               {activeChannelsCount}{" "}
-              {activeChannelsCount === 1 ? "channel" : "channels"} ·{" "}
-              {referrersList.length}{" "}
+              {activeChannelsCount === 1
+                ? (isFr ? "canal" : "channel")
+                : (isFr ? "canaux" : "channels")}{" "}
+              · {referrersList.length}{" "}
               {referrersList.length === 1 ? "source" : "sources"}
             </span>
             <span className="text-xs font-semibold text-[#0066FF]">100%</span>
@@ -1042,7 +1065,7 @@ export default function SourcesAnalyticsPage() {
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs ds-text-muted truncate">
-              QR codes, SMS, typed links
+              {isFr ? "QR codes, SMS, liens saisis" : "QR codes, SMS, typed links"}
             </span>
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
               Direct
@@ -1055,7 +1078,7 @@ export default function SourcesAnalyticsPage() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#0066FF] inline-block shrink-0" />
-              Social
+              {isFr ? "Réseaux sociaux" : "Social"}
             </span>
             <div className="p-1 rounded-full bg-[#0066FF]/10 shrink-0">
               <Share2 className="w-4 h-4 text-[#0066FF]" />
@@ -1072,8 +1095,12 @@ export default function SourcesAnalyticsPage() {
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs ds-text-muted truncate">
               {topSocialPlatform
-                ? `Led by ${topSocialPlatform.platformName}`
-                : "No social traffic yet"}
+                ? isFr
+                  ? `Mené par ${topSocialPlatform.platformName}`
+                  : `Led by ${topSocialPlatform.platformName}`
+                : isFr
+                  ? "Aucun trafic social encore"
+                  : "No social traffic yet"}
             </span>
             <span className="text-xs font-semibold text-[#0066FF] shrink-0 ml-1">
               Social
@@ -1085,7 +1112,7 @@ export default function SourcesAnalyticsPage() {
         <div className="p-4 sm:p-5 rounded-[12px] ds-card shadow-xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold ds-text-muted uppercase tracking-wider">
-              Top referrer
+              {isFr ? "Principal référent" : "Top referrer"}
             </span>
             <div className="p-1 rounded-full bg-purple-500/10 shrink-0">
               <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -1098,15 +1125,21 @@ export default function SourcesAnalyticsPage() {
             {topReferrerHighlight && (
               <span className="text-xs ds-text-muted font-mono shrink-0">
                 {formatNumber(topReferrerHighlight.count)}{" "}
-                {topReferrerHighlight.count === 1 ? "click" : "clicks"}
+                {topReferrerHighlight.count === 1
+                  ? (isFr ? "clic" : "click")
+                  : (isFr ? "clics" : "clicks")}
               </span>
             )}
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold truncate">
               {topReferrerHighlight
-                ? `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% of clicks`
-                : "No referrers recorded"}
+                ? isFr
+                  ? `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% des clics`
+                  : `${topReferrerHighlight.platformName} · ${topReferrerHighlight.percentage}% of clicks`
+                : isFr
+                  ? "Aucun référent enregistré"
+                  : "No referrers recorded"}
             </span>
             <span className="text-xs ds-text-muted font-mono shrink-0 ml-1">
               #1
@@ -1123,18 +1156,28 @@ export default function SourcesAnalyticsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Share2 className="w-4 h-4 text-[#0066FF]" />
-                <span>Channel mix</span>
+                <span>{isFr ? "Répartition des canaux" : "Channel mix"}</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
-                {formatNumber(totalAttributedClicks)} attributed{" "}
-                {totalAttributedClicks === 1 ? "click" : "clicks"}
+                {formatNumber(totalAttributedClicks)}{" "}
+                {isFr
+                  ? totalAttributedClicks === 1
+                    ? "clic attribué"
+                    : "clics attribués"
+                  : totalAttributedClicks === 1
+                    ? "attributed click"
+                    : "attributed clicks"}
               </span>
             </div>
 
             {/* Stacked Channel Bar */}
             <div
               role="img"
-              aria-label={`Channel share: Direct ${directPct}%, Social ${socialPct}%`}
+              aria-label={
+                isFr
+                  ? `Part des canaux : Direct ${directPct}%, Social ${socialPct}%`
+                  : `Channel share: Direct ${directPct}%, Social ${socialPct}%`
+              }
               className="flex gap-[2px] h-3 my-5 rounded-[6px] overflow-hidden bg-[#EEF2F6] dark:bg-[#232C3D]"
             >
               {directPct > 0 && (
@@ -1148,14 +1191,14 @@ export default function SourcesAnalyticsPage() {
                 <i
                   className="block h-full bg-[#0066FF] transition-all duration-300"
                   style={{ width: `${socialPct}%` }}
-                  title={`Social: ${socialPct}%`}
+                  title={`${isFr ? "Réseaux sociaux" : "Social"}: ${socialPct}%`}
                 />
               )}
               {otherClicks > 0 && otherPct > 0 && (
                 <i
                   className="block h-full bg-purple-600 dark:bg-purple-400 transition-all duration-300"
                   style={{ width: `${otherPct}%` }}
-                  title={`Web & Search: ${otherPct}%`}
+                  title={`${isFr ? "Web & Recherche" : "Web & Search"}: ${otherPct}%`}
                 />
               )}
             </div>
@@ -1169,7 +1212,7 @@ export default function SourcesAnalyticsPage() {
                 </span>
                 <span className="font-bold ds-text-primary text-xs sm:text-sm">
                   {formatNumber(directClicks)}{" "}
-                  {directClicks === 1 ? "click" : "clicks"}
+                  {directClicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")}
                   <span className="ml-1.5 font-medium ds-text-muted">
                     · {directPct}%
                   </span>
@@ -1179,11 +1222,11 @@ export default function SourcesAnalyticsPage() {
               <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
                 <span className="inline-flex items-center ds-text-primary font-medium">
                   <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-[#0066FF] no-underline" />
-                  Social
+                  {isFr ? "Réseaux sociaux" : "Social"}
                 </span>
                 <span className="font-bold ds-text-primary text-xs sm:text-sm">
                   {formatNumber(socialClicks)}{" "}
-                  {socialClicks === 1 ? "click" : "clicks"}
+                  {socialClicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")}
                   <span className="ml-1.5 font-medium ds-text-muted">
                     · {socialPct}%
                   </span>
@@ -1194,11 +1237,11 @@ export default function SourcesAnalyticsPage() {
                 <div className="flex justify-between items-center py-3 border-t border-[#E4E7EC] dark:border-[#222225] text-sm">
                   <span className="inline-flex items-center ds-text-primary font-medium">
                     <u className="inline-block w-2.5 h-2.5 mr-2.5 rounded-[3px] bg-purple-600 dark:bg-purple-400 no-underline" />
-                    Web &amp; Search
+                    {isFr ? "Web & Recherche" : "Web & Search"}
                   </span>
                   <span className="font-bold ds-text-primary text-xs sm:text-sm">
                     {formatNumber(otherClicks)}{" "}
-                    {otherClicks === 1 ? "click" : "clicks"}
+                    {otherClicks === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")}
                     <span className="ml-1.5 font-medium ds-text-muted">
                       · {otherPct}%
                     </span>
@@ -1210,12 +1253,14 @@ export default function SourcesAnalyticsPage() {
             {/* Social Networks Subsection */}
             <div className="mt-3 pt-4 border-t border-[#E4E7EC] dark:border-[#222225]">
               <div className="text-[11px] font-bold uppercase tracking-wider ds-text-muted mb-3">
-                Social networks
+                {isFr ? "Réseaux sociaux" : "Social networks"}
               </div>
 
               {socialPlatformsList.length === 0 ? (
                 <p className="py-4 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  No social network clicks recorded for this filter.
+                  {isFr
+                    ? "Aucun clic issu des réseaux sociaux enregistré pour ce filtre."
+                    : "No social network clicks recorded for this filter."}
                 </p>
               ) : (
                 <div className="space-y-3.5">
@@ -1234,8 +1279,8 @@ export default function SourcesAnalyticsPage() {
                           </span>
                           <span className="font-medium ds-text-muted text-xs shrink-0 ml-2">
                             {formatNumber(platform.count)}{" "}
-                            {platform.count === 1 ? "click" : "clicks"} ·{" "}
-                            {platform.shareOfSocial}% of social
+                            {platform.count === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")} ·{" "}
+                            {platform.shareOfSocial}% {isFr ? "du social" : "of social"}
                           </span>
                         </div>
                         <i className="block h-1.5 mt-2 rounded-[3px] bg-[#EEF2F6] dark:bg-[#232C3D] overflow-hidden not-italic">
@@ -1261,7 +1306,7 @@ export default function SourcesAnalyticsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#E4E7EC] dark:border-[#222225]">
               <span className="text-sm font-bold ds-text-primary flex items-center gap-1.5">
                 <Globe2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Top referrers</span>
+                <span>{isFr ? "Principaux référents" : "Top referrers"}</span>
               </span>
               <span className="text-xs ds-text-muted font-mono">
                 {referrersList.length}{" "}
@@ -1272,7 +1317,9 @@ export default function SourcesAnalyticsPage() {
             <div className="space-y-4 mt-4">
               {referrersList.length === 0 ? (
                 <p className="py-6 text-center text-xs text-zinc-500 dark:text-neutral-400">
-                  No referrers recorded for this period.
+                  {isFr
+                    ? "Aucun référent enregistré pour cette période."
+                    : "No referrers recorded for this period."}
                 </p>
               ) : (
                 referrersList.map((ref, idx) => {
@@ -1296,12 +1343,12 @@ export default function SourcesAnalyticsPage() {
                                   : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border-[#0066FF]/25"
                               }`}
                             >
-                              {ref.channel}
+                              {formatChannelLabel(ref.channel, isFr)}
                             </em>
                           </div>
                           <span className="font-medium ds-text-muted text-xs shrink-0">
                             {formatNumber(ref.count)}{" "}
-                            {ref.count === 1 ? "click" : "clicks"} ·{" "}
+                            {ref.count === 1 ? (isFr ? "clic" : "click") : (isFr ? "clics" : "clicks")} ·{" "}
                             {ref.percentage}%
                           </span>
                         </div>
@@ -1332,18 +1379,18 @@ export default function SourcesAnalyticsPage() {
         <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E4E7EC] dark:border-[#222225]">
           <div className="flex items-center gap-2.5">
             <h3 className="text-lg font-bold ds-text-primary flex items-center gap-2">
-              <span>Live click stream</span>
+              <span>{isFr ? "Flux de clics en direct" : "Live click stream"}</span>
             </h3>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-              Live
+              {isFr ? "Direct" : "Live"}
             </span>
           </div>
 
           <input
             type="search"
-            aria-label="Filter events"
-            placeholder="Filter referrer, link, city…"
+            aria-label={isFr ? "Filtrer les événements" : "Filter events"}
+            placeholder={isFr ? "Filtrer référent, lien, ville…" : "Filter referrer, link, city…"}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -1361,25 +1408,25 @@ export default function SourcesAnalyticsPage() {
                   scope="col"
                   className="py-3.5 pl-5 sm:pl-6 pr-3 whitespace-nowrap"
                 >
-                  Time
+                  {isFr ? "Heure" : "Time"}
                 </th>
                 <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
-                  Channel
+                  {isFr ? "Canal" : "Channel"}
                 </th>
                 <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
-                  Referrer
+                  {isFr ? "Référent" : "Referrer"}
                 </th>
                 <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
-                  Short link
+                  {isFr ? "Lien court" : "Short link"}
                 </th>
                 <th scope="col" className="py-3.5 px-3 whitespace-nowrap">
-                  Location
+                  {isFr ? "Localisation" : "Location"}
                 </th>
                 <th
                   scope="col"
                   className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap"
                 >
-                  Device
+                  {isFr ? "Appareil" : "Device"}
                 </th>
               </tr>
             </thead>
@@ -1398,7 +1445,7 @@ export default function SourcesAnalyticsPage() {
                 const countryLabel = String(
                   ev.countryName || ev.countryCode || "",
                 ).trim();
-                const timeStr = formatEventTime(ev.timestamp);
+                const timeStr = formatEventTime(ev.timestamp, isFr);
 
                 return (
                   <tr
@@ -1417,7 +1464,7 @@ export default function SourcesAnalyticsPage() {
                             : "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border-[#0066FF]/25"
                         }`}
                       >
-                        {info.channel}
+                        {formatChannelLabel(info.channel, isFr)}
                       </em>
                     </td>
 
@@ -1463,7 +1510,7 @@ export default function SourcesAnalyticsPage() {
                     </td>
 
                     <td className="py-3.5 pl-3 pr-5 sm:pr-6 whitespace-nowrap font-medium text-zinc-800 dark:text-neutral-200">
-                      {formatDeviceLabel(ev.device)}
+                      {formatDeviceLabel(ev.device, isFr)}
                     </td>
                   </tr>
                 );
@@ -1475,7 +1522,9 @@ export default function SourcesAnalyticsPage() {
                     colSpan={6}
                     className="py-12 text-center text-xs text-zinc-500 dark:text-neutral-400"
                   >
-                    No click events matching your filter.
+                    {isFr
+                      ? "Aucun événement de clic ne correspond à votre filtre."
+                      : "No click events matching your filter."}
                   </td>
                 </tr>
               )}
@@ -1486,19 +1535,19 @@ export default function SourcesAnalyticsPage() {
         {/* ─── Footer Pagination (Same colors & dimensions as Devices) ─── */}
         <div className="px-5 sm:px-6 py-3.5 border-t border-[#E4E7EC] dark:border-[#222225] text-xs text-zinc-500 dark:text-neutral-400 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="m-0">
-            Showing {showingStart}–{showingEnd} of {filteredEvents.length}{" "}
-            {filteredEvents.length === 1 ? "event" : "events"} · Page{" "}
-            {safeCurrentPage} / {totalPages}
+            {isFr
+              ? `Affichage de ${showingStart}–${showingEnd} sur ${filteredEvents.length} ${filteredEvents.length === 1 ? "événement" : "événements"} · Page ${safeCurrentPage} / ${totalPages}`
+              : `Showing ${showingStart}–${showingEnd} of ${filteredEvents.length} ${filteredEvents.length === 1 ? "event" : "events"} · Page ${safeCurrentPage} / ${totalPages}`}
           </p>
 
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              aria-label="Previous page"
+              aria-label={isFr ? "Page précédente" : "Previous page"}
               disabled={safeCurrentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Previous page"
+              title={isFr ? "Page précédente" : "Previous page"}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -1509,13 +1558,13 @@ export default function SourcesAnalyticsPage() {
 
             <button
               type="button"
-              aria-label="Next page"
+              aria-label={isFr ? "Page suivante" : "Next page"}
               disabled={safeCurrentPage >= totalPages}
               onClick={() =>
                 setCurrentPage((p) => Math.min(totalPages, p + 1))
               }
               className="p-1.5 rounded-[8px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] text-zinc-700 dark:text-neutral-300 hover:text-black dark:hover:text-white disabled:opacity-40 cursor-pointer transition-colors"
-              title="Next page"
+              title={isFr ? "Page suivante" : "Next page"}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

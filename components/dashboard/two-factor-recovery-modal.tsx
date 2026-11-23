@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface TwoFactorRecoveryModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function TwoFactorRecoveryModal({
   recoveryCodes,
   email,
 }: TwoFactorRecoveryModalProps) {
+  const { tr } = useI18n();
   const [isCopied, setIsCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -44,7 +46,7 @@ export function TwoFactorRecoveryModal({
 
     navigator.clipboard.writeText(text);
     setIsCopied(true);
-    showToast.success("Backup codes copied!");
+    showToast.success(tr("Backup codes copied!", "Codes de secours copiés !"));
     setTimeout(() => setIsCopied(false), 2000);
   };
 
@@ -70,7 +72,7 @@ export function TwoFactorRecoveryModal({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast.success("Backup codes file downloaded!");
+    showToast.success(tr("Backup codes file downloaded!", "Fichier des codes de secours téléchargé !"));
   };
 
   return (
@@ -82,8 +84,8 @@ export function TwoFactorRecoveryModal({
               <KeyRound className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Your 2FA Backup Codes</h3>
-              <p className="text-[11px] text-zinc-500 dark:text-neutral-400">One-time use in case of phone loss</p>
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{tr("Your 2FA Backup Codes", "Vos codes de secours 2FA")}</h3>
+              <p className="text-[11px] text-zinc-500 dark:text-neutral-400">{tr("One-time use in case of phone loss", "Usage unique en cas de perte de téléphone")}</p>
             </div>
           </div>
           <button
@@ -99,7 +101,7 @@ export function TwoFactorRecoveryModal({
           <div className="grid grid-cols-2 gap-2 p-3 rounded-[10px] bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-[#222226]">
             {recoveryCodes.length === 0 ? (
               <div className="col-span-2 py-4 text-center text-xs text-zinc-400 dark:text-neutral-500">
-                No backup codes recorded.
+                {tr("No backup codes recorded.", "Aucun code de secours enregistré.")}
               </div>
             ) : (
               recoveryCodes.map((code, idx) => (
@@ -122,7 +124,7 @@ export function TwoFactorRecoveryModal({
               className="text-xs h-9 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 gap-1.5 rounded-[8px]"
             >
               {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopied ? "Copied!" : "Copy"}</span>
+              <span>{isCopied ? tr("Copied!", "Copié !") : tr("Copy", "Copier")}</span>
             </Button>
             <Button
               type="button"
@@ -131,7 +133,7 @@ export function TwoFactorRecoveryModal({
               className="text-xs h-9 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-700 dark:text-neutral-200 gap-1.5 rounded-[8px]"
             >
               <Download className="w-3.5 h-3.5 text-[#0066FF]" />
-              <span>Download</span>
+              <span>{tr("Download", "Télécharger")}</span>
             </Button>
           </div>
 
@@ -140,7 +142,7 @@ export function TwoFactorRecoveryModal({
             onClick={onClose}
             className="w-full text-xs h-10 font-bold mt-1 cursor-pointer bg-[#0066FF] hover:bg-[#0055d4] text-white rounded-[10px]"
           >
-            Close
+            {tr("Close", "Fermer")}
           </Button>
         </div>
       </div>

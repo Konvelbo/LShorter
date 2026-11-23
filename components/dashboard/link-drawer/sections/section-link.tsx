@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { FieldErrorAlert } from "../field-error-alert";
 import { showToast } from "@/components/ui/toast-provider";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface SectionLinkProps {
   isEditMode: boolean;
@@ -44,6 +45,8 @@ export const SectionLink = React.memo(function SectionLink({
   checkDomainFormat,
   checkSlugFormat,
 }: SectionLinkProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [copied, setCopied] = useState(false);
   const tagInputId = useId();
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null);
@@ -113,7 +116,11 @@ export const SectionLink = React.memo(function SectionLink({
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(full);
       setCopied(true);
-      showToast.success("Short link copied to clipboard!");
+      showToast.success(
+        isFr
+          ? "Lien court copié dans le presse-papiers !"
+          : "Short link copied to clipboard!",
+      );
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -125,10 +132,12 @@ export const SectionLink = React.memo(function SectionLink({
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">
-          Where should your link go?
+          {isFr ? "Où doit mener votre lien ?" : "Where should your link go?"}
         </h2>
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-1">
-          Paste the destination and choose your short link.
+          {isFr
+            ? "Collez l'URL de destination et choisissez votre lien court."
+            : "Paste the destination and choose your short link."}
         </p>
       </div>
 
@@ -138,7 +147,7 @@ export const SectionLink = React.memo(function SectionLink({
           htmlFor={`${tagInputId}-dest-url`}
           className="text-sm font-bold text-zinc-950 dark:text-white"
         >
-          Destination URL <span className="text-red-500">*</span>
+          {isFr ? "URL de destination" : "Destination URL"} <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <Input
@@ -178,7 +187,7 @@ export const SectionLink = React.memo(function SectionLink({
           htmlFor={`${tagInputId}-custom-slug`}
           className="text-sm font-bold text-zinc-950 dark:text-white"
         >
-          Short link <span className="text-red-500">*</span>
+          {isFr ? "Lien court" : "Short link"} <span className="text-red-500">*</span>
         </label>
         <div className="flex gap-2">
           {/* Domain Selector */}
@@ -205,7 +214,7 @@ export const SectionLink = React.memo(function SectionLink({
             >
               {!isEditMode && !domainName && (
                 <option value="" disabled>
-                  Domain...
+                  {isFr ? "Domaine..." : "Domain..."}
                 </option>
               )}
               {customDomains.map((cd) => (
@@ -230,7 +239,7 @@ export const SectionLink = React.memo(function SectionLink({
             <Input
               id={`${tagInputId}-custom-slug`}
               required
-              placeholder="custom-slug"
+              placeholder={isFr ? "slug-personnalise" : "custom-slug"}
               value={slug}
               onChange={(e) => {
                 const val = e.target.value;
@@ -260,9 +269,9 @@ export const SectionLink = React.memo(function SectionLink({
             <button
               type="button"
               onClick={generateRandomSlug}
-              title="Generate random slug"
+              title={isFr ? "Générer un slug aléatoire" : "Generate random slug"}
               className="p-2.5 bg-zinc-100 dark:bg-[#16181d] hover:bg-zinc-200 dark:hover:bg-[#22242a] text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white rounded-[10px] border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
-              aria-label="Generate random slug"
+              aria-label={isFr ? "Générer un slug aléatoire" : "Generate random slug"}
             >
               <Dices className="w-4 h-4" />
             </button>
@@ -278,7 +287,7 @@ export const SectionLink = React.memo(function SectionLink({
           className="text-sm font-bold text-zinc-950 dark:text-white flex items-center gap-1.5"
         >
           <TagIcon className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
-          <span>Tags (Optional)</span>
+          <span>{isFr ? "Tags (Optionnel)" : "Tags (Optional)"}</span>
         </Label>
         <div className="lshorter-tag-container w-full flex flex-col items-start">
           <TagInput
@@ -289,7 +298,7 @@ export const SectionLink = React.memo(function SectionLink({
             setActiveTagIndex={setActiveTagIndex}
             inlineTags={false}
             inputFieldPosition="top"
-            placeholder="Add tags (press Enter)..."
+            placeholder={isFr ? "Ajouter des tags (appuyez sur Entrée)..." : "Add tags (press Enter)..."}
             inputProps={
               {
                 name: "link_general_tags_input",
@@ -318,18 +327,20 @@ export const SectionLink = React.memo(function SectionLink({
           />
         </div>
         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-          Press enter to add tags to filter and organize links in your dashboard.
+          {isFr
+            ? "Appuyez sur Entrée pour ajouter des tags afin de filtrer et organiser vos liens dans le tableau de bord."
+            : "Press enter to add tags to filter and organize links in your dashboard."}
         </p>
       </div>
 
       {/* Live Preview Result Box */}
       <div className="mt-2 p-4 rounded-[10px] bg-zinc-50 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a] text-sm text-zinc-800 dark:text-zinc-200 break-all leading-relaxed flex items-start justify-between gap-3 shadow-xs">
         <div>
-          Visitors to{" "}
+          {isFr ? "Les visiteurs de " : "Visitors to "}
           <b className="text-zinc-950 dark:text-white font-bold">
             {currentShortUrl}
           </b>{" "}
-          will be sent to{" "}
+          {isFr ? "seront redirigés vers " : "will be sent to "}
           <b className="text-zinc-950 dark:text-white font-bold">
             {currentTarget}
           </b>
@@ -338,7 +349,7 @@ export const SectionLink = React.memo(function SectionLink({
           <button
             type="button"
             onClick={handleCopyPreview}
-            title="Copy preview link"
+            title={isFr ? "Copier le lien d'aperçu" : "Copy preview link"}
             className="p-1.5 rounded-md hover:bg-white dark:hover:bg-[#0e0f12] text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer shrink-0"
           >
             {copied ? (

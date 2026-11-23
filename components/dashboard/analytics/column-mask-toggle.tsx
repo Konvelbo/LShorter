@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { SlidersHorizontal, Check, Eye, EyeOff, X } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface ColumnDefinition {
   key: string;
@@ -22,6 +23,8 @@ export function ColumnMaskToggle({
   onToggleColumn,
   onResetColumns,
 }: ColumnMaskToggleProps) {
+  const { locale } = useI18n();
+  const isFr = locale === "fr";
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,10 +44,10 @@ export function ColumnMaskToggle({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1a1a1e] dark:hover:bg-white/10 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white border border-zinc-300 dark:border-[#27272a] text-xs font-semibold transition-all cursor-pointer shadow-sm"
-        title="Customize visible columns"
+        title={isFr ? "Personnaliser les colonnes visibles" : "Customize visible columns"}
       >
         <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-        <span>Columns ({visibleColumns.size}/{columns.length})</span>
+        <span>{isFr ? "Colonnes" : "Columns"} ({visibleColumns.size}/{columns.length})</span>
       </button>
 
       {isOpen && (
@@ -52,7 +55,7 @@ export function ColumnMaskToggle({
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200 dark:border-[#222225]">
             <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-              <span>Column Visibility</span>
+              <span>{isFr ? "Colonnes visibles" : "Column Visibility"}</span>
             </span>
             <button
               onClick={() => setIsOpen(false)}
@@ -97,7 +100,7 @@ export function ColumnMaskToggle({
                 onClick={onResetColumns}
                 className="text-[11px] text-[var(--brand-primary-text)] hover:underline font-semibold cursor-pointer"
               >
-                Reset all
+                {isFr ? "Tout réinitialiser" : "Reset all"}
               </button>
             </div>
           )}

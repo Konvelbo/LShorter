@@ -34,6 +34,7 @@ import { showToast } from "@/components/ui/toast-provider";
 import { triggerGlobalUndoDelete } from "@/components/ui/undo-delete-provider";
 import { ReferrerBadge, ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 import { PixelBadgesList, PixelLogosOnlyList } from "@/components/dashboard/pixel-badges";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function getLocalGlassAvatar(seed: string): string {
   const cleanSeed = (seed || "link").toLowerCase();
@@ -105,8 +106,10 @@ export function normalizeBannerUrl(rawUrl?: string | null): string {
 function formatLiveRelativeTime(
   timestamp: string | number | Date,
   nowMs: number,
+  locale: "en" | "fr" = "en",
 ): string {
-  if (!timestamp) return "Just now";
+  const isFr = locale === "fr";
+  if (!timestamp) return isFr ? "À l'instant" : "Just now";
   let timeMs = 0;
   if (typeof timestamp === "number") {
     timeMs = timestamp < 1e11 ? timestamp * 1000 : timestamp;
@@ -121,18 +124,18 @@ function formatLiveRelativeTime(
     timeMs = isNaN(parsed) ? new Date(timestamp).getTime() : parsed;
   }
 
-  if (isNaN(timeMs) || timeMs <= 0) return "Just now";
+  if (isNaN(timeMs) || timeMs <= 0) return isFr ? "À l'instant" : "Just now";
   const diffSec = Math.floor((nowMs - timeMs) / 1000);
-  if (diffSec < 60) return "Just now";
+  if (diffSec < 60) return isFr ? "À l'instant" : "Just now";
   const mins = Math.floor(diffSec / 60);
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} mins ago`;
+  if (mins === 1) return isFr ? "Il y a 1 min" : "1 min ago";
+  if (mins < 60) return isFr ? `Il y a ${mins} min` : `${mins} mins ago`;
   const hours = Math.floor(mins / 60);
-  if (hours === 1) return "1 hour ago";
-  if (hours < 24) return `${hours} hours ago`;
+  if (hours === 1) return isFr ? "Il y a 1 heure" : "1 hour ago";
+  if (hours < 24) return isFr ? `Il y a ${hours} heures` : `${hours} hours ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  if (days === 1) return isFr ? "Hier" : "Yesterday";
+  return isFr ? `Il y a ${days} jours` : `${days} days ago`;
 }
 
 function LinkAvatarThumbnail({
@@ -150,6 +153,7 @@ function LinkAvatarThumbnail({
   slug: string;
   onClick: (e: React.MouseEvent) => void;
 }) {
+  const { tr } = useI18n();
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -157,7 +161,11 @@ function LinkAvatarThumbnail({
     <button
       type="button"
       onClick={onClick}
-      title={hasCustomBanner ? "Click to view full banner preview" : "Click to edit link"}
+      title={
+        hasCustomBanner
+          ? tr("Click to view full banner preview", "Cliquer pour afficher l'aperçu de la bannière")
+          : tr("Click to edit link", "Cliquer pour modifier le lien")
+      }
       className="group/avatar relative w-11 h-8 rounded-lg border border-zinc-200/90 dark:border-white/10 bg-[#F1F5F9] dark:bg-[#1a1a1e] overflow-hidden shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 shadow-2xs hover:shadow-md ring-1 ring-black/5 dark:ring-white/5"
     >
       {/* Animated Micro-Skeleton Shimmer while image is loading */}
@@ -230,7 +238,7 @@ export interface LinksReuiDataGridProps {
 
 export function LinksReuiDataGrid({
   links: propLinks,
-  title = "Short Links Data Table",
+  title,
   pageSize: initialPageSize = 10,
   onCopy,
   onSelectLink,
@@ -244,6 +252,8 @@ export function LinksReuiDataGrid({
   onSelectQr,
   onQr,
 }: LinksReuiDataGridProps) {
+  const { locale, tr, formatNumber, formatDate } = useI18n();
+  const effectiveTitle = title || tr("Short Links Data Table", "Tableau des liens courts");
   const [internalLinks, setInternalLinks] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState<number>(initialPageSize);
@@ -459,12 +469,18 @@ export function LinksReuiDataGrid({
         is_active: nextActive ? 1 : 0,
         status: nextActive ? "Active" : "Paused",
       });
-      showToast.success(nextActive ? `/${link.slug} reactivated` : `/${link.slug} paused`);
+      showToast.success(
+        nextActive
+          ? tr(`/${link.slug} reactivated`, `/${link.slug} réactivé`)
+          : tr(`/${link.slug} paused`, `/${link.slug} mis en pause`)
+      );
       cfInvalidateCache();
       window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
       window.dispatchEvent(new Event("lshorter_data_change"));
     } catch {
-      showToast.error("Failed to update status");
+      showToast.error(
+        tr("Failed to update status", "Échec de la mise à jour du statut")
+      );
     }
   };
 
@@ -744,14 +760,14 @@ export function LinksReuiDataGrid({
   }, [rowsData]);
 
   const COLUMN_DEFINITIONS = [
-    { key: "shortLink", label: "Owner & Short Link" },
-    { key: "destination", label: "Destination URL" },
-    { key: "pixels", label: "Pixel Targeting" },
-    { key: "clicks", label: "Total Clicks" },
-    { key: "revenue", label: "Revenue ($)" },
-    { key: "createdAt", label: "Created Date" },
-    { key: "status", label: "Status" },
-    { key: "action", label: "Actions" },
+    { key: "shortLink", label: tr("Owner & Short Link", "Propriétaire & Lien court") },
+    { key: "destination", label: tr("Destination URL", "URL de destination") },
+    { key: "pixels", label: tr("Pixel Targeting", "Ciblage pixels") },
+    { key: "clicks", label: tr("Total Clicks", "Total des clics") },
+    { key: "revenue", label: tr("Revenue ($)", "Revenus ($)") },
+    { key: "createdAt", label: tr("Created Date", "Date de création") },
+    { key: "status", label: tr("Status", "Statut") },
+    { key: "action", label: tr("Actions", "Actions") },
   ];
 
   const activeColCount =
@@ -771,11 +787,13 @@ export function LinksReuiDataGrid({
       <div className="px-4 sm:px-6 pt-4 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <h3 className="text-base sm:text-[17px] font-semibold text-[#101828] dark:text-[#fafafa] tracking-tight">
-            {title}
+            {effectiveTitle}
           </h3>
           <p className="text-xs sm:text-[13px] text-[#667085] dark:text-[#a1a1aa] mt-0.5">
-            Manage custom branded links, destination routing rules, revenue
-            attribution, and click telemetry
+            {tr(
+              "Manage custom branded links, destination routing rules, revenue attribution, and click telemetry",
+              "Gérez vos liens personnalisés, règles de routage, attribution des revenus et télémétrie des clics"
+            )}
           </p>
         </div>
       </div>
@@ -783,7 +801,7 @@ export function LinksReuiDataGrid({
       <div className="px-4 sm:px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-transparent shrink-0">
         <div className="flex items-center justify-between sm:justify-start gap-2 text-xs text-[#667085] dark:text-[#a1a1aa] w-full sm:w-auto">
           <div className="flex items-center gap-1.5">
-            <span>Show</span>
+            <span>{tr("Show", "Afficher")}</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -796,7 +814,7 @@ export function LinksReuiDataGrid({
               <option value={10}>10</option>
               <option value={25}>25</option>
             </select>
-            <span>entries</span>
+            <span>{tr("entries", "entrées")}</span>
           </div>
 
           {/* Mobile Density Limiter Toggle (Compact vs Detailed) */}
@@ -811,7 +829,7 @@ export function LinksReuiDataGrid({
                   : "text-zinc-500"
               )}
             >
-              Compact
+              {tr("Compact", "Compact")}
             </button>
             <button
               type="button"
@@ -823,7 +841,7 @@ export function LinksReuiDataGrid({
                   : "text-zinc-500"
               )}
             >
-              Détaillé
+              {tr("Detailed", "Détaillé")}
             </button>
           </div>
         </div>
@@ -838,7 +856,10 @@ export function LinksReuiDataGrid({
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search short links, URLs or tags..."
+              placeholder={tr(
+                "Search short links, URLs or tags...",
+                "Rechercher liens courts, URLs ou tags..."
+              )}
               className="w-full h-8 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] pl-8 pr-2.5 text-xs text-[#101828] dark:text-[#fafafa] placeholder:text-[#98A2B3] focus:outline-none focus:border-[#0066FF]"
             />
           </div>
@@ -849,7 +870,7 @@ export function LinksReuiDataGrid({
               onClick={() => setIsColMenuOpen((prev) => !prev)}
               className="h-8 px-2.5 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] hover:bg-[#F9FAFB] dark:hover:bg-[#1c1c20] text-xs font-medium text-[#344054] dark:text-[#d4d4d8] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>Columns</span>
+              <span>{tr("Columns", "Colonnes")}</span>
               <span className="inline-flex items-center justify-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]">
                 {COLUMN_DEFINITIONS.filter((c) => visibleCols[c.key]).length}/
                 {COLUMN_DEFINITIONS.length}
@@ -860,7 +881,7 @@ export function LinksReuiDataGrid({
               <div className="absolute right-0 mt-2 w-56 rounded-[10px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-2 shadow-xl z-50">
                 <div className="flex items-center justify-between px-2 py-1.5 border-b border-[#E4E7EC] dark:border-[#222225] mb-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa]">
-                    Show / Hide Columns
+                    {tr("Show / Hide Columns", "Afficher / Masquer")}
                   </span>
                   <button
                     type="button"
@@ -878,7 +899,7 @@ export function LinksReuiDataGrid({
                     }
                     className="text-[11px] font-semibold text-[#0066FF] hover:underline cursor-pointer"
                   >
-                    Show all
+                    {tr("Show all", "Tout afficher")}
                   </button>
                 </div>
 
@@ -915,7 +936,7 @@ export function LinksReuiDataGrid({
                 <input
                   ref={headerCheckboxRef}
                   type="checkbox"
-                  aria-label="Select all rows"
+                  aria-label={tr("Select all rows", "Tout sélectionner")}
                   checked={isAllSelected}
                   onChange={toggleSelectAll}
                   className="w-3.5 h-3.5 rounded border-[#D0D5DD] dark:border-[#2e2e33] text-[#0066FF] focus:ring-[#0066FF] cursor-pointer"
@@ -927,19 +948,19 @@ export function LinksReuiDataGrid({
                   className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span>Owner &amp; Short Link</span>
+                    <span>{tr("Owner & Short Link", "Propriétaire & Lien court")}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.destination && (
                 <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
-                  <span>Destination URL</span>
+                  <span>{tr("Destination URL", "URL de destination")}</span>
                 </th>
               )}
               {visibleCols.pixels && (
                 <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
-                  <span>Pixels</span>
+                  <span>{tr("Pixels", "Pixels")}</span>
                 </th>
               )}
               {visibleCols.clicks && (
@@ -948,7 +969,7 @@ export function LinksReuiDataGrid({
                   className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span>Total Clicks</span>
+                    <span>{tr("Total Clicks", "Total des clics")}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
@@ -959,7 +980,7 @@ export function LinksReuiDataGrid({
                   className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span>Revenue</span>
+                    <span>{tr("Revenue", "Revenus")}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
@@ -970,19 +991,19 @@ export function LinksReuiDataGrid({
                   className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] cursor-pointer select-none whitespace-nowrap"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span>Created Date</span>
+                    <span>{tr("Created Date", "Date de création")}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#94A3B8] opacity-70" />
                   </div>
                 </th>
               )}
               {visibleCols.status && (
                 <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] whitespace-nowrap">
-                  <span>Status</span>
+                  <span>{tr("Status", "Statut")}</span>
                 </th>
               )}
               {visibleCols.action && (
                 <th className="py-2.5 px-3.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#64748B] dark:text-[#94A3B8] text-right whitespace-nowrap last:rounded-r-[8px]">
-                  <span>Action</span>
+                  <span>{tr("Action", "Action")}</span>
                 </th>
               )}
             </tr>
@@ -995,8 +1016,10 @@ export function LinksReuiDataGrid({
                   colSpan={activeColCount}
                   className="py-14 px-6 text-center text-[13.5px] text-[#667085] dark:text-[#a1a1aa]"
                 >
-                  No short links found. Create your first link to start tracking
-                  analytics and custom banners.
+                  {tr(
+                    "No short links found. Create your first link to start tracking analytics and custom banners.",
+                    "Aucun lien court trouvé. Créez votre premier lien pour suivre vos analytiques et bannières personnalisées."
+                  )}
                 </td>
               </tr>
             ) : (
@@ -1013,7 +1036,10 @@ export function LinksReuiDataGrid({
                     onContextMenu={(e) => {
                       checkAndHandleShortcut(e, row.id);
                     }}
-                    title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
+                    title={tr(
+                      `${isMac ? "⌘" : "Ctrl"} + Click to select`,
+                      `${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`
+                    )}
                     className={cn(
                       "transition-colors cursor-pointer select-none",
                       isChecked
@@ -1082,7 +1108,10 @@ export function LinksReuiDataGrid({
                                 href={`/${encodeURIComponent(row.slug)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title={`${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`}
+                                title={tr(
+                                  `${isMac ? "⌘" : "Ctrl"} + Click to select`,
+                                  `${isMac ? "⌘" : "Ctrl"} + Clic pour sélectionner`
+                                )}
                                 onContextMenu={(e) => {
                                   checkAndHandleShortcut(e, row.id);
                                 }}
@@ -1201,7 +1230,7 @@ export function LinksReuiDataGrid({
                     {visibleCols.clicks && (
                       <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <span className="text-[13.5px] font-bold text-[#0F172A] dark:text-[#F8FAFC] font-mono tabular-nums tracking-[-0.02em]">
-                          {row.clicks.toLocaleString()}
+                          {formatNumber(row.clicks)}
                         </span>
                       </td>
                     )}
@@ -1220,8 +1249,10 @@ export function LinksReuiDataGrid({
                           </span>
                           {row.conversions > 0 && (
                             <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
-                              {row.conversions} sale
-                              {row.conversions > 1 ? "s" : ""}
+                              {row.conversions}{" "}
+                              {row.conversions > 1
+                                ? tr("sales", "ventes")
+                                : tr("sale", "vente")}
                             </span>
                           )}
                         </div>
@@ -1232,14 +1263,14 @@ export function LinksReuiDataGrid({
                       <td className="py-2.5 px-3.5 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-                            {new Date(row.createdAt).toLocaleDateString("en-US", {
+                            {formatDate(row.createdAt, {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",
                             })}
                           </span>
                           <span className="text-[10.5px] text-[#94A3B8] dark:text-[#64748B]">
-                            {formatLiveRelativeTime(row.createdAt, Date.now())}
+                            {formatLiveRelativeTime(row.createdAt, Date.now(), locale)}
                           </span>
                         </div>
                       </td>
@@ -1251,7 +1282,13 @@ export function LinksReuiDataGrid({
                           const isAct = row.status === "Active" || row.status === "Actif";
                           const isExp = row.status === "Expired" || row.status === "Expiré";
                           const isPau = row.status === "Paused" || row.status === "En pause";
-                          const label = isExp ? "Expiré" : isAct ? "Actif" : isPau ? "En pause" : row.status;
+                          const label = isExp
+                            ? tr("Expired", "Expiré")
+                            : isAct
+                              ? tr("Active", "Actif")
+                              : isPau
+                                ? tr("Paused", "En pause")
+                                : row.status;
 
                           if (isAct) {
                             return (
@@ -1319,7 +1356,12 @@ export function LinksReuiDataGrid({
                   className="w-4 h-4 rounded-[4px] border-red-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
                 />
                 <span className="font-medium text-red-900 dark:text-red-200 truncate">
-                  {selectedLinkIdsList.length} link{selectedLinkIdsList.length > 1 ? "s" : ""} selected
+                  {selectedLinkIdsList.length > 1
+                    ? tr(
+                        `${selectedLinkIdsList.length} links selected`,
+                        `${selectedLinkIdsList.length} liens sélectionnés`
+                      )
+                    : tr("1 link selected", "1 lien sélectionné")}
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -1328,7 +1370,7 @@ export function LinksReuiDataGrid({
                   onClick={() => setSelectedIds({})}
                   className="px-2 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 cursor-pointer"
                 >
-                  Cancel
+                  {tr("Cancel", "Annuler")}
                 </button>
                 <button
                   type="button"
@@ -1348,8 +1390,14 @@ export function LinksReuiDataGrid({
                       triggerGlobalUndoDelete({
                         id: `bulk_${Date.now()}`,
                         itemType: "link",
-                        title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                        description: count > 1 ? `${count} liens sélectionnés` : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
+                        title:
+                          count > 1
+                            ? tr(`${count} links deleted`, `${count} liens supprimés`)
+                            : tr("Link deleted", "Lien supprimé"),
+                        description:
+                          count > 1
+                            ? tr(`${count} selected links`, `${count} liens sélectionnés`)
+                            : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
                         confirmText: count === 1 && firstRow?.slug ? firstRow.slug : "DELETE",
                         onExecute: async () => {
                           setSelectedIds({});
@@ -1359,7 +1407,9 @@ export function LinksReuiDataGrid({
                             window.dispatchEvent(new CustomEvent("lshorter_data_change"));
                             window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
                           } catch {
-                            showToast.error("Erreur lors de la suppression des liens");
+                            showToast.error(
+                              tr("Error deleting links", "Erreur lors de la suppression des liens")
+                            );
                             return false;
                           }
                         },
@@ -1369,7 +1419,7 @@ export function LinksReuiDataGrid({
                   className="h-7.5 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
+                  <span>{tr("Delete", "Supprimer")}</span>
                 </button>
               </div>
             </div>
@@ -1377,14 +1427,26 @@ export function LinksReuiDataGrid({
 
           {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
-              No links match your search criteria.
+              {tr(
+                "No links match your search criteria.",
+                "Aucun lien ne correspond à votre recherche."
+              )}
             </div>
           ) : (
             paginatedRows.map((row) => {
               const isSelected = !!selectedIds[row.id];
               const isExpanded = expandedRowId === row.id || mobileDensity === "detailed";
               const isRowCopied = copiedId === row.id;
-              const isRowActive = row.status === "Active";
+              const isRowActive = row.status === "Active" || row.status === "Actif";
+              const isRowExp = row.status === "Expired" || row.status === "Expiré";
+              const isRowPau = row.status === "Paused" || row.status === "En pause";
+              const mobileStatusLabel = isRowExp
+                ? tr("Expired", "Expiré")
+                : isRowActive
+                  ? tr("Active", "Actif")
+                  : isRowPau
+                    ? tr("Paused", "En pause")
+                    : row.status;
 
               return (
                 <div
@@ -1403,7 +1465,7 @@ export function LinksReuiDataGrid({
                   onContextMenu={(e) => {
                     checkAndHandleShortcut(e, row.id);
                   }}
-                  title="Tap to select link"
+                  title={tr("Tap to select link", "Appuyez pour sélectionner le lien")}
                   className={cn(
                     "rounded-[10px] border border-zinc-200 dark:border-[#222225] bg-white dark:bg-[#141416] p-3 transition-colors cursor-pointer select-none",
                     isSelected && "border-[#0066FF] bg-blue-50/40 dark:bg-blue-950/20"
@@ -1429,7 +1491,7 @@ export function LinksReuiDataGrid({
                           "w-2 h-2 rounded-full shrink-0",
                           isRowActive ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" : "bg-zinc-400"
                         )}
-                        title={row.status}
+                        title={mobileStatusLabel}
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -1442,12 +1504,15 @@ export function LinksReuiDataGrid({
                               handleOpenAndTrackClick(row.slug, row.clicks, row.id);
                             }}
                             className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100 hover:text-[#0066FF] dark:hover:text-[#5294FF] hover:underline truncate transition-colors"
-                            title={`Open /${row.slug} in a new tab`}
+                            title={tr(
+                              `Open /${row.slug} in a new tab`,
+                              `Ouvrir /${row.slug} dans un nouvel onglet`
+                            )}
                           >
                             /{row.slug}
                           </a>
                           <span className="font-mono text-[10.5px] text-zinc-500 dark:text-zinc-400 shrink-0">
-                            {row.clicks.toLocaleString()} clicks
+                            {formatNumber(row.clicks)} {tr("clicks", "clics")}
                           </span>
                         </div>
                       </div>
@@ -1461,8 +1526,8 @@ export function LinksReuiDataGrid({
                           setExpandedRowId(expandedRowId === row.id ? null : row.id);
                         }}
                         className="w-7 h-7 flex items-center justify-center rounded-[6px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                        title="Afficher les détails"
-                        aria-label="Afficher les détails"
+                        title={tr("Show details", "Afficher les détails")}
+                        aria-label={tr("Show details", "Afficher les détails")}
                       >
                         <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-90")} />
                       </button>
@@ -1481,17 +1546,25 @@ export function LinksReuiDataGrid({
                       {/* Metric summary strip */}
                       <div className="grid grid-cols-3 gap-1.5 py-1 text-center bg-zinc-50 dark:bg-[#18181c] rounded-[8px] p-2">
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Unique Clicks</span>
-                          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{row.clicks.toLocaleString()}</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">
+                            {tr("Unique Clicks", "Clics uniques")}
+                          </span>
+                          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">
+                            {formatNumber(row.clicks)}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Revenue</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">
+                            {tr("Revenue", "Revenus")}
+                          </span>
                           <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">${row.revenue.toFixed(2)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">Status</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase tracking-wider font-normal">
+                            {tr("Status", "Statut")}
+                          </span>
                           <span className={cn("text-xs font-semibold font-mono", isRowActive ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500")}>
-                            {row.status}
+                            {mobileStatusLabel}
                           </span>
                         </div>
                       </div>
@@ -1527,7 +1600,7 @@ export function LinksReuiDataGrid({
                               : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
                           )}
                         >
-                          {isRowActive ? "Pause" : "Activate"}
+                          {isRowActive ? tr("Pause", "Pause") : tr("Activate", "Activer")}
                         </button>
 
                         {/* Actions group: ChevronLeft trigger revealing buttons with smooth staggered slide-in and reverse slide-out */}
@@ -1541,8 +1614,8 @@ export function LinksReuiDataGrid({
                                 setClosingMobileActionsId(null);
                               }}
                               className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-90"
-                              title="Actions"
-                              aria-label="Show actions"
+                              title={tr("Actions", "Actions")}
+                              aria-label={tr("Show actions", "Afficher les actions")}
                             >
                               <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                             </button>
@@ -1561,7 +1634,9 @@ export function LinksReuiDataGrid({
                                       navigator.share({ title: `/${row.slug}`, url: row.shortUrl }).catch(() => {});
                                     } else {
                                       navigator.clipboard.writeText(row.shortUrl);
-                                      showToast.success("Link copied to clipboard!");
+                                      showToast.success(
+                                        tr("Link copied to clipboard!", "Lien copié dans le presse-papiers !")
+                                      );
                                     }
                                   }}
                                   style={{
@@ -1571,10 +1646,10 @@ export function LinksReuiDataGrid({
                                     animationDelay: isClosing ? "120ms" : "0ms",
                                   }}
                                   className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
-                                  title="Share link"
+                                  title={tr("Share link", "Partager le lien")}
                                 >
                                   <Share2 className="w-3 h-3 text-sky-500 shrink-0" />
-                                  <span>Share</span>
+                                  <span>{tr("Share", "Partager")}</span>
                                 </button>
 
                                 {/* 2. Edit button */}
@@ -1592,9 +1667,9 @@ export function LinksReuiDataGrid({
                                       animationDelay: isClosing ? "80ms" : "40ms",
                                     }}
                                     className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                    title="Edit link"
+                                    title={tr("Edit link", "Modifier le lien")}
                                   >
-                                    Edit
+                                    {tr("Edit", "Modifier")}
                                   </button>
                                 )}
 
@@ -1613,7 +1688,7 @@ export function LinksReuiDataGrid({
                                       animationDelay: isClosing ? "40ms" : "80ms",
                                     }}
                                     className="px-2.5 py-1 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 rounded-[6px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                    title="Generate QR Code"
+                                    title={tr("Generate QR Code", "Générer un QR Code")}
                                   >
                                     QR
                                   </button>
@@ -1634,8 +1709,8 @@ export function LinksReuiDataGrid({
                                       animationDelay: isClosing ? "0ms" : "120ms",
                                     }}
                                     className="px-2 py-1 text-[11px] font-medium border border-red-500/20 rounded-[6px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                    title="Delete link"
-                                    aria-label="Delete link"
+                                    title={tr("Delete link", "Supprimer le lien")}
+                                    aria-label={tr("Delete link", "Supprimer le lien")}
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -1655,8 +1730,8 @@ export function LinksReuiDataGrid({
                                     animationDelay: isClosing ? "0ms" : "160ms",
                                   }}
                                   className="w-7 h-7 flex items-center justify-center rounded-[6px] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-[#18181c] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 active:scale-90"
-                                  title="Close actions"
-                                  aria-label="Close actions"
+                                  title={tr("Close actions", "Fermer les actions")}
+                                  aria-label={tr("Close actions", "Fermer les actions")}
                                 >
                                   <ChevronRight className="w-3.5 h-3.5" />
                                 </button>
@@ -1695,8 +1770,14 @@ export function LinksReuiDataGrid({
                   triggerGlobalUndoDelete({
                     id: `bulk_${Date.now()}`,
                     itemType: "link",
-                    title: count > 1 ? `${count} liens supprimés` : "Lien supprimé",
-                    description: count > 1 ? `${count} liens sélectionnés` : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
+                    title:
+                      count > 1
+                        ? tr(`${count} links deleted`, `${count} liens supprimés`)
+                        : tr("Link deleted", "Lien supprimé"),
+                    description:
+                      count > 1
+                        ? tr(`${count} selected links`, `${count} liens sélectionnés`)
+                        : (firstRow?.slug ? `/${firstRow.slug}` : undefined),
                     confirmText: count === 1 && firstRow?.slug ? firstRow.slug : "DELETE",
                     onExecute: async () => {
                       setSelectedIds({});
@@ -1706,26 +1787,39 @@ export function LinksReuiDataGrid({
                         window.dispatchEvent(new CustomEvent("lshorter_data_change"));
                         window.dispatchEvent(new CustomEvent("lshorter_links_updated"));
                       } catch {
-                        showToast.error("Erreur lors de la suppression des liens");
+                        showToast.error(
+                          tr("Error deleting links", "Erreur lors de la suppression des liens")
+                        );
                         return false;
                       }
                     },
                   });
                 }
               }}
-              title={`Delete ${selectedLinkIdsList.length} selected link${selectedLinkIdsList.length > 1 ? "s" : ""}`}
-              aria-label="Delete selected links"
+              title={
+                selectedLinkIdsList.length > 1
+                  ? tr(
+                      `Delete ${selectedLinkIdsList.length} selected links`,
+                      `Supprimer ${selectedLinkIdsList.length} liens sélectionnés`
+                    )
+                  : tr("Delete 1 selected link", "Supprimer 1 lien sélectionné")
+              }
+              aria-label={tr("Delete selected links", "Supprimer les liens sélectionnés")}
               className="inline-flex h-8 px-2.5 rounded-[6px] bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-              <span className="text-[11.5px] font-medium">Delete ({selectedLinkIdsList.length})</span>
+              <span className="text-[11.5px] font-medium">
+                {tr("Delete", "Supprimer")} ({selectedLinkIdsList.length})
+              </span>
             </button>
           )}
           <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa]">
-            Showing{" "}
-            {filteredRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredRows.length)} of{" "}
-            {filteredRows.length} entries
+            {tr("Showing", "Affichage de")}{" "}
+            {filteredRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}{" "}
+            {tr("to", "à")}{" "}
+            {Math.min(currentPage * pageSize, filteredRows.length)}{" "}
+            {tr("of", "sur")} {filteredRows.length}{" "}
+            {tr("entries", "entrées")}
           </p>
         </div>
 
@@ -1808,7 +1902,7 @@ export function LinksReuiDataGrid({
                   ) : (
                     <Copy className="w-4 h-4 text-[#667085]" />
                   )}
-                  <span>Copy short link</span>
+                  <span>{tr("Copy short link", "Copier le lien court")}</span>
                 </button>
 
                 {effectiveShare && (
@@ -1823,7 +1917,7 @@ export function LinksReuiDataGrid({
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                   >
                     <Share2 className="w-4 h-4 text-[#667085]" />
-                    <span>Share</span>
+                    <span>{tr("Share", "Partager")}</span>
                   </button>
                 )}
 
@@ -1839,7 +1933,7 @@ export function LinksReuiDataGrid({
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] hover:bg-[#F2F4F7] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                   >
                     <Pencil className="w-4 h-4 text-[#667085]" />
-                    <span>Edit short link</span>
+                    <span>{tr("Edit short link", "Modifier le lien court")}</span>
                   </button>
                 )}
 
@@ -1856,12 +1950,12 @@ export function LinksReuiDataGrid({
                   {isLinkActive(activeRow.raw) ? (
                     <>
                       <Pause className="w-4 h-4 text-amber-500" />
-                      <span>Pause link</span>
+                      <span>{tr("Pause link", "Mettre en pause")}</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-4 h-4 text-emerald-500" />
-                      <span>Activate link</span>
+                      <span>{tr("Activate link", "Activer le lien")}</span>
                     </>
                   )}
                 </button>
@@ -1880,7 +1974,7 @@ export function LinksReuiDataGrid({
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[#D92D20] hover:bg-[#FEF3F2] dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>Delete link</span>
+                    <span>{tr("Delete link", "Supprimer le lien")}</span>
                   </button>
                 </div>
               )}
@@ -1909,17 +2003,6 @@ export function CustomersReuiDataGrid(_props?: {
  * 2. REAL-TIME EDGE REDIRECT LEDGER (GeoLogsReuiDataGrid - Auto-hydraté)
  * ========================================================================== */
 
-const GEO_LOGS_COLUMNS = [
-  { key: "country", label: "Country" },
-  { key: "city", label: "City / PoP" },
-  { key: "referrer", label: "Referrer Source" },
-  { key: "shortLink", label: "Short Link" },
-  { key: "device", label: "Client OS / Browser" },
-  { key: "time", label: "Time" },
-  { key: "status", label: "Security Check" },
-  { key: "action", label: "Action" },
-];
-
 export function GeoLogsReuiDataGrid({
   logs: propLogs,
   analytics: propAnalytics,
@@ -1929,6 +2012,20 @@ export function GeoLogsReuiDataGrid({
   analytics?: any;
   links?: any[];
 }) {
+  const { locale, tr } = useI18n();
+  const geoLogsColumns = useMemo(
+    () => [
+      { key: "country", label: tr("Country", "Pays") },
+      { key: "city", label: tr("City / PoP", "Ville / PoP") },
+      { key: "referrer", label: tr("Referrer Source", "Source référente") },
+      { key: "shortLink", label: tr("Short Link", "Lien court") },
+      { key: "device", label: tr("Client OS / Browser", "OS / Navigateur") },
+      { key: "time", label: tr("Time", "Heure") },
+      { key: "status", label: tr("Security Check", "Sécurité") },
+      { key: "action", label: tr("Action", "Action") },
+    ],
+    [tr]
+  );
   const [internalLogs, setInternalLogs] = useState<any[]>([]);
   const [internalLinks, setInternalLinks] = useState<any[]>([]);
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() =>
@@ -2132,8 +2229,8 @@ export function GeoLogsReuiDataGrid({
           .replace(/^lsho\.cc\//, "")
           .replace(/^lshrt\.co\//, "")
           .replace(/^\//, "");
-        const os = c.os && c.os !== "unknown" ? c.os : "Inconnu";
-        const browser = c.browser && c.browser !== "unknown" ? c.browser : "Inconnu";
+        const os = c.os && c.os !== "unknown" ? c.os : tr("Unknown", "Inconnu");
+        const browser = c.browser && c.browser !== "unknown" ? c.browser : tr("Unknown", "Inconnu");
         const device =
           c.device && c.device.includes("•") ? c.device : `${os} • ${browser}`;
 
@@ -2149,13 +2246,13 @@ export function GeoLogsReuiDataGrid({
           rawSlug: cleanSlug,
           device,
           latency: c.latency ? `${c.latency}` : (c.latencyMs ? `${c.latencyMs}` : "—"),
-          status: "Verified",
+          status: tr("Verified", "Vérifié"),
         };
       });
     }
 
     return [];
-  }, [effectiveLogs]);
+  }, [effectiveLogs, tr]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -2203,17 +2300,20 @@ export function GeoLogsReuiDataGrid({
       <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[#E4E7EC] dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
         <div>
           <h3 className="text-base sm:text-[17px] font-semibold text-[#101828] dark:text-[#fafafa] tracking-tight">
-            Real-Time Edge Redirect Ledger
+            {tr("Real-Time Edge Redirect Ledger", "Registre de redirections Edge en temps réel")}
           </h3>
           <p className="text-[13px] text-[#667085] dark:text-[#a1a1aa] mt-0.5">
-            Live geographic, city and referrer resolution stream across global PoPs
+            {tr(
+              "Live geographic, city and referrer resolution stream across global PoPs",
+              "Flux en direct de résolution géographique, villes et sources sur nos PoPs mondiaux"
+            )}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
           {/* Display limit selector */}
           <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="text-[11.5px]">Show:</span>
+            <span className="text-[11.5px]">{tr("Show:", "Afficher :")}</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -2235,7 +2335,10 @@ export function GeoLogsReuiDataGrid({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by city, country, or referrer..."
+              placeholder={tr(
+                "Filter by city, country, or referrer...",
+                "Filtrer par ville, pays ou référent..."
+              )}
               className="w-full h-10 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] pl-10 pr-4 text-[13px] text-[#101828] dark:text-[#fafafa] placeholder:text-[#98A2B3] focus:outline-none focus:border-[#0066FF]"
             />
           </div>
@@ -2246,9 +2349,9 @@ export function GeoLogsReuiDataGrid({
               onClick={() => setIsColMenuOpen((prev) => !prev)}
               className="h-10 px-3.5 rounded-lg border border-[#D0D5DD] dark:border-[#2e2e33] bg-white dark:bg-[#141416] hover:bg-[#F9FAFB] dark:hover:bg-[#1c1c20] text-[13px] font-medium text-[#344054] dark:text-[#d4d4d8] inline-flex items-center gap-2 transition-colors cursor-pointer"
             >
-              <span>Columns</span>
+              <span>{tr("Columns", "Colonnes")}</span>
               <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF]">
-                {activeColCount}/{GEO_LOGS_COLUMNS.length}
+                {activeColCount}/{geoLogsColumns.length}
               </span>
             </button>
 
@@ -2256,19 +2359,19 @@ export function GeoLogsReuiDataGrid({
               <div className="absolute right-0 mt-2 w-56 rounded-[10px] border border-[#E4E7EC] dark:border-[#222225] bg-white dark:bg-[#141416] p-2 shadow-xl z-50">
                 <div className="flex items-center justify-between px-2 py-1.5 border-b border-[#E4E7EC] dark:border-[#222225] mb-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#667085] dark:text-[#a1a1aa]">
-                    Show / Hide Columns
+                    {tr("Show / Hide Columns", "Afficher / Masquer")}
                   </span>
                   <button
                     type="button"
                     onClick={showAllColumns}
                     className="text-[11px] font-semibold text-[#0066FF] hover:underline cursor-pointer"
                   >
-                    Show all
+                    {tr("Show all", "Tout afficher")}
                   </button>
                 </div>
 
                 <div className="space-y-0.5">
-                  {GEO_LOGS_COLUMNS.map((col) => {
+                  {geoLogsColumns.map((col) => {
                     const checked = !!visibleCols[col.key];
                     return (
                       <label
@@ -2298,42 +2401,42 @@ export function GeoLogsReuiDataGrid({
             <tr className="border-b border-[#E4E7EC] dark:border-[#222225] bg-[#F9FAFB] dark:bg-white/[0.03] text-zinc-700 dark:text-neutral-400 font-semibold text-[11px]">
               {visibleCols.country && (
                 <th className="py-3.5 pl-5 sm:pl-6 pr-4 whitespace-nowrap">
-                  Country
+                  {tr("Country", "Pays")}
                 </th>
               )}
               {visibleCols.city && (
                 <th className="py-3.5 px-4 whitespace-nowrap">
-                  City / PoP
+                  {tr("City / PoP", "Ville / PoP")}
                 </th>
               )}
               {visibleCols.referrer && (
                 <th className="py-3.5 px-4 whitespace-nowrap text-center">
-                  Referrer Source
+                  {tr("Referrer Source", "Source référente")}
                 </th>
               )}
               {visibleCols.shortLink && (
                 <th className="py-3.5 px-4 whitespace-nowrap">
-                  Short Link
+                  {tr("Short Link", "Lien court")}
                 </th>
               )}
               {visibleCols.device && (
                 <th className="py-3.5 px-4 whitespace-nowrap">
-                  Client OS / Browser
+                  {tr("Client OS / Browser", "OS / Navigateur")}
                 </th>
               )}
               {visibleCols.time && (
                 <th className="py-3.5 px-4 whitespace-nowrap">
-                  Time
+                  {tr("Time", "Heure")}
                 </th>
               )}
               {visibleCols.status && (
                 <th className="py-3.5 px-4 whitespace-nowrap">
-                  Security Check
+                  {tr("Security Check", "Sécurité")}
                 </th>
               )}
               {visibleCols.action && (
                 <th className="py-3.5 pl-4 pr-5 sm:pr-6 text-right whitespace-nowrap">
-                  Action
+                  {tr("Action", "Action")}
                 </th>
               )}
             </tr>
@@ -2345,7 +2448,10 @@ export function GeoLogsReuiDataGrid({
                   colSpan={activeColCount}
                   className="py-12 px-6 text-center text-xs text-[#667085] dark:text-[#a1a1aa]"
                 >
-                  No geographic edge redirects recorded yet.
+                  {tr(
+                    "No geographic edge redirects recorded yet.",
+                    "Aucune redirection géographique Edge enregistrée pour le moment."
+                  )}
                 </td>
               </tr>
             ) : (
@@ -2372,7 +2478,7 @@ export function GeoLogsReuiDataGrid({
                               {item.country}
                             </div>
                             <div className="text-[10px] font-mono text-[#667085] dark:text-[#a1a1aa]">
-                              Code: {item.countryCode}
+                              {tr("Code:", "Code :")} {item.countryCode}
                             </div>
                           </div>
                         </div>
@@ -2412,7 +2518,7 @@ export function GeoLogsReuiDataGrid({
                     {visibleCols.time && (
                       <td className="py-3.5 px-4 font-mono text-[11px] text-[#667085] dark:text-[#a1a1aa] whitespace-nowrap">
                         {/* S'actualise en temps réel au fil des minutes */}
-                        {formatLiveRelativeTime(item.timestamp, currentTimeTick)}
+                        {formatLiveRelativeTime(item.timestamp, currentTimeTick, locale)}
                       </td>
                     )}
                     {visibleCols.status && (
@@ -2451,12 +2557,15 @@ export function GeoLogsReuiDataGrid({
         <div className="sm:hidden flex flex-col gap-2 p-1 font-sans">
           {paginatedRows.length === 0 ? (
             <div className="py-12 text-center text-xs text-zinc-500 dark:text-zinc-400">
-              No edge redirect events recorded yet.
+              {tr(
+                "No edge redirect events recorded yet.",
+                "Aucun événement de redirection Edge enregistré pour le moment."
+              )}
             </div>
           ) : (
             paginatedRows.map((item) => {
               const isExpanded = expandedGeoId === item.id;
-              const relTime = formatLiveRelativeTime(item.timestamp, currentTimeTick);
+              const relTime = formatLiveRelativeTime(item.timestamp, currentTimeTick, locale);
 
               return (
                 <div
@@ -2518,11 +2627,15 @@ export function GeoLogsReuiDataGrid({
                     <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5 text-xs">
                       <div className="grid grid-cols-2 gap-1.5 bg-zinc-50 dark:bg-[#18181c] rounded-[8px] p-2 text-[11px]">
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">Client & OS</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">
+                            {tr("Client & OS", "Client & OS")}
+                          </span>
                           <span className="font-medium text-zinc-800 dark:text-zinc-200">{item.device}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">Edge Security</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-normal">
+                            {tr("Edge Security", "Sécurité Edge")}
+                          </span>
                           <span className="font-medium text-emerald-600 dark:text-emerald-400 font-mono">{item.status}</span>
                         </div>
                       </div>
@@ -2538,8 +2651,10 @@ export function GeoLogsReuiDataGrid({
             {/* Pagination & Display Limit Footer */}
       <div className="px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#E4E7EC] dark:border-[#222225] shrink-0 mt-auto bg-white dark:bg-[#111113] text-xs text-[#667085] dark:text-[#a1a1aa]">
         <span>
-          Showing {rows.length === 0 ? 0 : (page - 1) * pageSize + 1} to{" "}
-          {Math.min(page * pageSize, rows.length)} of {rows.length} entries
+          {tr("Showing", "Affichage de")}{" "}
+          {rows.length === 0 ? 0 : (page - 1) * pageSize + 1} {tr("to", "à")}{" "}
+          {Math.min(page * pageSize, rows.length)} {tr("of", "sur")}{" "}
+          {rows.length} {tr("entries", "entrées")}
         </span>
         <div className="flex items-center gap-1.5">
           <button
@@ -2551,7 +2666,7 @@ export function GeoLogsReuiDataGrid({
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
           <span className="px-2.5 py-1 rounded-[6px] font-mono font-medium text-zinc-800 dark:text-zinc-200">
-            Page {page} / {totalPages}
+            {tr("Page", "Page")} {page} / {totalPages}
           </span>
           <button
             type="button"
@@ -2608,7 +2723,7 @@ export function GeoLogsReuiDataGrid({
                 ) : (
                   <Copy className="w-4 h-4 text-[#667085]" />
                 )}
-                <span>Copy short link</span>
+                <span>{tr("Copy short link", "Copier le lien court")}</span>
               </button>
             </div>,
             document.body,

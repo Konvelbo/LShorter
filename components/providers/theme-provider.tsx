@@ -21,6 +21,16 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = "lshorter_theme_v2";
 const LEGACY_STORAGE_KEY = "lshorter_theme";
+const THEME_COOKIE = "lsh_theme";
+
+function writeThemeCookie(targetTheme: Theme) {
+  if (typeof document === "undefined") return;
+  try {
+    document.cookie = `${THEME_COOKIE}=${targetTheme}; path=/; max-age=31536000; SameSite=Lax`;
+  } catch {
+    // ignore cookie errors
+  }
+}
 
 /**
  * Lit le thème actuellement sauvegardé dans le stockage local ou la préférence système.
@@ -99,13 +109,14 @@ function applyThemeToDom(targetTheme: Theme, disableTransitions = true) {
     });
   }
 
-  // Sauvegarde dans les deux clés pour synchronisation totale de l'app
+  // Sauvegarde dans les deux clés localStorage + cookie SSR pour éviter tout flash au rechargement
   try {
     localStorage.setItem(STORAGE_KEY, targetTheme);
     localStorage.setItem(LEGACY_STORAGE_KEY, targetTheme);
   } catch {
     // ignore
   }
+  writeThemeCookie(targetTheme);
 
   try {
     window.dispatchEvent(
@@ -116,13 +127,15 @@ function applyThemeToDom(targetTheme: Theme, disableTransitions = true) {
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof document !== "undefined") {
-      return document.documentElement.classList.contains("dark") ? "dark" : "light";
-    }
-    return "light";
-  });
+export function ThemeProvider({
+  children,
+  initialTheme = "light",
+}: {
+  children: ReactNode;
+  initialTheme?: Theme;
+}) {
+  // Identical initial state on SSR and first client hydration render (zero hydration mismatch)
+  const [theme, setThemeState] = useState<Theme>(initialTheme);
 
   // Synchronisation initiale côté client
   useEffect(() => {
@@ -155,8 +168,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
 
     const initial = readSavedTheme();
-    applyThemeToDom(initial, false);
-    setThemeState(initial);
+    const domMatches = document.documentElement.classList.contains(initial);
+    if (!domMatches) {
+      applyThemeToDom(initial, true);
+    } else {
+      writeThemeCookie(initial);
+    }
+    setThemeState((prev) => (prev === initial ? prev : initial));
 
     // Écoute les modifications externes de thème (ex: autre onglet ou composant)
     const handleStorage = (e: StorageEvent) => {

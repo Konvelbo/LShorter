@@ -22,6 +22,7 @@ import {
 } from "@/components/dashboard/pixel-badges";
 import { cfGetPixels } from "@/lib/cloudflare-api";
 import { useSession } from "next-auth/react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface PixelSelectorModalProps {
   isOpen: boolean;
@@ -105,6 +106,7 @@ function PixelSelectorModalInner({
   availablePixels: propAvailablePixels,
   userId,
 }: Omit<PixelSelectorModalProps, "isOpen"> & { userId: string }) {
+  const { tr } = useI18n();
   const hasPropPixels = Boolean(propAvailablePixels && propAvailablePixels.length > 0);
   const [fetchedPixels, setFetchedPixels] = useState<PixelRecordLike[]>(() =>
     hasPropPixels ? [] : loadCachedPixels(userId)
@@ -269,10 +271,10 @@ function PixelSelectorModalInner({
                 id="pixel-selector-modal-title"
                 className="text-[15px] font-semibold text-zinc-900 dark:text-white leading-tight"
               >
-                Sélectionner des Pixels de Retargeting
+                {tr("Select Retargeting Pixels", "Sélectionner des Pixels de Retargeting")}
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Associez les pixels de suivi configurés dans votre compte pour ce lien
+                {tr("Attach tracking pixels configured in your account to this link", "Associez les pixels de suivi configurés dans votre compte pour ce lien")}
               </p>
             </div>
           </div>
@@ -280,7 +282,7 @@ function PixelSelectorModalInner({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            aria-label="Fermer"
+            aria-label={tr("Close", "Fermer")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -294,7 +296,7 @@ function PixelSelectorModalInner({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher par nom ou identifiant de pixel..."
+              placeholder={tr("Search by pixel name or ID...", "Rechercher par nom ou identifiant de pixel...")}
               className="w-full h-8.5 pl-9 pr-3 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-[#18181c] text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#0066FF] dark:focus:border-[#0066FF] transition-colors"
             />
           </div>
@@ -303,7 +305,7 @@ function PixelSelectorModalInner({
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
             {(
               [
-                { id: "all", label: "Tous" },
+                { id: "all", label: tr("All", "Tous") },
                 { id: "meta", label: "Facebook" },
                 { id: "instagram", label: "Instagram" },
                 { id: "google", label: "Google / GA4" },
@@ -340,7 +342,7 @@ function PixelSelectorModalInner({
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
               <div className="w-5 h-5 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin" />
-              <span>Chargement des pixels configurés...</span>
+              <span>{tr("Loading configured pixels...", "Chargement des pixels configurés...")}</span>
             </div>
           ) : allPixels.length === 0 ? (
             <div className="py-8 px-4 flex flex-col items-center text-center gap-3">
@@ -349,10 +351,13 @@ function PixelSelectorModalInner({
               </div>
               <div className="max-w-xs">
                 <h4 className="text-[13.5px] font-semibold text-zinc-900 dark:text-white">
-                  Aucun pixel de retargeting configuré
+                  {tr("No retargeting pixels configured", "Aucun pixel de retargeting configuré")}
                 </h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                  Vous n&apos;avez pas encore enregistré de pixel sur votre compte. Ajoutez-en un dans vos Paramètres pour commencer à recibler vos visiteurs.
+                  {tr(
+                    "You haven't registered any pixels yet. Add one in Settings to start retargeting your visitors.",
+                    "Vous n'avez pas encore enregistré de pixel sur votre compte. Ajoutez-en un dans vos Paramètres pour commencer à recibler vos visiteurs."
+                  )}
                 </p>
               </div>
               <Link
@@ -361,13 +366,13 @@ function PixelSelectorModalInner({
                 className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Ajouter un pixel dans les Paramètres</span>
+                <span>{tr("Add a pixel in Settings", "Ajouter un pixel dans les Paramètres")}</span>
                 <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
               </Link>
             </div>
           ) : filteredPixels.length === 0 ? (
             <div className="py-10 text-center text-xs text-zinc-500 dark:text-zinc-400">
-              Aucun pixel ne correspond à votre filtre de recherche.
+              {tr("No pixels match your search filter.", "Aucun pixel ne correspond à votre filtre de recherche.")}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -404,7 +409,7 @@ function PixelSelectorModalInner({
                           </span>
                         </div>
                         <div className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
-                          ID : {px.pixelId || px.id}
+                          ID: {px.pixelId || px.id}
                         </div>
                       </div>
                     </div>
@@ -433,7 +438,10 @@ function PixelSelectorModalInner({
             <strong className="text-zinc-900 dark:text-white font-semibold">
               {selectedCount}
             </strong>{" "}
-            pixel{selectedCount > 1 ? "s" : ""} sélectionné{selectedCount > 1 ? "s" : ""}
+            {tr(
+              `pixel${selectedCount > 1 ? "s" : ""} selected`,
+              `pixel${selectedCount > 1 ? "s" : ""} sélectionné${selectedCount > 1 ? "s" : ""}`
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -441,7 +449,7 @@ function PixelSelectorModalInner({
               onClick={onClose}
               className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
             >
-              Annuler
+              {tr("Cancel", "Annuler")}
             </button>
             <button
               type="button"
@@ -449,7 +457,7 @@ function PixelSelectorModalInner({
               disabled={allPixels.length === 0}
               className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0055d4] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-white shadow-xs transition-colors cursor-pointer"
             >
-              Appliquer la sélection
+              {tr("Apply selection", "Appliquer la sélection")}
             </button>
           </div>
         </div>

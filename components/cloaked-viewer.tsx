@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
 import { verifyPathLockUnlockPassword } from "@/app/r/[slug]/view/actions";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface CloakedViewerLink {
   slug: string;
@@ -49,6 +50,7 @@ export function CloakedViewer({
   initialHeaderCollapsed = false,
   hideRestorePill = false,
 }: CloakedViewerProps) {
+  const { tr } = useI18n();
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(initialHeaderCollapsed);
   const [isReloading, setIsReloading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(initialBlocked);
@@ -104,8 +106,14 @@ export function CloakedViewer({
     link.path_lock_message ||
     link.description ||
     (effectiveLockMode === "strict"
-      ? "Le propriétaire de ce lien a restreint la navigation à cette page unique. Toute navigation externe est bloquée."
-      : "Le propriétaire de ce lien a restreint l'accès aux seules pages de son périmètre autorisé. Toute navigation externe est verrouillée.");
+      ? tr(
+          "The owner of this link restricted navigation to this single page. External navigation is blocked.",
+          "Le propriétaire de ce lien a restreint la navigation à cette page unique. Toute navigation externe est bloquée.",
+        )
+      : tr(
+          "The owner of this link restricted access to pages inside the authorized perimeter. External navigation is locked.",
+          "Le propriétaire de ce lien a restreint l'accès aux seules pages de son périmètre autorisé. Toute navigation externe est verrouillée.",
+        ));
 
   const validateAndEnforce = useCallback(
     (urlOrPath: string) => {
@@ -238,7 +246,7 @@ export function CloakedViewer({
     e.preventDefault();
     const candidate = unlockPasswordInput.trim();
     if (!candidate) {
-      setUnlockError("Veuillez saisir le mot de passe.");
+      setUnlockError(tr("Please enter the password.", "Veuillez saisir le mot de passe."));
       return;
     }
     try {
@@ -252,10 +260,10 @@ export function CloakedViewer({
         setUnlockError("");
         setUnlockPasswordInput("");
       } else {
-        setUnlockError(res.error || "Mot de passe incorrect.");
+        setUnlockError(res.error || tr("Incorrect password.", "Mot de passe incorrect."));
       }
     } catch {
-      setUnlockError("Erreur de vérification.");
+      setUnlockError(tr("Verification error.", "Erreur de vérification."));
     }
   };
 
@@ -296,17 +304,17 @@ export function CloakedViewer({
             (isDevUnlocked ? (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 sm:px-3 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Accès débloqué</span>
+                <span>{tr("Access unlocked", "Accès débloqué")}</span>
               </span>
             ) : (
               <span className="inline-flex items-center h-7 px-2.5 sm:px-3 rounded-full bg-white/[0.05] border border-white/10 text-[#A9C4FF] text-xs font-semibold whitespace-nowrap shrink-0">
-                PathLock™ {effectiveLockMode === "strict" ? "Single-Page" : "Funnel"}
+                PathLock™ {effectiveLockMode === "strict" ? tr("Single-Page", "Page unique") : tr("Funnel", "Tunnel")}
               </span>
             ))}
 
           {!isPathLocked && (
             <span className="inline-flex items-center h-7 px-2.5 sm:px-3 rounded-full bg-white/[0.05] border border-white/10 text-zinc-400 text-xs font-medium shrink-0">
-              Protégé
+              {tr("Protected", "Protégé")}
             </span>
           )}
         </div>
@@ -326,10 +334,10 @@ export function CloakedViewer({
                 setIframeKey((prev) => prev + 1);
               }}
               className="h-9 sm:h-10 px-2.5 sm:px-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-colors cursor-pointer"
-              title="Re-verrouiller le tunnel"
+              title={tr("Re-lock perimeter", "Re-verrouiller le tunnel")}
             >
               <Lock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Re-verrouiller</span>
+              <span className="hidden sm:inline">{tr("Re-lock", "Re-verrouiller")}</span>
             </button>
           )}
 
@@ -339,10 +347,10 @@ export function CloakedViewer({
             onClick={handleReload}
             disabled={isReloading}
             className="h-9 sm:h-10 px-2.5 sm:px-3.5 inline-flex items-center gap-2 rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white text-xs sm:text-sm font-medium transition-colors cursor-pointer disabled:opacity-70"
-            title="Actualiser la page"
+            title={tr("Refresh page", "Actualiser la page")}
           >
             <RefreshCw className={`w-4 h-4 transition-transform ${isReloading ? "animate-spin text-blue-400" : ""}`} />
-            <span className="hidden sm:inline">{isReloading ? "Actualisation…" : "Actualiser"}</span>
+            <span className="hidden sm:inline">{isReloading ? tr("Refreshing…", "Actualisation…") : tr("Refresh", "Actualiser")}</span>
           </button>
 
           {/* Original Link Button (if unlocked or not locked) */}
@@ -352,10 +360,10 @@ export function CloakedViewer({
               target="_blank"
               rel="noopener noreferrer"
               className="h-9 sm:h-10 px-2.5 sm:px-3.5 inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white text-xs sm:text-sm font-medium transition-colors"
-              title="Ouvrir le site original"
+              title={tr("Open original website", "Ouvrir le site original")}
             >
               <ExternalLink className="w-4 h-4" />
-              <span className="hidden sm:inline">Original</span>
+              <span className="hidden sm:inline">{tr("Original", "Original")}</span>
             </a>
           )}
 
@@ -364,8 +372,8 @@ export function CloakedViewer({
             type="button"
             onClick={() => setIsHeaderCollapsed(true)}
             className="w-9 h-9 sm:w-10 sm:h-10 inline-flex items-center justify-center rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white transition-colors cursor-pointer"
-            aria-label="Réduire la barre"
-            title="Masquer la barre"
+            aria-label={tr("Collapse bar", "Réduire la barre")}
+            title={tr("Hide bar", "Masquer la barre")}
           >
             <ChevronUp className="w-4 h-4" />
           </button>
@@ -382,13 +390,13 @@ export function CloakedViewer({
               ? "translate-y-0 opacity-100 scale-100 pointer-events-auto"
               : "-translate-y-6 opacity-0 scale-95 pointer-events-none"
           }`}
-          title="Afficher la barre"
-          aria-label="Afficher la barre"
+          title={tr("Show bar", "Afficher la barre")}
+          aria-label={tr("Show bar", "Afficher la barre")}
         >
           <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
             <Shield className="w-3 h-3" />
           </span>
-          <span>Afficher la barre</span>
+          <span>{tr("Show bar", "Afficher la barre")}</span>
           <ChevronDown className="w-3.5 h-3.5 text-[#8DB0FF]" />
         </button>
       )}
@@ -437,12 +445,12 @@ export function CloakedViewer({
               {/* Status Tag Pill */}
               <span className="inline-flex items-center gap-1.5 mt-4 sm:mt-5 h-7 px-3 rounded-full bg-blue-600/[0.14] border border-[#608CFF]/[0.35] text-[#A9C4FF] text-[11px] font-bold tracking-[0.05em] uppercase">
                 <Lock className="w-3 h-3" />
-                <span>ACCÈS HORS PÉRIMÈTRE BLOQUÉ</span>
+                <span>{tr("OUT-OF-SCOPE ACCESS BLOCKED", "ACCÈS HORS PÉRIMÈTRE BLOQUÉ")}</span>
               </span>
 
               {/* Main Heading (Compact & Balanced) */}
               <h1 className="mt-3 sm:mt-4 text-xl sm:text-[23px] leading-tight font-bold tracking-tight text-white text-balance">
-                Navigation restreinte par le créateur du lien
+                {tr("Navigation restricted by the link creator", "Navigation restreinte par le créateur du lien")}
               </h1>
 
               {/* Link Name */}
@@ -459,7 +467,7 @@ export function CloakedViewer({
 
               {/* Authorized Perimeter Box */}
               <div className="w-full box-border mt-4 sm:mt-5 h-11 sm:h-12 px-3.5 flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-xs sm:text-sm text-[#A9AFBA]">Périmètre autorisé</span>
+                <span className="text-xs sm:text-sm text-[#A9AFBA]">{tr("Allowed perimeter", "Périmètre autorisé")}</span>
                 <code className="font-mono text-xs sm:text-sm font-semibold text-[#A9C4FF] px-2 py-0.5 rounded-lg bg-black/30 border border-white/10">
                   /{authorizedPath}
                 </code>
@@ -472,7 +480,7 @@ export function CloakedViewer({
                 className="w-full mt-3.5 h-11 sm:h-12 flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white text-sm sm:text-[15px] font-semibold transition-all shadow-md shadow-blue-600/25 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Revenir à la page autorisée</span>
+                <span>{tr("Return to authorized page", "Revenir à la page autorisée")}</span>
               </button>
 
               {/* Divider Line */}
@@ -484,22 +492,22 @@ export function CloakedViewer({
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white">
                       <Lock className="w-3.5 h-3.5 text-[#8DB0FF]" />
-                      <span>Déverrouillage équipe / dev</span>
+                      <span>{tr("Team / dev unlock", "Déverrouillage équipe / dev")}</span>
                     </span>
                     <span className="text-[11px] font-medium text-[#A9AFBA] whitespace-nowrap">
-                      Accès complet
+                      {tr("Full access", "Accès complet")}
                     </span>
                   </div>
 
                   <form onSubmit={handleDevUnlockSubmit} className="flex flex-col gap-2.5">
                     <div className="relative">
                       <label htmlFor="unlock-pass" className="sr-only">
-                        Mot de passe de déblocage
+                        {tr("Unlock password", "Mot de passe de déblocage")}
                       </label>
                       <input
                         id="unlock-pass"
                         type={showUnlockPassword ? "text" : "password"}
-                        placeholder="Mot de passe de déblocage…"
+                        placeholder={tr("Unlock password…", "Mot de passe de déblocage…")}
                         value={unlockPasswordInput}
                         onChange={(e) => {
                           setUnlockPasswordInput(e.target.value);
@@ -510,7 +518,7 @@ export function CloakedViewer({
                       <button
                         type="button"
                         onClick={() => setShowUnlockPassword(!showUnlockPassword)}
-                        aria-label={showUnlockPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        aria-label={showUnlockPassword ? tr("Hide password", "Masquer le mot de passe") : tr("Show password", "Afficher le mot de passe")}
                         className="absolute right-1 top-1 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#A9AFBA] hover:text-white transition-colors cursor-pointer"
                       >
                         {showUnlockPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -527,7 +535,7 @@ export function CloakedViewer({
                       type="submit"
                       className="w-full h-10 sm:h-11 rounded-[10px] border border-[#8DB0FF]/40 hover:bg-white/[0.06] text-[#A9C4FF] text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
                     >
-                      Déverrouiller l’accès complet
+                      {tr("Unlock full access", "Déverrouiller l’accès complet")}
                     </button>
                   </form>
                 </div>
@@ -536,7 +544,7 @@ export function CloakedViewer({
 
             {/* Footer */}
             <p className="mt-5 sm:mt-6 text-[11px] text-[#9096A3] text-center">
-              Sécurisé par LShorter Edge Gate • PathLock™ Engine
+              {tr("Secured by LShorter Edge Gate • PathLock™ Engine", "Sécurisé par LShorter Edge Gate • PathLock™ Engine")}
             </p>
           </main>
         </div>

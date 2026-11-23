@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export interface CodeTab {
   name: string;
@@ -286,6 +287,7 @@ export function CodeBlock({
   tabs,
   className = "",
 }: CodeBlockProps) {
+  const { tr } = useI18n();
   const [copied, setCopied] = useState(false);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
 
@@ -365,17 +367,17 @@ export function CodeBlock({
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs"
                 : "bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 border-black/5 dark:border-transparent text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
             }`}
-            title="Copier le code"
+            title={tr("Copy code", "Copier le code")}
           >
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">Copié !</span>
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">{tr("Copied!", "Copié !")}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-neutral-400" />
-                <span className="text-[10px]">Copier</span>
+                <span className="text-[10px]">{tr("Copy", "Copier")}</span>
               </>
             )}
           </button>
