@@ -23,18 +23,17 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PlanType } from "@/types";
 import { showToast } from "@/components/ui/toast-provider";
-import { syncUserToCloudflare } from "@/app/actions/sync-user";
 import { PricingPageSkeleton } from "@/components/ui/skeleton";
 import { PRICING_PLANS, PRICING_COPY } from "@/src/config/pricing";
 
 
 export default function PricingPage() {
   const router = useRouter();
-  const { data: session, status, update: updateSession } = useSession();
+  const { data: session, status } = useSession();
   const userId = session?.user?.id || "";
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
   const rawPlan = (convexUser?.plan || (session?.user as any)?.plan || "FREE").toUpperCase();
@@ -43,7 +42,6 @@ export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
-  const updatePlanMutation = useMutation(api.users.updatePlan);
 
   useEffect(() => {
     if (cardsContainerRef.current) {
@@ -148,33 +146,9 @@ export default function PricingPage() {
         return;
       }
 
-      if (userId) {
-        // 1. Update in Convex database
-        await updatePlanMutation({
-          userId,
-          plan: planKey as any,
-        });
-
-        // 2. Synchronize directly in Cloudflare D1
-        await syncUserToCloudflare({
-          id: userId,
-          email: session?.user?.email || `${userId}@lshorter.local`,
-          name: session?.user?.name || "User",
-          plan: planKey as any,
-        });
-      }
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("lshorter_user_plan", planKey);
-        window.dispatchEvent(new CustomEvent("lshorter_plan_updated", { detail: { plan: planKey } }));
-      }
-
-      try {
-        await updateSession({ plan: planKey });
-      } catch {}
-
-      showToast.success(`Plan successfully updated to ${planKey}!`);
-    } catch (err: any) {
+      // Authenticated users selecting FREE are directed to Billing Settings to manage/cancel active subscription
+      router.push("/dashboard/settings?tab=billing");
+    } catch {
       showToast.error("Error updating subscription plan.");
     } finally {
       setLoadingPlan(null);

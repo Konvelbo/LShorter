@@ -35,14 +35,32 @@ export async function POST(request: NextRequest) {
     }
 
     const subId = convexSub?.providerSubscriptionId || null;
-    const plan = convexSub?.plan || ((session.user as any)?.plan || "PRO").toUpperCase();
+    if (
+      !convexSub ||
+      !subId ||
+      !convexSub.plan ||
+      ["FREE", "FREEMIUM", "STARTER"].includes(String(convexSub.plan).toUpperCase())
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Aucun abonnement payant à réactiver sur votre compte.",
+        },
+        { status: 404 }
+      );
+    }
+    const plan = String(convexSub.plan).toUpperCase();
 
     // 2. Resume on Dodo Payments
-    if (subId) {
-      const resumed = await dodoBillingProvider.resumeSubscription(subId);
-      if (!resumed) {
-        console.warn(`[Resume Subscription] Dodo SDK did not confirm resumption for ${subId}; updating Convex state.`);
-      }
+    const resumed = await dodoBillingProvider.resumeSubscription(subId);
+    if (!resumed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Impossible de confirmer la réactivation auprès de Dodo Payments.",
+        },
+        { status: 400 }
+      );
     }
 
     // 3. Update Convex

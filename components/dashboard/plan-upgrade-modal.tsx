@@ -10,13 +10,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { showToast } from "@/components/ui/toast-provider";
-import { syncUserToCloudflare } from "@/app/actions/sync-user";
 
 export function PlanUpgradeModal() {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session } = useSession();
   const userId = session?.user?.id || "";
   const convexUser = useQuery(api.users.getCurrentUser, userId ? { userId } : "skip");
   const rawPlan = (convexUser?.plan || (session?.user as any)?.plan || "FREE").toUpperCase();
@@ -25,8 +24,6 @@ export function PlanUpgradeModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<"PRO" | "BUSINESS" | "ENTERPRISE" | null>(null);
-
-  const updatePlanMutation = useMutation(api.users.updatePlan);
 
   useEffect(() => {
     const handleUpgradeRequest = (e: Event) => {

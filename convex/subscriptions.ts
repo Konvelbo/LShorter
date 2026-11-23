@@ -172,21 +172,8 @@ export const setCancelAtPeriodEnd = mutation({
       return { success: true, updated: true };
     }
 
-    // If no document exists yet, create one
-    const id = await ctx.db.insert("subscriptions", {
-      orgId: args.orgId,
-      provider: "dodo",
-      providerSubscriptionId: args.providerSubscriptionId || `sub_manual_${Date.now()}`,
-      currentPeriodStart: Date.now(),
-      currentPeriodEnd: args.currentPeriodEnd || Date.now() + 30 * 86400000,
-      cancelAtPeriodEnd: args.cancelAtPeriodEnd,
-      plan: args.plan || "PRO",
-      cycle: args.cycle || "MONTHLY",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return { success: true, created: true, id };
+    // Security: Never create a synthetic "sub_manual_*" subscription if no verified subscription exists
+    return { success: false, updated: false, error: "SUBSCRIPTION_NOT_FOUND" };
   },
 });
 

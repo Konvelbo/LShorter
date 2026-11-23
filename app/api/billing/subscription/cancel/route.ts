@@ -49,9 +49,24 @@ export async function POST(request: NextRequest) {
     }
 
     const subId = convexSub?.providerSubscriptionId || null;
-    let currentPeriodEnd = convexSub?.currentPeriodEnd || null;
-    const plan = convexSub?.plan || ((session.user as any)?.plan || "PRO").toUpperCase();
-    const cycle = convexSub?.cycle || "MONTHLY";
+    if (
+      !convexSub ||
+      !subId ||
+      !convexSub.plan ||
+      ["FREE", "FREEMIUM", "STARTER"].includes(String(convexSub.plan).toUpperCase())
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Aucun abonnement payant actif trouvé sur votre compte.",
+        },
+        { status: 404 }
+      );
+    }
+
+    let currentPeriodEnd = convexSub.currentPeriodEnd || null;
+    const plan = String(convexSub.plan).toUpperCase();
+    const cycle = convexSub.cycle || "MONTHLY";
 
     // 2. Perform cancellation on Dodo Payments at period end
     if (subId) {

@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { sendPasswordResetPinEmail } from "@/lib/resend";
@@ -9,6 +10,7 @@ import {
   createStatelessPinToken,
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
+import { checkRateLimit } from "@/lib/security-utils";
 
 const RESET_COOKIE_NAME = "lsh_reset_token";
 
@@ -31,6 +33,14 @@ export async function sendPasswordResetPinAction({
       return { success: false, message: "Adresse e-mail requise." };
     }
 
+    const rl = checkRateLimit(`pwd_reset_send:${cleanEmail}`, 5, 60_000);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        message: "Too many password reset requests. Please wait a minute and try again.",
+      };
+    }
+
     // Check if user exists in Convex
     const user = await convex.query(api.users.getUserByEmail, {
       email: cleanEmail,
@@ -44,8 +54,8 @@ export async function sendPasswordResetPinAction({
       };
     }
 
-    // Generate random secure 6-digit numeric PIN
-    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit numeric PIN
+    const pin = crypto.randomInt(100000, 1000000).toString();
 
     // Generate signed stateless token (15-min validity)
     const token = createStatelessPinToken(
@@ -121,6 +131,11 @@ export async function verifyResetPinAction({
       return { success: false, valid: false, message: "Invalid PIN code (6 digits required)." };
     }
 
+    const rl = checkRateLimit(`pwd_reset_verify:${cleanEmail}`, 10, 60_000);
+    if (!rl.allowed) {
+      return { success: false, valid: false, message: "Too many PIN verification attempts. Please wait a minute." };
+    }
+
     let token = clientToken;
     if (!token) {
       try {
@@ -175,6 +190,11 @@ export async function resetPasswordWithPinAction({
   try {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPin = pin.trim();
+
+    const rl = checkRateLimit(`pwd_reset_complete:${cleanEmail}`, 10, 60_000);
+    if (!rl.allowed) {
+      return { success: false, message: "Too many reset attempts. Please wait a minute." };
+    }
 
     if (newPassword.length < 8) {
       return {

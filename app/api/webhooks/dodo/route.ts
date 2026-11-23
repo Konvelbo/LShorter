@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyDodoWebhook } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-import { syncUserToCloudflare } from "@/app/actions/sync-user";
+import { syncUserToCloudflare } from "@/lib/sync-user-server";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 import { normalizeGatewayAmount, formatCurrencyDisplay } from "@/lib/billing/currency";
 import {

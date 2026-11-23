@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { after } from "next/server";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -11,6 +12,7 @@ import {
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { checkRateLimit } from "@/lib/security-utils";
 
 const SIGNUP_COOKIE_NAME = "lsh_signup_token";
 
@@ -63,6 +65,14 @@ export async function sendSignupPinAction({
       };
     }
 
+    const rl = checkRateLimit(`signup_action_send:${cleanEmail}`, 5, 60_000);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        message: "Too many PIN requests. Please wait a minute and try again.",
+      };
+    }
+
     // Check if account already exists in Convex
     const existingUser = await convex.query(api.users.getUserByEmail, {
       email: cleanEmail,
@@ -78,8 +88,8 @@ export async function sendSignupPinAction({
     // Securely hash password with bcrypt
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Generate random secure 6-digit numeric PIN
-    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit numeric PIN
+    const pin = crypto.randomInt(100000, 1000000).toString();
 
     // Create stateless signed HMAC token (15-min TTL)
     const token = createStatelessPinToken(
@@ -163,6 +173,11 @@ export async function verifySignupPinAction({
       return { success: false, valid: false, message: "Invalid PIN code (6 digits required)." };
     }
 
+    const rl = checkRateLimit(`signup_action_verify:${cleanEmail}`, 10, 60_000);
+    if (!rl.allowed) {
+      return { success: false, valid: false, message: "Too many PIN verification attempts. Please wait a minute." };
+    }
+
     let token = clientToken;
     if (!token) {
       try {
@@ -215,6 +230,11 @@ export async function completeSignupWithPinAction({
   try {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPin = pin.trim();
+
+    const rl = checkRateLimit(`signup_action_complete:${cleanEmail}`, 10, 60_000);
+    if (!rl.allowed) {
+      return { success: false, message: "Too many verification attempts. Please wait a minute." };
+    }
 
     let token = clientToken;
     if (!token) {

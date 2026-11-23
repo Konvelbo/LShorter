@@ -4,12 +4,21 @@ import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 
 import { auth } from "@/auth";
+import { checkRateLimit } from "@/lib/security-utils";
 import { parseBody, targetNotifyBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rl = checkRateLimit(`target_notify:${session.user.id}`, 5, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded for target notifications." },
+      { status: 429 }
+    );
   }
 
   try {
@@ -27,7 +36,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const userId = session.user.id;
-    const targetEmail = session.user.email || body.email || "founder@lshorter.com";
+    const targetEmail = session.user.email;
     const targetName = session.user.name || body.name || "User";
     const period =
       monthLabel ||

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import {
   generateBase32Secret,
   formatBase32Secret,
@@ -6,11 +7,28 @@ import {
   verifyTotp,
   generateRecoveryCodes,
 } from "@/lib/totp";
+import { checkRateLimit } from "@/lib/security-utils";
 import QRCode from "qrcode";
 import { parseBody, twoFaBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
+    const rl = checkRateLimit(`2fa_verify:${session.user.id}`, 15, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many 2FA verification attempts. Please wait a minute." },
+        { status: 429 }
+      );
+    }
+
     const { data: body, error: bodyError } = await parseBody(req, twoFaBodySchema);
     if (bodyError) return bodyError;
 
@@ -18,8 +36,8 @@ export async function POST(req: Request) {
 
     // 1. Generate 2FA Secret + QR Code + Recovery Codes
     if (action === "generate") {
-      const email = body.email || "user@lsho.cc";
-      const name = body.name || "LShorter User";
+      const email = session.user.email || body.email || "";
+      const name = session.user.name || body.name || "LShorter User";
       const secret = generateBase32Secret(20); // 32 characters in Base32 (160 bits)
       const formattedSecret = formatBase32Secret(secret);
       const otpauthUrl = generateTotpUri({

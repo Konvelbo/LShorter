@@ -2,15 +2,28 @@ import { NextResponse } from "next/server";
 import { convexHttp as convex, convexUrl } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { sendFeedbackNotificationEmail } from "@/lib/resend";
+import { checkRateLimit } from "@/lib/security-utils";
 import { parseBody, feedbackBodySchema } from "@/lib/api-schemas";
 
 export async function POST(req: Request) {
   try {
+    const clientIp =
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "local";
+    const rl = checkRateLimit(`feedback:${clientIp}`, 5, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, message: "Too many feedback submissions. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const { data: body, error } = await parseBody(req, feedbackBodySchema);
     if (error) return error;
 
     const { category: cleanCategory, pageContext, rating: cleanRating } = body;
-    const cleanEmail = body.email || "visiteur@lsho.cc";
+    const cleanEmail = body.email || "";
     const cleanMessage = body.message;
 
     let convexSaved = false;

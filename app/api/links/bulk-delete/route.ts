@@ -37,7 +37,60 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    const ids = body.ids;
+
+    // Security: Filter requested IDs strictly against the authenticated user's own links
+    const requestedIds = body.ids;
+    let authorizedIds: string[] = [];
+    try {
+      const listUrl = new URL(`${WORKER_URL}/api/v1/links`);
+      listUrl.searchParams.set("limit", "1000");
+      if (userId) listUrl.searchParams.set("userId", userId);
+      if (userEmail) listUrl.searchParams.set("userEmail", userEmail);
+
+      const listRes = await fetch(listUrl.toString(), {
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET,
+          Authorization: `Bearer ${FRONTEND_SECRET}`,
+          ...(userId ? { "X-User-Id": userId } : {}),
+          ...(userEmail ? { "X-User-Email": userEmail } : {}),
+        },
+        cache: "no-store",
+      });
+      if (listRes.ok) {
+        const listJson = await listRes.json().catch(() => null);
+        const userLinks: any[] = Array.isArray(listJson?.data)
+          ? listJson.data
+          : Array.isArray(listJson?.links)
+            ? listJson.links
+            : [];
+        const ownedSet = new Set<string>();
+        for (const l of userLinks) {
+          const ownerId = String(l?.user_id || l?.userId || "").trim();
+          const ownerEmail = String(l?.user_email || l?.userEmail || "").toLowerCase().trim();
+          const isOwned =
+            !ownerId ||
+            (userId && ownerId === userId) ||
+            (userEmail && (ownerId.toLowerCase() === userEmail || ownerEmail === userEmail));
+          if (isOwned) {
+            if (l?.id) ownedSet.add(String(l.id));
+            if (l?.slug) ownedSet.add(String(l.slug));
+          }
+        }
+        authorizedIds = requestedIds.filter((id) => ownedSet.has(id));
+      }
+    } catch {}
+
+    if (authorizedIds.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Forbidden: None of the specified links belong to your account.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const ids = authorizedIds;
 
     // Invalidate local memory bot caches
     for (const id of ids) {

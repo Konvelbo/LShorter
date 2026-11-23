@@ -1,70 +1,50 @@
 "use server";
 
+import { auth } from "@/auth";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
+import { syncUserToCloudflare as syncUserServer, type SyncUserPayload } from "@/lib/sync-user-server";
+
+export type { SyncUserPayload };
+
 /**
- * syncUserToCloudflare — Server Action
- * ─────────────────────────────────────────────────────────────────────────────
- * Synchronises a user's profile and plan to the Cloudflare Edge Worker via a
- * secure server-to-server call authenticated with X-Frontend-Secret.
- *
- * Call this action:
- *  1. After a new user signs up (NextAuth signIn callback / registerWithEmail).
- *  2. After a plan upgrade (updatePlan Convex mutation resolves successfully).
- *
- * Never expose FRONTEND_API_SECRET to the client — this runs server-side only.
+ * Authenticated Server Action for syncing profile metadata (name, avatarUrl).
+ * Security: Strictly uses the authenticated session's userId, email, and authoritative
+ * Convex plan — never trusts client-supplied `id`, `email`, or `plan`.
  */
-
-import { WORKER_URL as BASE_URL, FRONTEND_SECRET as SECRET } from "@/lib/backend-config";
-
-export interface SyncUserPayload {
-  id: string;
-  name: string;
-  email: string;
-  plan?: "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE";
-  avatarUrl?: string;
-  provider?: string;
-}
-
 export async function syncUserToCloudflare(data: SyncUserPayload): Promise<{ success: boolean }> {
   try {
-    const secret = SECRET;
-
-    // 1. Sync User / Upsert in D1
-    const res = await fetch(`${BASE_URL}/api/v1/users/sync`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Frontend-Secret": secret,
-        Authorization: `Bearer ${secret}`,
-        "X-User-Id": data.id,
-      },
-      body: JSON.stringify(data),
-      cache: "no-store",
-    });
-
-    // 2. Also ensure PATCH /api/v1/users/:userId is called if plan is specified
-    if (data.plan && data.id) {
-      await fetch(`${BASE_URL}/api/v1/users/${data.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Frontend-Secret": secret,
-          Authorization: `Bearer ${secret}`,
-          "X-User-Id": data.id,
-        },
-        body: JSON.stringify({ plan: data.plan, name: data.name }),
-        cache: "no-store",
-      }).catch((e) => console.warn("[syncUserToCloudflare] PATCH plan error:", e));
-    }
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      console.warn("[syncUserToCloudflare] Non-OK response:", err);
+    const session = await auth();
+    if (!session?.user?.id) {
       return { success: false };
     }
 
-    return { success: true };
-  } catch (err: any) {
-    console.warn("[syncUserToCloudflare] Fetch error:", err?.message || err);
+    const authoritativeId = session.user.id;
+    const authoritativeEmail = (session.user.email || "").toLowerCase().trim();
+    if (!authoritativeEmail) {
+      return { success: false };
+    }
+
+    let authoritativePlan: SyncUserPayload["plan"] = "FREEMIUM";
+    try {
+      const cu = await convex.query(api.users.getCurrentUser, {
+        userId: authoritativeId,
+        email: authoritativeEmail,
+      });
+      if (cu?.plan && ["FREE", "FREEMIUM", "PRO", "BUSINESS", "ENTERPRISE"].includes(String(cu.plan).toUpperCase())) {
+        authoritativePlan = String(cu.plan).toUpperCase() as SyncUserPayload["plan"];
+      }
+    } catch {}
+
+    return await syncUserServer({
+      id: authoritativeId,
+      email: authoritativeEmail,
+      name: (data.name || session.user.name || "User").trim().slice(0, 100),
+      avatarUrl: data.avatarUrl || session.user.image || undefined,
+      provider: data.provider,
+      plan: authoritativePlan === "FREE" ? "FREEMIUM" : authoritativePlan,
+    });
+  } catch {
     return { success: false };
   }
 }

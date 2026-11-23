@@ -304,7 +304,36 @@ export async function DELETE(req: Request) {
     const domainId = qp.id;
     const userId = session.user.id;
 
-    const url = new URL(`${WORKER_URL}/api/v1/domains/${domainId}`);
+    // Security: Verify domain ownership before deletion
+    if (userId) {
+      try {
+        const listRes = await fetch(`${WORKER_URL}/api/v1/domains?userId=${encodeURIComponent(userId)}`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            "X-User-Id": userId,
+          },
+          cache: "no-store",
+        });
+        if (listRes.ok) {
+          const listJson = await listRes.json().catch(() => null);
+          const list = Array.isArray(listJson?.data)
+            ? listJson.data
+            : Array.isArray(listJson?.domains)
+              ? listJson.domains
+              : [];
+          const ownsDomain = list.some((d: any) => d?.id === domainId);
+          if (!ownsDomain) {
+            return NextResponse.json(
+              { success: false, error: "Forbidden: Domain not found or not owned by your account." },
+              { status: 404 }
+            );
+          }
+        }
+      } catch {}
+    }
+
+    const url = new URL(`${WORKER_URL}/api/v1/domains/${encodeURIComponent(domainId)}`);
     if (userId) url.searchParams.set("userId", userId);
 
     const res = await fetch(url.toString(), {

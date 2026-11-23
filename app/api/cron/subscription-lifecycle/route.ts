@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
-import { syncUserToCloudflare } from "@/app/actions/sync-user";
+import { syncUserToCloudflare } from "@/lib/sync-user-server";
 import {
   sendSubscriptionExpiringAlertEmail,
   sendGracePeriodAlertEmail,
@@ -62,11 +62,8 @@ async function handleLifecycleProcess(req: Request) {
     ""
   ).trim();
 
-  const isDevLocal =
-    process.env.NODE_ENV !== "production" && !cronSecret && !explicitFrontendSecret;
   const isAuthorized = Boolean(
-    isDevLocal ||
-      (cronSecret && (token === cronSecret || secretHeader === cronSecret)) ||
+    (cronSecret && (token === cronSecret || secretHeader === cronSecret)) ||
       (explicitFrontendSecret &&
         (token === explicitFrontendSecret || secretHeader === explicitFrontendSecret))
   );
