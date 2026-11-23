@@ -652,41 +652,97 @@ const DEVELOPER_API_TABS: CodeTab[] = [
   {
     label: "TypeScript",
     language: "typescript",
-    code: `const res = await fetch("https://lsho.cc/api/v1/links", {
-  method: "POST",
-  headers: {
-    Authorization: \`Bearer \${process.env.LSHORTER_API_KEY}\`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    targetUrl: "https://app.acmesaas.io/app/dashboard",
-    slug: "beta-demo",
-    maxClicks: 50,
-    pathLockMode: "strict",
-    pathLockPrefix: "/app/dashboard",
-  }),
+    code: `import { LShorter } from "lshorter-api";
+
+const lsh = new LShorter({ apiKey: process.env.LSHORTER_API_KEY! });
+
+const link = await lsh.links.create({
+  targetUrl: "https://app.acmesaas.io/app/dashboard",
+  slug: "beta-demo",
+  maxClicks: 50,
+  pathLockMode: "strict",
+  pathLockPrefix: "/app/dashboard",
 });
 
-const { data } = await res.json();
-console.log(data.short_url); // https://lsho.cc/beta-demo`,
+console.log(link.shortUrl); // https://lsho.cc/beta-demo`,
   },
   {
     label: "Python",
     language: "python",
-    code: `import os, requests
+    code: `import os
+from lshorter import LShorter
 
-response = requests.post(
-    "https://lsho.cc/api/v1/links",
-    headers={"Authorization": f"Bearer {os.environ['LSHORTER_API_KEY']}"},
-    json={
-        "targetUrl": "https://app.acmesaas.io/app/dashboard",
-        "slug": "beta-demo",
-        "maxClicks": 50,
-        "pathLockMode": "strict",
-        "pathLockPrefix": "/app/dashboard",
-    },
+lsh = LShorter(api_key=os.environ["LSHORTER_API_KEY"])
+
+link = lsh.links.create({
+    "targetUrl": "https://app.acmesaas.io/app/dashboard",
+    "slug": "beta-demo",
+    "maxClicks": 50,
+    "pathLockMode": "strict",
+    "pathLockPrefix": "/app/dashboard",
+})
+print(link["shortUrl"]) # https://lsho.cc/beta-demo`,
+  },
+  {
+    label: "Go",
+    language: "go",
+    code: `package main
+
+import (
+  "context"
+  "fmt"
+  "os"
+  lshorter "github.com/Konvelbo/LShorter-api/sdks/go"
 )
-print(response.json()["data"]["short_url"])`,
+
+func main() {
+  client := lshorter.New(os.Getenv("LSHORTER_API_KEY"))
+  maxClicks := 50
+  link, _ := client.Links.Create(context.Background(), lshorter.CreateLinkOptions{
+    TargetURL:      "https://app.acmesaas.io/app/dashboard",
+    Slug:           "beta-demo",
+    MaxClicks:      &maxClicks,
+    PathLockMode:   "strict",
+    PathLockPrefix: "/app/dashboard",
+  })
+  fmt.Println(link.ShortURL)
+}`,
+  },
+  {
+    label: "PHP",
+    language: "php",
+    code: `<?php
+use LShorter\\LShorter;
+
+$lsh = new LShorter(getenv("LSHORTER_API_KEY"));
+
+$link = $lsh->links->create([
+    "targetUrl"      => "https://app.acmesaas.io/app/dashboard",
+    "slug"           => "beta-demo",
+    "maxClicks"      => 50,
+    "pathLockMode"   => "strict",
+    "pathLockPrefix" => "/app/dashboard",
+]);
+
+echo $link["shortUrl"]; // https://lsho.cc/beta-demo`,
+  },
+  {
+    label: "Rust",
+    language: "rust",
+    code: `use lshorter::{CreateLinkOptions, LShorter};
+
+#[tokio::main]
+async fn main() -> lshorter::Result<()> {
+    let client = LShorter::new(std::env::var("LSHORTER_API_KEY")?);
+    let link = client.links().create(&CreateLinkOptions {
+        target_url: "https://app.acmesaas.io/app/dashboard".into(),
+        slug: Some("beta-demo".into()),
+        max_clicks: Some(50),
+        ..Default::default()
+    }).await?;
+    println!("{}", link.short_url);
+    Ok(())
+}`,
   },
   {
     label: "Webhook",
@@ -703,6 +759,14 @@ print(response.json()["data"]["short_url"])`,
   "timestamp": "2026-11-21T04:12:08.412Z"
 }`,
   },
+];
+
+const DEVELOPER_INSTALL_COMMANDS = [
+  { label: "Node", command: "npm i lshorter-api" },
+  { label: "Python", command: "pip install lshorter-api" },
+  { label: "Go", command: "go get github.com/Konvelbo/LShorter-api/sdks/go" },
+  { label: "PHP", command: "composer require lshorter/lshorter-api" },
+  { label: "Rust", command: "cargo add lshorter-api" },
 ];
 
 const DEVELOPER_API_HIGHLIGHTS = [
@@ -726,7 +790,7 @@ export function DeveloperApiSection() {
       id="api"
       badge="REST API v1 · Edge KV synced"
       title="Provision links and rules from your codebase"
-      installCommand="npm i lshorter-api"
+      installCommands={DEVELOPER_INSTALL_COMMANDS}
       description="Create links programmatically, enforce PathLock™ prefixes, set click caps, and receive signed conversion webhooks in real time."
       highlights={DEVELOPER_API_HIGHLIGHTS}
       primaryAction={{ label: "Explore API documentation", href: "/docs" }}

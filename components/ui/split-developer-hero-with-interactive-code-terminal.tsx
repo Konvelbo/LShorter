@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, Copy, Terminal } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -29,13 +30,20 @@ export interface SplitDeveloperHighlight {
   desc: string;
 }
 
+export interface InstallCommandItem {
+  label: string;
+  command: string;
+}
+
 export interface SplitDeveloperHeroProps {
   id?: string;
   /** Small status pill above the headline. */
   badge?: string;
   title: React.ReactNode;
-  /** Optional highlighted CLI install command displayed directly beneath the title. */
+  /** Optional single CLI install command displayed directly beneath the title. */
   installCommand?: string;
+  /** Optional list of CLI install commands that auto-rotate smoothly and copy on click. */
+  installCommands?: InstallCommandItem[];
   description: string;
   highlights?: SplitDeveloperHighlight[];
   primaryAction: HeroAction;
@@ -73,7 +81,7 @@ const TOKEN_CLASS: Record<TokenType, string> = {
 };
 
 const KEYWORDS =
-  "const|let|var|await|async|import|from|export|default|function|return|new|class|if|else|for|of|in|as|def|print|with|try|except|raise|lambda|yield|True|False|None|true|false|null|undefined|curl";
+  "const|let|var|mut|await|async|import|from|export|default|function|func|fn|return|new|class|struct|impl|package|use|require|echo|if|else|for|of|in|as|def|print|with|try|except|raise|lambda|yield|True|False|None|true|false|null|nil|undefined|Some|Ok|Err|Default|curl";
 
 const TOKEN_ORDER: TokenType[] = [
   "jsonKey",
@@ -295,7 +303,7 @@ function CodeWindow({
           role="tablist"
           aria-label="Code examples"
           onKeyDown={handleKeyDown}
-          className="flex min-w-0 flex-1 gap-1 overflow-x-auto"
+          className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {tabs.map((tab, i) => (
             <button
@@ -422,19 +430,36 @@ function ActionButton({
 }
 
 /* ------------------------------------------------------------------ */
-/* Highlighted CLI Install Command Bar                                 */
+/* Sober Auto-Rotating CLI Install Command Bar (click anywhere to copy)*/
 /* ------------------------------------------------------------------ */
 
-function InstallCommandBar({ command }: { command: string }) {
+function InstallCommandBar({ items }: { items: InstallCommandItem[] }) {
+  const [index, setIndex] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const copyTimerRef = React.useRef<number | undefined>(undefined);
 
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(command).catch(() => {});
+  React.useEffect(() => {
+    if (items.length <= 1 || paused || copied) return;
+    const id = window.setInterval(() => {
+      setIndex((prev) => (prev + 1) % items.length);
+    }, 2200);
+    return () => window.clearInterval(id);
+  }, [items.length, paused, copied]);
+
+  React.useEffect(() => () => window.clearTimeout(copyTimerRef.current), []);
+
+  const current = items[index] ?? items[0];
+  if (!current) return null;
+
+  const handleCopy = async () => {
+    if (!(await copyToClipboard(current.command))) return;
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    window.clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = window.setTimeout(() => setCopied(false), 1500);
   };
 
-  const tokens = command.trim().split(/\s+/);
+  const tokens = current.command.trim().split(/\s+/);
   const pkgManager = tokens[0] ?? "";
   const subCmd = tokens.length > 2 ? tokens.slice(1, -1).join(" ") : "";
   const pkgName = tokens.length > 1 ? tokens[tokens.length - 1] : "";
@@ -444,51 +469,79 @@ function InstallCommandBar({ command }: { command: string }) {
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={`Copy install command: ${command}`}
-        className="group/cmd inline-flex max-w-full items-center gap-3 rounded-[10px] border border-[#0066FF]/22 dark:border-[#60A5FA]/25 bg-gradient-to-r from-[#F4F8FF] to-[#F8FAFC] dark:from-[#0066FF]/[0.12] dark:to-white/[0.03] px-2.5 py-2 pr-3 shadow-[0_2px_12px_-4px_rgba(0,102,255,0.16)] dark:shadow-[0_4px_20px_-6px_rgba(0,102,255,0.28)] hover:border-[#0066FF]/45 dark:hover:border-[#60A5FA]/50 hover:shadow-[0_6px_20px_-6px_rgba(0,102,255,0.25)] transition-[border-color,box-shadow,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.99]"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+        title={`Click to copy: ${current.command}`}
+        aria-label={`Copy ${current.label} install command: ${current.command}`}
+        className={cn(
+          "group/cmd relative flex h-11 w-full max-w-[500px] items-center gap-2.5 rounded-[10px] border px-3.5 text-left transition-[border-color,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 active:scale-[0.995]",
+          copied
+            ? "border-emerald-500/45 dark:border-emerald-400/40 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]"
+            : "border-[#E4E7EC] dark:border-white/12 bg-[#F8F9FB] dark:bg-white/[0.03] hover:border-[#D0D5DD] dark:hover:border-white/22 hover:bg-[#F3F5F8] dark:hover:bg-white/[0.05]",
+        )}
       >
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[7px] bg-[#0066FF]/10 dark:bg-[#0066FF]/20 text-[#0066FF] dark:text-[#60A5FA]">
-          <Terminal className="size-3.5" aria-hidden="true" />
-        </span>
-
-        <code className="flex items-center gap-1.5 overflow-x-auto font-mono text-[13.5px] sm:text-[14px] tracking-[-0.01em] whitespace-nowrap">
-          <span className="select-none text-[#94A3B8] dark:text-zinc-500">$</span>
-          <span className="font-semibold text-[#0066FF] dark:text-[#60A5FA]">
-            {pkgManager}
-          </span>
-          {subCmd && (
-            <span className="text-[#52525B] dark:text-zinc-400">{subCmd}</span>
-          )}
-          {pkgName && (
-            <span className="font-semibold text-[#09090B] dark:text-white">
-              {pkgName}
-            </span>
-          )}
-        </code>
-
         <span
           aria-hidden="true"
-          className="h-4 w-px shrink-0 bg-[#0066FF]/18 dark:bg-white/12"
-        />
+          className="shrink-0 select-none font-mono text-[13px] text-[#94A3B8] dark:text-zinc-500"
+        >
+          $
+        </span>
+
+        <div className="relative flex h-full min-w-0 flex-1 items-center overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.code
+              key={current.command}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+              className="flex min-w-0 w-full items-center gap-1.5 truncate font-mono text-[13px] sm:text-[13.5px] tracking-[-0.01em]"
+            >
+              <span className="shrink-0 font-medium text-[#0066FF] dark:text-[#60A5FA]">
+                {pkgManager}
+              </span>
+              {subCmd && (
+                <span className="shrink-0 text-[#52525B] dark:text-zinc-400">
+                  {subCmd}
+                </span>
+              )}
+              {pkgName && (
+                <span className="truncate font-medium text-[#09090B] dark:text-zinc-100">
+                  {pkgName}
+                </span>
+              )}
+            </motion.code>
+          </AnimatePresence>
+        </div>
 
         <span
+          aria-live="polite"
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 text-[11.5px] font-medium transition-colors",
+            "shrink-0 inline-flex min-w-[46px] items-center justify-end gap-1 font-mono text-[11px] transition-colors duration-200",
             copied
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-[#52525B] dark:text-zinc-400 group-hover/cmd:text-[#0066FF] dark:group-hover/cmd:text-[#60A5FA]",
+              ? "text-emerald-600 dark:text-emerald-400 font-medium"
+              : "text-[#71717A] dark:text-zinc-500",
           )}
         >
           {copied ? (
             <>
-              <Check className="size-3.5" aria-hidden="true" />
+              <Check className="size-3" aria-hidden="true" />
               <span>Copied</span>
             </>
           ) : (
-            <>
-              <Copy className="size-3.5" aria-hidden="true" />
-              <span>Copy</span>
-            </>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={current.label}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {current.label}
+              </motion.span>
+            </AnimatePresence>
           )}
         </span>
       </button>
@@ -505,6 +558,7 @@ export function SplitDeveloperHero({
   badge,
   title,
   installCommand,
+  installCommands,
   description,
   highlights,
   primaryAction,
@@ -515,6 +569,11 @@ export function SplitDeveloperHero({
   className,
 }: SplitDeveloperHeroProps) {
   const HeadingTag = headingAs;
+  const resolvedInstallCommands = React.useMemo<InstallCommandItem[]>(() => {
+    if (installCommands && installCommands.length > 0) return installCommands;
+    if (installCommand) return [{ label: "CLI", command: installCommand }];
+    return [];
+  }, [installCommand, installCommands]);
 
   return (
     <section
@@ -547,7 +606,9 @@ export function SplitDeveloperHero({
             {title}
           </HeadingTag>
 
-          {installCommand && <InstallCommandBar command={installCommand} />}
+          {resolvedInstallCommands.length > 0 && (
+            <InstallCommandBar items={resolvedInstallCommands} />
+          )}
 
           <p className="max-w-xl text-pretty text-[15.5px] leading-[1.65] text-[#52525B] dark:text-zinc-400">
             {description}
