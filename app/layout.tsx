@@ -227,21 +227,6 @@ export default function RootLayout({
             __html: `(function(){try{var k='lshorter_theme_v2',s=localStorage.getItem(k)||localStorage.getItem('lshorter_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=s==='light'||s==='dark'?s:d;var cl=document.documentElement.classList;cl.remove('light','dark');cl.add(t);document.documentElement.style.colorScheme=t;}catch(e){}})()`,
           }}
         />
-        {/* Google tag (gtag.js) placed in <head> for analytics & Google Search Console verification */}
-        {gaId && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-            />
-            <script
-              id="google-tag-manager"
-              dangerouslySetInnerHTML={{
-                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{page_path:window.location.pathname});`,
-              }}
-            />
-          </>
-        )}
         {/* Studio specialty fonts are lazy-loaded only inside QR Studio to avoid render-blocking site-wide CSS */}
         <RootStructuredData />
       </head>
@@ -249,6 +234,18 @@ export default function RootLayout({
         className="min-h-screen flex flex-col ds-bg-app ds-text-primary font-sans overflow-x-clip max-w-[100vw]"
         suppressHydrationWarning
       >
+        {/* Google Analytics deferred until browser idle so gtag.js never blocks initial paint or load */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="lazyOnload"
+            />
+            <Script id="google-tag-manager" strategy="lazyOnload">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{page_path:window.location.pathname});`}
+            </Script>
+          </>
+        )}
         <RouteProgressBar />
         <Script
           id="dom-patch"

@@ -280,13 +280,30 @@ export function VideoTutorialVisual({
 }: VideoTutorialVisualProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [shouldLoad, setShouldLoad] = React.useState(false);
   const [userPaused, setUserPaused] = React.useState(false);
   const [isPlaying, setIsPlaying] = React.useState(false);
 
   React.useEffect(() => {
     const container = containerRef.current;
+    if (!container || shouldLoad) return;
+    const preloadObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true);
+          preloadObserver.disconnect();
+        }
+      },
+      { rootMargin: "500px 0px", threshold: 0.01 },
+    );
+    preloadObserver.observe(container);
+    return () => preloadObserver.disconnect();
+  }, [shouldLoad]);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container || !video || !shouldLoad) return;
 
     let playTimer: number | null = null;
 
@@ -320,9 +337,14 @@ export function VideoTutorialVisual({
       observer.disconnect();
       video.pause();
     };
-  }, [userPaused]);
+  }, [userPaused, shouldLoad]);
 
   const togglePlayback = () => {
+    if (!shouldLoad) {
+      setShouldLoad(true);
+      setUserPaused(false);
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
@@ -342,12 +364,12 @@ export function VideoTutorialVisual({
       <div className="group/vid relative aspect-video w-full overflow-hidden rounded-[8px] bg-[#0b1424] transform-gpu">
         <video
           ref={videoRef}
-          src={src}
-          poster={poster}
+          src={shouldLoad ? src : undefined}
+          poster={shouldLoad ? poster : undefined}
           muted
           loop
           playsInline
-          preload="metadata"
+          preload={shouldLoad ? "metadata" : "none"}
           aria-label={ariaLabel}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

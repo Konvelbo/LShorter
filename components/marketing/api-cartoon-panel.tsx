@@ -30,6 +30,7 @@ export function ApiCartoonPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pendingResumeRef = useRef<{ ratio: number; shouldPlay: boolean } | null>(null);
   const [lang, setLang] = useState<VideoLang>("en");
+  const [shouldLoad, setShouldLoad] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -39,6 +40,7 @@ export function ApiCartoonPanel() {
   const handleSwitchLang = (nextLang: VideoLang, e: React.MouseEvent) => {
     e.stopPropagation();
     if (nextLang === lang) return;
+    setShouldLoad(true);
     const video = videoRef.current;
     const ratio = video && duration > 0 ? video.currentTime / duration : 0;
     const shouldPlay = video ? !video.paused : false;
@@ -49,8 +51,24 @@ export function ApiCartoonPanel() {
 
   useEffect(() => {
     const container = containerRef.current;
+    if (!container || shouldLoad) return;
+    const preloadObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true);
+          preloadObserver.disconnect();
+        }
+      },
+      { rootMargin: "350px 0px", threshold: 0.01 },
+    );
+    preloadObserver.observe(container);
+    return () => preloadObserver.disconnect();
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container || !video || !shouldLoad) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -71,9 +89,15 @@ export function ApiCartoonPanel() {
       observer.disconnect();
       video.pause();
     };
-  }, [userPaused]);
+  }, [userPaused, shouldLoad]);
 
   const handleTogglePlay = () => {
+    if (!shouldLoad) {
+      setShouldLoad(true);
+      setUserPaused(false);
+      pendingResumeRef.current = { ratio: 0, shouldPlay: true };
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
@@ -143,12 +167,12 @@ export function ApiCartoonPanel() {
     >
       <video
         ref={videoRef}
-        src={VIDEO_SOURCES[lang].src}
+        src={shouldLoad ? VIDEO_SOURCES[lang].src : undefined}
         poster={VIDEO_SOURCES[lang].poster}
         muted={isMuted}
         loop
         playsInline
-        preload="metadata"
+        preload={shouldLoad ? "metadata" : "none"}
         aria-label="Animated cartoon explaining everything possible with the LShorter REST API"
         onClick={handleTogglePlay}
         onPlay={() => setIsPlaying(true)}

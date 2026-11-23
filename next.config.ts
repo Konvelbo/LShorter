@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
     },
     optimizePackageImports: [
       "lucide-react",
+      "motion/react",
+      "framer-motion",
+      "react-icons",
+      "media-chrome/react",
       "gsap",
       "canvas-confetti",
       "date-fns",
@@ -92,6 +96,15 @@ const nextConfig: NextConfig = {
     ].join("; ");
 
     return [
+      {
+        source: "/videos/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: [

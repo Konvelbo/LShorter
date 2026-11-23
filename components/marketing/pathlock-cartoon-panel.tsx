@@ -30,6 +30,7 @@ export function PathLockCartoonPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pendingResumeRef = useRef<{ ratio: number; shouldPlay: boolean } | null>(null);
   const [lang, setLang] = useState<VideoLang>("en");
+  const [shouldLoad, setShouldLoad] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -39,6 +40,7 @@ export function PathLockCartoonPanel() {
   const handleSwitchLang = (nextLang: VideoLang, e: React.MouseEvent) => {
     e.stopPropagation();
     if (nextLang === lang) return;
+    setShouldLoad(true);
     const video = videoRef.current;
     const ratio = video && duration > 0 ? video.currentTime / duration : 0;
     const shouldPlay = video ? !video.paused : false;
@@ -47,10 +49,27 @@ export function PathLockCartoonPanel() {
     setDuration(PATHLOCK_SOURCES[nextLang].defaultDuration);
   };
 
+  // Defer attaching the 39 MB MP4 source until the PathLock section approaches the viewport
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || shouldLoad) return;
+    const preloadObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldLoad(true);
+          preloadObserver.disconnect();
+        }
+      },
+      { rootMargin: "500px 0px", threshold: 0.01 },
+    );
+    preloadObserver.observe(container);
+    return () => preloadObserver.disconnect();
+  }, [shouldLoad]);
+
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container || !video || !shouldLoad) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -71,9 +90,15 @@ export function PathLockCartoonPanel() {
       observer.disconnect();
       video.pause();
     };
-  }, [userPaused]);
+  }, [userPaused, shouldLoad]);
 
   const handleTogglePlay = () => {
+    if (!shouldLoad) {
+      setShouldLoad(true);
+      setUserPaused(false);
+      pendingResumeRef.current = { ratio: 0, shouldPlay: true };
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
@@ -134,12 +159,12 @@ export function PathLockCartoonPanel() {
     >
       <video
         ref={videoRef}
-        src={PATHLOCK_SOURCES[lang].src}
-        poster={PATHLOCK_SOURCES[lang].poster}
+        src={shouldLoad ? PATHLOCK_SOURCES[lang].src : undefined}
+        poster={shouldLoad ? PATHLOCK_SOURCES[lang].poster : undefined}
         muted={isMuted}
         loop
         playsInline
-        preload="metadata"
+        preload={shouldLoad ? "metadata" : "none"}
         aria-label="Animated cartoon explaining LShorter PathLock URL perimeter security"
         onClick={handleTogglePlay}
         onPlay={() => setIsPlaying(true)}

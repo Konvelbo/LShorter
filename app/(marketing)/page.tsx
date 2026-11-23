@@ -1,20 +1,58 @@
 import React from "react";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { HeroSection } from "@/components/marketing/hero-section2";
-import { DemoVideoSection } from "@/components/marketing/demo-video-section";
-import {
-  TrustStripSection,
-  HowItWorksSection,
-  FeaturesBentoSection,
-  PathLockFocusSection,
-  DifferenceSection,
-  UseCasesSection,
-  DeveloperApiSection,
-  PricingPreviewSection,
-} from "@/components/marketing/landing-sections";
-import { FaqSection } from "@/components/marketing/faq-section";
-import { GlobeFeatureSection } from "@/components/ui/globe-feature-section";
 import { FaqStructuredData } from "@/components/seo/json-ld";
+
+const HowItWorksSection = dynamic(() =>
+  import("@/components/marketing/landing-sections").then(
+    (m) => m.HowItWorksSection
+  )
+);
+
+const DemoVideoSection = dynamic(() =>
+  import("@/components/marketing/demo-video-section").then(
+    (m) => m.DemoVideoSection
+  )
+);
+const FeaturesBentoSection = dynamic(() =>
+  import("@/components/marketing/landing-sections").then(
+    (m) => m.FeaturesBentoSection
+  )
+);
+const PathLockFocusSection = dynamic(() =>
+  import("@/components/marketing/landing-sections").then(
+    (m) => m.PathLockFocusSection
+  )
+);
+const DifferenceSection = dynamic(() =>
+  import("@/components/marketing/landing-sections-bottom").then(
+    (m) => m.DifferenceSection
+  )
+);
+const UseCasesSection = dynamic(() =>
+  import("@/components/marketing/landing-sections-bottom").then(
+    (m) => m.UseCasesSection
+  )
+);
+const DeveloperApiSection = dynamic(() =>
+  import("@/components/marketing/landing-sections-bottom").then(
+    (m) => m.DeveloperApiSection
+  )
+);
+const PricingPreviewSection = dynamic(() =>
+  import("@/components/marketing/landing-sections-bottom").then(
+    (m) => m.PricingPreviewSection
+  )
+);
+const GlobeFeatureSection = dynamic(() =>
+  import("@/components/ui/globe-feature-section").then(
+    (m) => m.GlobeFeatureSection
+  )
+);
+const FaqSection = dynamic(() =>
+  import("@/components/marketing/faq-section").then((m) => m.FaqSection)
+);
 
 export const metadata: Metadata = {
   title: "Short Links You Actually Control | Smart Routing & PathLock™",
@@ -67,10 +105,7 @@ export default function LandingPage() {
       {/* 1. Uncluttered Hero + Live Guest Link Shortener Console */}
       <HeroSection />
 
-      {/* 2. Verifiable Trust Strip */}
-      <TrustStripSection />
-
-      {/* 3. How It Works (3 Steps with Scroll-Drawn Flow Line) */}
+      {/* 2. How It Works (3 Steps with Scroll-Drawn Flow Line) */}
       <HowItWorksSection />
 
       {/* 4. Dedicated 6-Minute Walkthrough Video (#demo-video) */}

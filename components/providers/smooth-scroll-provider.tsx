@@ -10,12 +10,6 @@ import React, {
 } from "react";
 import { usePathname } from "next/navigation";
 import Lenis from "lenis";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 export interface SmoothScrollToOptions {
   offset?: number;
@@ -233,6 +227,11 @@ export function SmoothScrollProvider({
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     let instance: Lenis | null = null;
     let resizeTimer: number | null = null;
+    let scrollTriggerMod: { update: () => void; refresh: () => void } | null = null;
+
+    const syncScrollTriggerRefresh = () => {
+      scrollTriggerMod?.refresh();
+    };
 
     const teardown = () => {
       if (resizeTimer !== null) {
@@ -240,7 +239,9 @@ export function SmoothScrollProvider({
         resizeTimer = null;
       }
       if (instance) {
-        instance.off("scroll", ScrollTrigger.update);
+        if (scrollTriggerMod) {
+          instance.off("scroll", scrollTriggerMod.update);
+        }
         instance.destroy();
         instance = null;
       }
@@ -266,18 +267,24 @@ export function SmoothScrollProvider({
       activeLenisInstance = instance;
       setLenis(instance);
 
-      // Keep any GSAP ScrollTrigger instances (e.g. /docs) aligned to Lenis
-      instance.on("scroll", ScrollTrigger.update);
+      // Lazily wire GSAP ScrollTrigger only on /docs routes that actually register ScrollTriggers
+      if (window.location.pathname.startsWith("/docs")) {
+        import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+          scrollTriggerMod = ScrollTrigger;
+          instance?.on("scroll", ScrollTrigger.update);
+          ScrollTrigger.refresh();
+        });
+      }
 
       if (document.fonts?.ready) {
         document.fonts.ready.then(() => {
           instance?.resize();
-          ScrollTrigger.refresh();
+          syncScrollTriggerRefresh();
         });
       }
       resizeTimer = window.setTimeout(() => {
         instance?.resize();
-        ScrollTrigger.refresh();
+        syncScrollTriggerRefresh();
       }, 400);
     };
 
@@ -357,7 +364,11 @@ export function SmoothScrollProvider({
     const rafBind = requestAnimationFrame(() => {
       bindParallax();
       lenis.resize();
-      ScrollTrigger.refresh();
+      if (pathname.startsWith("/docs")) {
+        import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+          ScrollTrigger.refresh();
+        });
+      }
     });
 
     const hashTimer = window.setTimeout(() => {

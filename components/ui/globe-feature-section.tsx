@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import createGlobe, { type COBEOptions } from "cobe";
+import type { COBEOptions } from "cobe";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -42,11 +42,29 @@ export function Globe({
 }) {
   const { theme } = useTheme();
   const [isDark, setIsDark] = useState(theme === "dark");
+  const [shouldInit, setShouldInit] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const dragOffsetRef = useRef<number>(0);
   const phiRef = useRef<number>(0.6);
+
+  // Defer importing cobe & compiling WebGL shaders until the Globe section nears the viewport
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || shouldInit) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldInit(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px", threshold: 0.01 },
+    );
+    io.observe(container);
+    return () => io.disconnect();
+  }, [shouldInit]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -73,13 +91,19 @@ export function Globe({
   };
 
   useEffect(() => {
+    if (!shouldInit) return;
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    let cancelled = false;
     let width = canvas.offsetWidth || 560;
     let rafId = 0;
     let isVisible = false;
+    let fadeTimer = 0;
+    let globe: { update: (opts: Partial<COBEOptions>) => void; destroy: () => void } | null = null;
+    let observer: IntersectionObserver | null = null;
+    let onResize: (() => void) | null = null;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -104,53 +128,57 @@ export function Globe({
       ...config,
     };
 
-    const globe = createGlobe(canvas, baseOpts);
+    import("cobe").then(({ default: createGlobe }) => {
+      if (cancelled || !canvasRef.current || !containerRef.current) return;
+      globe = createGlobe(canvasRef.current, baseOpts);
 
-    const onResize = () => {
-      if (!canvas) return;
-      width = canvas.offsetWidth || 560;
-      globe.update({ width: width * dpr, height: width * dpr });
-    };
+      onResize = () => {
+        if (!canvasRef.current || !globe) return;
+        width = canvasRef.current.offsetWidth || 560;
+        globe.update({ width: width * dpr, height: width * dpr });
+      };
 
-    const tick = () => {
-      if (!isVisible) return;
-      if (pointerInteracting.current === null) {
-        phiRef.current += 0.004;
-      }
-      globe.update({
-        phi: phiRef.current + dragOffsetRef.current,
-      });
-      rafId = requestAnimationFrame(tick);
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const nextVisible = Boolean(entries[0]?.isIntersecting);
-        if (nextVisible && !isVisible) {
-          isVisible = true;
-          rafId = requestAnimationFrame(tick);
-        } else if (!nextVisible && isVisible) {
-          isVisible = false;
-          cancelAnimationFrame(rafId);
+      const tick = () => {
+        if (!isVisible || !globe) return;
+        if (pointerInteracting.current === null) {
+          phiRef.current += 0.004;
         }
-      },
-      { rootMargin: "120px 0px", threshold: 0.01 },
-    );
+        globe.update({
+          phi: phiRef.current + dragOffsetRef.current,
+        });
+        rafId = requestAnimationFrame(tick);
+      };
 
-    observer.observe(container);
-    window.addEventListener("resize", onResize, { passive: true });
-    const fadeTimer = window.setTimeout(() => {
-      if (canvasRef.current) canvasRef.current.style.opacity = "1";
-    }, 40);
+      observer = new IntersectionObserver(
+        (entries) => {
+          const nextVisible = Boolean(entries[0]?.isIntersecting);
+          if (nextVisible && !isVisible) {
+            isVisible = true;
+            rafId = requestAnimationFrame(tick);
+          } else if (!nextVisible && isVisible) {
+            isVisible = false;
+            cancelAnimationFrame(rafId);
+          }
+        },
+        { rootMargin: "120px 0px", threshold: 0.01 },
+      );
+
+      observer.observe(containerRef.current);
+      window.addEventListener("resize", onResize, { passive: true });
+      fadeTimer = window.setTimeout(() => {
+        if (canvasRef.current) canvasRef.current.style.opacity = "1";
+      }, 40);
+    });
 
     return () => {
+      cancelled = true;
       window.clearTimeout(fadeTimer);
       cancelAnimationFrame(rafId);
-      observer.disconnect();
-      window.removeEventListener("resize", onResize);
-      globe.destroy();
+      observer?.disconnect();
+      if (onResize) window.removeEventListener("resize", onResize);
+      globe?.destroy();
     };
-  }, [isDark, config]);
+  }, [shouldInit, isDark, config]);
 
   return (
     <div

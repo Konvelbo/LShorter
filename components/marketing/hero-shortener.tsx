@@ -11,7 +11,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import QRCode from "qrcode";
 import {
   Link2,
   ExternalLink,
@@ -240,7 +239,7 @@ export function HeroShortener() {
     }
   }, [isAuthenticated, selectedQrColor]);
 
-  // Generate QR code PNG whenever activeLink or selectedQrColor changes
+  // Generate QR code PNG lazily only after a short link exists
   useEffect(() => {
     if (!activeLink?.slug) {
       setQrDataUrl("");
@@ -249,15 +248,18 @@ export function HeroShortener() {
     }
     let cancelled = false;
     const targetShortUrl = `https://lsho.cc/${activeLink.slug}`;
-    QRCode.toDataURL(targetShortUrl, {
-      width: 360,
-      margin: 2,
-      errorCorrectionLevel: "M",
-      color: {
-        dark: isAuthenticated ? selectedQrColor : "#000000",
-        light: "#FFFFFF",
-      },
-    })
+    import("qrcode")
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(targetShortUrl, {
+          width: 360,
+          margin: 2,
+          errorCorrectionLevel: "M",
+          color: {
+            dark: isAuthenticated ? selectedQrColor : "#000000",
+            light: "#FFFFFF",
+          },
+        })
+      )
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
       })
