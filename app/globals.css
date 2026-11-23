@@ -264,11 +264,16 @@ html {
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.video-hover-smooth {
+    transition-duration: 0.9s;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto !important;
     }
-    :where(*:not(.btn-hover-slow):not(.animate-marquee):not(.animate-brand-marquee):not(.animate-brand-marquee-reverse):not(.hero-logo-marquee-track)),
+    :where(*:not(.btn-hover-slow):not(.video-hover-smooth):not(.animate-marquee):not(.animate-brand-marquee):not(.animate-brand-marquee-reverse):not(.hero-logo-marquee-track)),
     :where(*::before),
     :where(*::after) {
         animation-duration: 0.01ms !important;

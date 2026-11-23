@@ -130,13 +130,13 @@ export const Skiper67 = ({
           alt={thumbnailAlt}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.025]"
+          className="h-full w-full object-cover transform-gpu will-change-transform video-hover-smooth transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.025]"
         />
 
         {/* Subtle Dark Vignette + Center Play Indicator */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent transition-opacity duration-300 group-hover:opacity-60" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent video-hover-smooth transition-opacity duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-60" />
 
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-200 group-hover:opacity-0">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center video-hover-smooth transition-opacity duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-0">
           <span className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-[10px] bg-[#0066FF] text-white shadow-[0_14px_36px_rgba(0,102,255,0.5)]">
             <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" />
           </span>
