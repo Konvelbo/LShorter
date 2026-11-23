@@ -567,12 +567,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Dynamic routing allowed on paid plans or in non-production development
+    // Paid features (smart routing, password, cloaking, pathlock, expiry, maxClicks, A/B testing, pixels) require PRO+
     const isPaidPlan =
       effectivePlan === "PRO" ||
       effectivePlan === "BUSINESS" ||
-      effectivePlan === "ENTERPRISE" ||
-      process.env.NODE_ENV !== "production";
+      effectivePlan === "ENTERPRISE";
 
     const hasRouting =
       (Array.isArray(body.routingRules) && body.routingRules.length > 0) ||
@@ -582,13 +581,35 @@ export async function POST(req: Request) {
       (body.deviceTargeting && Object.keys(body.deviceTargeting).length > 0) ||
       (body.device_targeting && Object.keys(body.device_targeting).length > 0);
 
-    if (!isPaidPlan && hasRouting) {
+    const rawMaxClicksVal = body.maxClicks ?? body.max_clicks;
+    const rawAbVal = body.abVariations ?? body.ab_variations;
+    const rawPixelsVal = body.pixels ?? body.pixel_ids;
+    const rawPathLockVal = body.pathLockMode || body.path_lock_mode || "off";
+    const hasProtectionOrProFeature = Boolean(
+      body.password ||
+      body.link_password ||
+      body.isCloaked ||
+      body.is_cloaked ||
+      body.destinationMasked ||
+      (rawPathLockVal && rawPathLockVal !== "off") ||
+      body.hideReferrer ||
+      body.hide_referrer ||
+      body.expiresAt ||
+      body.expires_at ||
+      (rawMaxClicksVal !== undefined && rawMaxClicksVal !== null && Number(rawMaxClicksVal) > 0) ||
+      body.fallbackUrl ||
+      body.fallback_url ||
+      (Array.isArray(rawAbVal) && rawAbVal.length > 0) ||
+      (Array.isArray(rawPixelsVal) && rawPixelsVal.length > 0)
+    );
+
+    if (!isPaidPlan && (hasRouting || hasProtectionOrProFeature)) {
       return NextResponse.json(
         {
           success: false,
           code: "PLAN_UPGRADE_REQUIRED",
-          error: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
-          message: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+          error: "Cette fonctionnalité avancée (routage intelligent, protection par mot de passe, cloaking, PathLock, expiration, A/B testing ou pixels) nécessite un abonnement PRO, BUSINESS ou ENTERPRISE.",
+          message: "Cette fonctionnalité avancée nécessite un abonnement PRO, BUSINESS ou ENTERPRISE.",
         },
         { status: 403 }
       );

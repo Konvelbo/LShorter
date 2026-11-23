@@ -42,6 +42,55 @@ async function resolveSessionCanonicalUserIds(opts: {
   return { effectiveId, userIds };
 }
 
+async function verifyTargetOwnership(
+  id: string,
+  effectiveId: string,
+  userIds: string[],
+  isInternal: boolean,
+): Promise<{ ok: boolean; status: number; isGlobal?: boolean }> {
+  if (isInternal) return { ok: true, status: 200 };
+  if (userIds.length === 0) return { ok: false, status: 401 };
+
+  // 1. Check D1 directly if available
+  try {
+    const rows = await executeD1Query<{ id: string; user_id: string; link_id: string | null }>(
+      "SELECT id, user_id, link_id FROM target_alerts WHERE id = ? LIMIT 1",
+      [id]
+    );
+    if (rows && rows.length > 0) {
+      const row = rows[0];
+      if (!userIds.includes(row.user_id)) {
+        return { ok: false, status: 403 };
+      }
+      return { ok: true, status: 200, isGlobal: !row.link_id };
+    }
+  } catch {}
+
+  // 2. Check via Cloudflare Worker user-scoped targets list
+  try {
+    for (const candidateId of userIds) {
+      const res = await fetch(`${WORKER_URL}/api/v1/targets?userId=${encodeURIComponent(candidateId)}`, {
+        headers: {
+          "X-Frontend-Secret": FRONTEND_SECRET || "",
+          Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+          "X-User-Id": candidateId,
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const list = Array.isArray(data?.data) ? data.data : [];
+        const match = list.find((t: any) => t?.id === id);
+        if (match) {
+          return { ok: true, status: 200, isGlobal: !match.linkId || match.linkId === "global" };
+        }
+      }
+    }
+  } catch {}
+
+  return { ok: false, status: 403 };
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,6 +130,14 @@ export async function PATCH(
       isInternal,
       isDevPreview,
     });
+
+    const ownership = await verifyTargetOwnership(id, effectiveId, userIds, isInternal);
+    if (!ownership.ok) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: alert does not belong to your account." },
+        { status: ownership.status }
+      );
+    }
 
     // 1. Direct Cloudflare D1 Update (Primary)
     try {
@@ -221,6 +278,14 @@ export async function DELETE(
       isInternal,
       isDevPreview,
     });
+
+    const ownership = await verifyTargetOwnership(id, effectiveId, userIds, isInternal);
+    if (!ownership.ok) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: alert does not belong to your account." },
+        { status: ownership.status }
+      );
+    }
 
     // 1. Direct Cloudflare D1 Delete (Primary)
     try {

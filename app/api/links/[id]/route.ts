@@ -32,6 +32,82 @@ function parseTags(raw: any): string[] {
   return [];
 }
 
+async function verifyLinkOwnership(
+  id: string,
+  userId: string,
+  userEmail: string,
+): Promise<{ ok: boolean; status: number; link?: any }> {
+  try {
+    const checkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(id)}`, {
+      headers: {
+        "X-Frontend-Secret": FRONTEND_SECRET,
+        Authorization: `Bearer ${FRONTEND_SECRET}`,
+        ...(userId ? { "X-User-Id": userId } : {}),
+      },
+      cache: "no-store",
+    });
+    if (checkRes.status === 404) return { ok: false, status: 404 };
+    if (checkRes.status === 403) return { ok: false, status: 403 };
+    if (checkRes.ok) {
+      const json = await checkRes.json().catch(() => null);
+      const link = json?.data || json;
+      const ownerId = String(link?.user_id || link?.userId || "").trim();
+      const ownerEmail = String(link?.user_email || link?.userEmail || "").toLowerCase().trim();
+      const matchesUser =
+        (userId && ownerId === userId) ||
+        (userEmail && (ownerId.toLowerCase() === userEmail || ownerEmail === userEmail));
+      if (ownerId && !matchesUser) {
+        return { ok: false, status: 403 };
+      }
+      return { ok: true, status: 200, link };
+    }
+  } catch {}
+  return { ok: true, status: 200 };
+}
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const rawParams = await params;
+  const { data: pData, error: pError } = parseParams(rawParams, linkIdParamsSchema);
+  if (pError) return pError;
+  const id = pData.id;
+
+  const session = await auth().catch(() => null);
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: "Authentication required." },
+      { status: 401 }
+    );
+  }
+
+  const requestEmail = (session.user.email || "").toLowerCase().trim();
+  let requestUserId = session.user.id || "";
+  if ((!requestUserId || requestUserId === "usr_anonymous" || requestUserId.includes("@") || !requestUserId.startsWith("usr_")) && requestEmail) {
+    try {
+      const cu = await convex.query(api.users.getUserByEmail, { email: requestEmail });
+      if (cu?.userId) requestUserId = cu.userId;
+    } catch {}
+  }
+
+  const ownership = await verifyLinkOwnership(id, requestUserId, requestEmail);
+  if (!ownership.ok) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: ownership.status === 404 ? "Link not found" : "Forbidden",
+      },
+      { status: ownership.status }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: ownership.link || null,
+  });
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -73,6 +149,14 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: "Authentication required to update links." },
         { status: 401 }
+      );
+    }
+
+    const ownership = await verifyLinkOwnership(id, requestUserId, requestEmail);
+    if (ownership.status === 403) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: You do not have permission to update this link." },
+        { status: 403 }
       );
     }
 
@@ -215,19 +299,39 @@ export async function PATCH(
     const parsedDevice =
       typeof rawDevice === "string" ? JSON.parse(rawDevice) : rawDevice;
 
-    // Strictly enforce: Dynamic smart routing requires a paid plan (PRO, BUSINESS, ENTERPRISE)
+    // Strictly enforce: Dynamic smart routing & protection features require a paid plan (PRO, BUSINESS, ENTERPRISE)
     const hasRouting =
       (Array.isArray(parsedRouting) && parsedRouting.length > 0) ||
       (parsedGeo && Object.keys(parsedGeo).length > 0) ||
       (parsedDevice && Object.keys(parsedDevice).length > 0);
 
-    if (!isPro && hasRouting) {
+    const rawMaxClicksVal = body.maxClicks ?? body.max_clicks;
+    const rawPixelsVal = body.pixels ?? body.pixel_ids;
+    const rawPathLockVal = body.pathLockMode || body.path_lock_mode;
+    const hasProProtection = Boolean(
+      body.password ||
+      body.link_password ||
+      body.isCloaked ||
+      body.is_cloaked ||
+      (rawPathLockVal && rawPathLockVal !== "off") ||
+      body.hideReferrer ||
+      body.hide_referrer ||
+      body.expiresAt ||
+      body.expires_at ||
+      (rawMaxClicksVal !== undefined && rawMaxClicksVal !== null && Number(rawMaxClicksVal) > 0) ||
+      body.fallbackUrl ||
+      body.fallback_url ||
+      (Array.isArray(patchAbVariations) && patchAbVariations.length > 0) ||
+      (Array.isArray(rawPixelsVal) && rawPixelsVal.length > 0)
+    );
+
+    if (!isPro && (hasRouting || hasProProtection)) {
       return NextResponse.json(
         {
           success: false,
           code: "PLAN_UPGRADE_REQUIRED",
-          error: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
-          message: "Le système de routage dynamique intelligent est strictement réservé aux forfaits payants (Pro, Business et Enterprise).",
+          error: "Cette fonctionnalité avancée est strictement réservée aux forfaits payants (Pro, Business et Enterprise).",
+          message: "Cette fonctionnalité avancée est strictement réservée aux forfaits payants (Pro, Business et Enterprise).",
         },
         { status: 403 }
       );
@@ -651,6 +755,20 @@ export async function DELETE(
     return NextResponse.json(
       { success: false, error: "Authentication required to delete links." },
       { status: 401 }
+    );
+  }
+
+  const ownership = await verifyLinkOwnership(id, userId, userEmail);
+  if (ownership.status === 403) {
+    return NextResponse.json(
+      { success: false, error: "Forbidden: You do not have permission to delete this link." },
+      { status: 403 }
+    );
+  }
+  if (ownership.status === 404) {
+    return NextResponse.json(
+      { success: false, error: "Link not found." },
+      { status: 404 }
     );
   }
 

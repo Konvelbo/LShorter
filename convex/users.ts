@@ -87,7 +87,8 @@ export const storeUser = mutation({
       email: cleanEmail,
       avatarUrl: args.avatarUrl,
       provider: args.provider,
-      plan: args.plan || "FREEMIUM",
+      // Security: Never allow storeUser to self-provision a paid plan on creation
+      plan: "FREEMIUM",
       hasCompletedOnboarding: false,
       createdAt: now,
       updatedAt: now,

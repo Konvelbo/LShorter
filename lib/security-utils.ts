@@ -110,6 +110,28 @@ export function isSafeHttpUrl(urlStr: unknown): boolean {
 }
 
 /**
+ * Checks if a webhook URL points back to LShorter's own edge or worker domains (preventing self-loops).
+ */
+export function isSelfLoopWebhookUrl(urlStr: unknown): boolean {
+  if (typeof urlStr !== "string") return true;
+  try {
+    const trimmed = urlStr.trim();
+    const candidate =
+      trimmed.startsWith("http://") || trimmed.startsWith("https://")
+        ? trimmed
+        : `https://${trimmed}`;
+    const host = new URL(candidate).hostname.toLowerCase().replace(/\.$/, "");
+    return (
+      host === "lsho.cc" ||
+      host.endsWith(".lsho.cc") ||
+      host === "lshorter-api.fiatechnologiecam.workers.dev"
+    );
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Allowed image MIME types for profile images, banners, and QR logos
  */
 export const ALLOWED_IMAGE_MIME_TYPES = [
@@ -138,18 +160,23 @@ export function validateSvgSafety(svgContent: string): {
     return { isSafe: false, reason: "SVG contains forbidden XML entity or DOCTYPE definitions." };
   }
 
-  // 2. Detect script tags
-  if (/<script[\s\S]*?>[\s\S]*?<\/script>/i.test(lower) || /<script[\s\S]*?>/i.test(lower)) {
-    return { isSafe: false, reason: "SVG contains embedded <script> tags." };
+  // 2. Detect script, iframe, embed, or object tags
+  if (
+    /<script[\s\S]*?>[\s\S]*?<\/script>/i.test(lower) ||
+    /<(script|iframe|embed|object)[\s/>]/i.test(lower)
+  ) {
+    return { isSafe: false, reason: "SVG contains embedded <script> or active object tags." };
   }
 
-  // 3. Detect dangerous event handlers (onload, onerror, onclick, etc.)
-  if (/\s+on[a-z]+\s*=/i.test(lower)) {
+  // 3. Detect dangerous event handlers (onload, onerror, onclick, including <svg/onload=...>)
+  if (/[\s/<]on[a-z]+\s*=/i.test(lower)) {
     return { isSafe: false, reason: "SVG contains active JavaScript event handlers." };
   }
 
-  // 4. Detect javascript: pseudo-protocol in href, xlink:href, or styles
-  if (/href\s*=\s*['"]\s*javascript:/i.test(lower) || /xlink:href\s*=\s*['"]\s*javascript:/i.test(lower)) {
+  // 4. Detect javascript: or data:text/html pseudo-protocols in href, xlink:href, or styles
+  if (
+    /(?:xlink:)?href\s*=\s*['"]?\s*(?:javascript:|data:text\/html|&#)/i.test(lower)
+  ) {
     return { isSafe: false, reason: "SVG contains javascript: link targets." };
   }
 

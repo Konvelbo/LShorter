@@ -92,8 +92,11 @@ export async function GET(
       isPasswordProtected: link.isPasswordProtected,
       isCloaked: link.isCloaked,
       metaTitle: link.metaTitle,
-      // L'URL de destination est masquée si le lien est protégé par mot de passe
-      targetUrl: link.isPasswordProtected ? undefined : link.targetUrl,
+      // L'URL de destination est masquée si le lien est protégé par mot de passe ou masqué (cloaked / PathLock)
+      targetUrl:
+        link.isPasswordProtected || link.isCloaked || (link.pathLockMode && link.pathLockMode !== "off")
+          ? undefined
+          : link.targetUrl,
     },
   });
 }

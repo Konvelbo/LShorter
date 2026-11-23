@@ -139,8 +139,9 @@ function escapeMetaUrl(url?: string | null): string {
 function sanitizeSafeUrl(url?: string | null): string {
   if (!url) return "#";
   const trimmed = String(url).trim();
-  // Prevent javascript:, vbscript:, and malicious data: schemas
-  if (/^(javascript|vbscript|data:(?!image\/)):/i.test(trimmed)) {
+  const stripped = trimmed.replace(/[\x00-\x20\x7F]+/g, "");
+  // Prevent javascript:, vbscript:, file:, and malicious data: schemas (even with embedded control chars)
+  if (/^(javascript|vbscript|file|blob|data:(?!image\/))/i.test(stripped)) {
     return "#";
   }
   return trimmed;

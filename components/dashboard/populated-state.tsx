@@ -1934,8 +1934,8 @@ export function PopulatedState({
         onSelectLink={handleOpenEditDrawer}
         onEdit={handleOpenEditDrawer}
         onShareLink={(link) => setSelectedShareLink(link)}
-        onSelectQr={(link) => setSelectedShareLink(link)}
-        onQr={(link) => setSelectedShareLink(link)}
+        onSelectQr={(link) => setSelectedQRLink(link)}
+        onQr={(link) => setSelectedQRLink(link)}
         onDeleteLink={handleDeleteLink}
         onDeleteMultiple={handleDeleteMultiple}
         title="Short Links Directory"

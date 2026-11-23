@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 
 import { auth } from "@/auth";
 import { parseBody, userSyncBodySchema } from "@/lib/api-schemas";
@@ -8,7 +10,7 @@ import { parseBody, userSyncBodySchema } from "@/lib/api-schemas";
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required." },
         { status: 401 }
@@ -18,12 +20,28 @@ export async function POST(req: Request) {
     const { data: body, error: bodyError } = await parseBody(req, userSyncBodySchema);
     if (bodyError) return bodyError;
 
-    const id = session.user.id || body.id;
-    const email = session.user.email || body.email;
+    // Security: Strictly use authenticated session identity and authoritative Convex plan.
+    // Never allow client body to spoof `id`, `email`, or `plan`.
+    const id = session.user.id;
+    const email = (session.user.email || "").toLowerCase().trim();
     const name = body.name || session.user.name;
     const avatarUrl = body.avatarUrl || session.user.image;
     const provider = body.provider || "credentials";
-    const plan = (session.user as any)?.plan || "FREEMIUM";
+
+    let authoritativePlan = ((session.user as any)?.plan || "FREEMIUM").toUpperCase();
+    try {
+      const cu = await convex.query(api.users.getCurrentUser, {
+        userId: id,
+        email: email || undefined,
+      });
+      if (cu?.plan) {
+        authoritativePlan = String(cu.plan).toUpperCase();
+      }
+    } catch {}
+
+    const plan = ["FREEMIUM", "PRO", "BUSINESS", "STARTER", "ENTERPRISE"].includes(authoritativePlan)
+      ? authoritativePlan
+      : "FREEMIUM";
 
     const headers: Record<string, string> = {
       "X-Frontend-Secret": FRONTEND_SECRET,

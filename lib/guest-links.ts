@@ -259,12 +259,11 @@ export async function deleteGuestLinkBySlug(params: {
 
   if (!rows.length) return false;
 
-  const target =
-    rows.find(
-      (r) =>
-        (params.guestId && r.guest_id === params.guestId) ||
-        r.ip_hash === params.ipHash
-    ) || rows[0];
+  const target = rows.find(
+    (r) =>
+      (params.guestId && r.guest_id === params.guestId) ||
+      r.ip_hash === params.ipHash
+  );
   if (!target) return false;
 
   await expireGuestRow(target);

@@ -4,6 +4,7 @@ import { api } from "@/convex/_generated/api";
 import bcrypt from "bcryptjs";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { parseBody, registerBodySchema } from "@/lib/api-schemas";
+import { verifyStatelessPinToken } from "@/lib/stateless-pin";
 import {
   GUEST_COOKIE_NAME,
   verifyGuestToken,
@@ -16,7 +17,37 @@ export async function POST(req: NextRequest) {
     const { data: body, error } = await parseBody(req, registerBodySchema);
     if (error) return error;
 
-    const { name, email, password, passwordHash } = body;
+    const { name, email, password, passwordHash, pin, token: bodyToken } = body;
+    const signupToken = bodyToken || req.cookies.get("lsh_signup_token")?.value;
+
+    // Security: Prevent unverified account creation bypass (require stateless email PIN verification)
+    if (!signupToken || !pin) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PIN_VERIFICATION_REQUIRED",
+          error: "Email verification PIN is required. Please register via /api/auth/signup-pin.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const pinResult = verifyStatelessPinToken(signupToken, pin);
+    if (
+      !pinResult.valid ||
+      !pinResult.payload ||
+      pinResult.payload.type !== "signup" ||
+      pinResult.payload.email !== email.toLowerCase().trim()
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "INVALID_PIN_TOKEN",
+          error: "Invalid or expired email verification PIN.",
+        },
+        { status: 403 }
+      );
+    }
     const cleanName = name.trim();
     if (cleanName.length < 2 || cleanName.length > 50) {
       return NextResponse.json({ error: "Your name must be between 2 and 50 characters." }, { status: 400 });

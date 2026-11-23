@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     // 1. Security: Block public API keys (lsh_*, qlk_*) from reading or mutating user profile via /users/me
     if (authHeader.startsWith("Bearer ")) {
       const rawKey = authHeader.slice(7).trim();
-      if (rawKey === FRONTEND_SECRET) {
+      if (Boolean(FRONTEND_SECRET) && rawKey === FRONTEND_SECRET) {
         authenticatedUserId = xUserId || "usr_system";
         authenticatedEmail = xUserEmail || null;
       } else {
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
           { status: 403 }
         );
       }
-    } else if (frontendSecret === FRONTEND_SECRET) {
+    } else if (Boolean(FRONTEND_SECRET) && frontendSecret === FRONTEND_SECRET) {
       authenticatedUserId = xUserId || "usr_system";
       authenticatedEmail = xUserEmail || null;
     }
@@ -146,8 +146,9 @@ export async function PATCH(req: Request) {
     const authHeader = req.headers.get("authorization") || "";
     const frontendSecret = req.headers.get("x-frontend-secret") || "";
     const isSystemSecret =
-      (authHeader.startsWith("Bearer ") && authHeader.slice(7).trim() === FRONTEND_SECRET) ||
-      frontendSecret === FRONTEND_SECRET;
+      Boolean(FRONTEND_SECRET) &&
+      ((authHeader.startsWith("Bearer ") && authHeader.slice(7).trim() === FRONTEND_SECRET) ||
+        frontendSecret === FRONTEND_SECRET);
 
     const session = await auth().catch(() => null);
 

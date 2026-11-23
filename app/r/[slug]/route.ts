@@ -297,6 +297,8 @@ export async function GET(
       trackClickAsync(req, slug, link, geo, finalUrl);
     }
 
+    const shouldHideReferrer = Boolean(link.hide_referrer || link.hideReferrer);
+
     // Fire attached retargeting pixels via lightweight interstitial when present
     if (!isPrefetch) {
       const activePixels = await resolveLinkActivePixels(link);
@@ -310,6 +312,7 @@ export async function GET(
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "X-Robots-Tag": "noindex, nofollow",
+            "Referrer-Policy": shouldHideReferrer ? "no-referrer" : "strict-origin-when-cross-origin",
             "Content-Security-Policy": PIXEL_INTERSTITIAL_CSP,
           },
         });
@@ -325,6 +328,10 @@ export async function GET(
 
     const response = NextResponse.redirect(new URL(finalUrl, req.url), redirectCode);
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set(
+      "Referrer-Policy",
+      shouldHideReferrer ? "no-referrer" : "strict-origin-when-cross-origin",
+    );
     return response;
   } catch (error: any) {
     console.error("[Redirect Handler Error]:", error);

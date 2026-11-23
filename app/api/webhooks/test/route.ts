@@ -1,16 +1,55 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { isSafeHttpUrl } from "@/lib/security-utils";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
+import { isSafeHttpUrl, isSelfLoopWebhookUrl, checkRateLimit } from "@/lib/security-utils";
 import { parseBody, webhookTestBodySchema } from "@/lib/api-schemas";
+
+const PAID_PLANS = new Set(["PRO", "BUSINESS", "ENTERPRISE"]);
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth().catch(() => null);
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "Authentication required to test webhooks." },
         { status: 401 }
+      );
+    }
+
+    const rl = checkRateLimit(`webhook_test:${session.user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Rate limit exceeded for webhook testing." },
+        { status: 429 }
+      );
+    }
+
+    let plan = String((session.user as any)?.plan || "").toUpperCase();
+    const email = (session.user.email || "").toLowerCase().trim();
+    try {
+      let cu: any = null;
+      if (email) {
+        cu = await convex.query(api.users.getUserByEmail, { email });
+      }
+      if (!cu && session.user.id) {
+        cu = await convex.query(api.users.getCurrentUser, {
+          userId: session.user.id,
+          email: email || undefined,
+        });
+      }
+      if (cu?.plan) plan = String(cu.plan).toUpperCase();
+    } catch {}
+
+    if (!PAID_PLANS.has(plan)) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PLAN_UPGRADE_REQUIRED",
+          error: "Webhooks require a PRO, BUSINESS, or ENTERPRISE subscription.",
+        },
+        { status: 403 }
       );
     }
 
@@ -18,6 +57,12 @@ export async function POST(req: NextRequest) {
     if (bodyError) return bodyError;
 
     const { url, secretKey } = body;
+    if (!isSafeHttpUrl(url) || isSelfLoopWebhookUrl(url)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid or forbidden webhook URL." },
+        { status: 400 }
+      );
+    }
 
     const testPayload = {
       event: "click.test",
@@ -60,6 +105,7 @@ export async function POST(req: NextRequest) {
           "User-Agent": "LShorter-Webhook-Delivery/1.0",
         },
         body: rawPayload,
+        redirect: "manual",
         signal: AbortSignal.timeout(5000),
       });
       status = res.status;

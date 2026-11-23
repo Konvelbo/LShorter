@@ -800,9 +800,11 @@ export async function cfUpdateLink(id: string, updates: any) {
     }
   }
 
-  if (updates.password && updates.password.trim()) {
+  if (updates.password && updates.password.trim() && updates.password.trim() !== "••••••••") {
     payload.password = updates.password.trim();
-  } else if (updates.password === "" || updates.password === null) {
+  } else if (updates.password === null) {
+    payload.password = null;
+  } else if (updates.password === "" || updates.password?.trim() === "••••••••") {
     delete payload.password;
   }
 

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   const authHeader = req.headers.get("authorization") || "";
   const frontendSecret = req.headers.get("x-frontend-secret") || "";
-  const isInternal = frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`;
+  const isInternal = Boolean(SECRET && (frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`));
 
   // 1. Authentication check
   if (!session?.user && !isInternal) {
@@ -25,10 +25,10 @@ export async function GET(req: Request) {
 
   let userId = isInternal
     ? (reqUrl.searchParams.get("userId") || sessionUserId)
-    : (sessionUserId || reqUrl.searchParams.get("userId") || "");
+    : sessionUserId;
   let userEmail = isInternal
     ? (reqUrl.searchParams.get("userEmail") || sessionEmail)
-    : (sessionEmail || reqUrl.searchParams.get("userEmail") || "");
+    : sessionEmail;
 
   // Prevent cross-user IDOR: authenticated users can only request their own keys
   if (!isInternal && sessionUserId && userId !== sessionUserId && !sessionUserId.includes("@")) {
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
 
     const authHeader = req.headers.get("authorization") || "";
     const frontendSecret = req.headers.get("x-frontend-secret") || "";
-    const isInternal = frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`;
+    const isInternal = Boolean(SECRET && (frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`));
 
     // 1. Authentication check
     if (!session?.user && !isInternal) {
@@ -138,10 +138,10 @@ export async function POST(req: Request) {
 
     let userId = isInternal
       ? (body.userId || reqUrl.searchParams.get("userId") || sessionUserId)
-      : (sessionUserId || reqUrl.searchParams.get("userId") || "");
+      : sessionUserId;
     let userEmail = isInternal
       ? (body.userEmail || reqUrl.searchParams.get("userEmail") || sessionEmail)
-      : (sessionEmail || reqUrl.searchParams.get("userEmail") || "");
+      : sessionEmail;
 
     // If userId is missing or email-shaped, resolve authoritative Convex userId
     if ((!userId || userId === "usr_anonymous" || userId.includes("@")) && userEmail) {

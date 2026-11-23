@@ -629,8 +629,6 @@ export async function POST(req: NextRequest) {
         slug,
         targetUrl: normalizedUrl,
         target_url: normalizedUrl,
-        expiresAt: heroExpiresAt,
-        expires_at: heroExpiresAt,
         isActive: true,
         is_active: 1,
         pathLockMode: "off",

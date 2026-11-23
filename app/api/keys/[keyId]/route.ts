@@ -20,7 +20,7 @@ export async function DELETE(
 
   const authHeader = req.headers.get("authorization") || "";
   const frontendSecret = req.headers.get("x-frontend-secret") || "";
-  const isInternal = frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`;
+  const isInternal = Boolean(SECRET && (frontendSecret === SECRET || authHeader === `Bearer ${SECRET}`));
 
   if (!session?.user && !isInternal) {
     return NextResponse.json(
@@ -34,10 +34,10 @@ export async function DELETE(
 
   let userId = isInternal
     ? (reqUrl.searchParams.get("userId") || sessionUserId)
-    : (sessionUserId || reqUrl.searchParams.get("userId") || "");
+    : sessionUserId;
   let userEmail = isInternal
     ? (reqUrl.searchParams.get("userEmail") || sessionEmail)
-    : (sessionEmail || reqUrl.searchParams.get("userEmail") || "");
+    : sessionEmail;
 
   if ((!userId || userId === "usr_anonymous" || userId.includes("@")) && userEmail) {
     try {

@@ -9,15 +9,20 @@ import { parseBody, billingCheckoutBodySchema } from "@/lib/api-schemas";
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to start a checkout session." },
+        { status: 401 }
+      );
+    }
     const { data: body, error: bodyError } = await parseBody(request, billingCheckoutBodySchema);
     if (bodyError) return bodyError;
 
     const { orgId, planId, cycle: normalizedCycle, successUrl, cancelUrl, companyName, discountId } = body;
 
-    // Security hardening: Only trust session.user.id for authenticated requests.
-    // Unauthenticated callers cannot spoof existing registered user IDs.
-    const userId = session?.user?.id || (typeof body.userId === "string" && body.userId.startsWith("guest_") ? body.userId : `guest_${Date.now()}`);
-    const customerEmail = session?.user?.email || (session?.user ? undefined : body.customerEmail);
+    // Security hardening: Strictly bind checkout sessions to the authenticated user.
+    const userId = session.user.id;
+    const customerEmail = session.user.email || undefined;
 
     // Check existing subscription to prevent duplicate checkout for the exact same active plan/cycle
     // and attach previousSubscriptionId when upgrading/switching plans so the old subscription is auto-cancelled.
@@ -65,13 +70,20 @@ export async function POST(request: NextRequest) {
     const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = `${protocol}://${host}`;
 
-    const resolvedSuccessUrl = successUrl
-      ? (successUrl.startsWith("http") ? successUrl : `${origin}${successUrl.startsWith("/") ? "" : "/"}${successUrl}`)
-      : `${origin}/dashboard/settings?tab=billing`;
+    const toSameOriginUrl = (candidate: string | undefined, fallbackPath: string): string => {
+      if (!candidate) return `${origin}${fallbackPath}`;
+      if (candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.startsWith("/\\")) {
+        return `${origin}${candidate}`;
+      }
+      try {
+        const parsed = new URL(candidate);
+        if (parsed.origin === origin) return parsed.href;
+      } catch {}
+      return `${origin}${fallbackPath}`;
+    };
 
-    const resolvedCancelUrl = cancelUrl
-      ? (cancelUrl.startsWith("http") ? cancelUrl : `${origin}${cancelUrl.startsWith("/") ? "" : "/"}${cancelUrl}`)
-      : `${origin}/dashboard/pricing`;
+    const resolvedSuccessUrl = toSameOriginUrl(successUrl, "/dashboard/settings?tab=billing");
+    const resolvedCancelUrl = toSameOriginUrl(cancelUrl, "/dashboard/pricing");
 
     const provider = getBillingProvider();
     const result = await provider.createCheckoutSession({

@@ -88,6 +88,7 @@ export async function GET(
           "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
           "Cross-Origin-Resource-Policy": "cross-origin",
           "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
           "X-Image-Cache": "MEM-HIT",
         },
       });

@@ -41,6 +41,39 @@ export async function POST(req: Request) {
     const userId = session.user.id;
     const cleanDomain = normalizeDomain(body.domain || body.domain_name || "");
 
+    // Security: Verify domain belongs to authenticated user before running verification or activating it
+    if (userId) {
+      try {
+        const listRes = await fetch(`${WORKER_URL}/api/v1/domains?userId=${encodeURIComponent(userId)}`, {
+          headers: {
+            "X-Frontend-Secret": FRONTEND_SECRET,
+            Authorization: `Bearer ${FRONTEND_SECRET}`,
+            "X-User-Id": userId,
+          },
+          cache: "no-store",
+        });
+        if (listRes.ok) {
+          const listJson = await listRes.json().catch(() => null);
+          const list = Array.isArray(listJson?.data)
+            ? listJson.data
+            : Array.isArray(listJson?.domains)
+              ? listJson.domains
+              : [];
+          const ownsDomain = list.some(
+            (d: any) =>
+              (domainId && d.id === domainId) ||
+              (cleanDomain && String(d.domain || d.domain_name || "").toLowerCase() === cleanDomain.toLowerCase())
+          );
+          if (list.length > 0 && !ownsDomain) {
+            return NextResponse.json(
+              { success: false, error: "Forbidden: Domain does not belong to your account." },
+              { status: 403 }
+            );
+          }
+        }
+      } catch {}
+    }
+
     const expectedToken = generateOwnershipToken(cleanDomain);
     const expectedTxtHost = `_lshorter-verify.${cleanDomain}`;
     const expectedTxtValue = `lshorter-verify=${expectedToken}`;

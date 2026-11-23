@@ -169,24 +169,21 @@ export default function DomainsPage() {
   const handleVerify = async (dom: CustomDomain) => {
     setIsVerifyingId(dom.id);
     try {
-      const cnameRes = await fetch(
-        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(dom.domain)}&type=CNAME`,
-        { headers: { Accept: "application/dns-json" } },
-      );
-      const cnameJson = cnameRes.ok ? await cnameRes.json() : null;
-      const answers = Array.isArray(cnameJson?.Answer) ? cnameJson.Answer : [];
-      const pointsToEdge = answers.some((a: any) =>
-        String(a.data || "")
-          .toLowerCase()
-          .includes(DEFAULT_DOMAIN.toLowerCase()),
-      );
+      const verifyRes = await fetch("/api/domains/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: dom.id, domain: dom.domain }),
+      });
+      const verifyJson = await verifyRes.json().catch(() => null);
 
-      if (!pointsToEdge) {
+      if (!verifyRes.ok || !verifyJson?.verified) {
         showToast.error(
-          `L'enregistrement CNAME de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`,
+          verifyJson?.error ||
+            `L'enregistrement CNAME ou TXT de ${dom.domain} vers ${DEFAULT_DOMAIN} n'est pas encore détecté sur les serveurs DNS. Vérifiez votre zone DNS.`,
         );
       } else {
         showToast.success("Domain active and SSL certificate verified!");
+        cfInvalidateCache("/api/domains");
         loadDomains();
       }
     } catch {

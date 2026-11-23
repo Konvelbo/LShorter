@@ -369,6 +369,32 @@ export async function resolvePathLockLinkConfig(
   const found = await fetchWorkerLink(slug);
   if (!found) return null;
 
+  // Enforce active state, expiration, click limit, and cloaked/PathLock mode
+  const isActive =
+    found.is_active !== undefined
+      ? Boolean(found.is_active)
+      : found.isActive !== undefined
+        ? Boolean(found.isActive)
+        : true;
+  if (!isActive) return null;
+
+  const expiresAt = found.expires_at || found.expiresAt;
+  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+    return null;
+  }
+
+  const maxClicks = found.max_clicks ?? found.maxClicks;
+  const clicksCount = Number(found.clicks_count ?? found.clicksCount ?? 0);
+  if (maxClicks !== null && maxClicks !== undefined && Number(maxClicks) > 0 && clicksCount >= Number(maxClicks)) {
+    return null;
+  }
+
+  const isCloaked = Boolean(found.is_cloaked || found.isCloaked);
+  const pathLockMode = found.path_lock_mode || found.pathLockMode || "off";
+  if (!isCloaked && (!pathLockMode || pathLockMode === "off")) {
+    return null;
+  }
+
   const rawTarget = found.target_url || found.targetUrl || "";
   if (!rawTarget) return null;
 

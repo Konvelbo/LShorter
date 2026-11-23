@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { getCountryName } from "@/lib/utils";
 import { resolveCountryInfo } from "@/lib/country-flags";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { convexHttp as convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 import { ZipArchive } from "@/lib/export/zip-archive";
 import { formatCleanCsvTable } from "@/lib/export/spaced-csv";
 import { generateTableExcelXml } from "@/lib/export/excel-xml";
@@ -442,7 +444,7 @@ export async function GET(req: Request) {
           ? "Année Complète (365 jours)"
           : "30 Derniers Jours (Mois)";
 
-  // 1. Authenticate user strictly via session
+  // 1. Authenticate user strictly via session & enforce paid plan (PRO, BUSINESS, ENTERPRISE)
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -451,9 +453,37 @@ export async function GET(req: Request) {
     );
   }
   const userId = session.user.id;
-
   const userName = session?.user?.name || "LShorter User";
   const userEmail = session?.user?.email || "—";
+
+  let plan = String((session.user as any)?.plan || "").toUpperCase();
+  try {
+    const cleanEmail = (session.user.email || "").toLowerCase().trim();
+    let cu: any = null;
+    if (cleanEmail) {
+      cu = await convex.query(api.users.getUserByEmail, { email: cleanEmail });
+    }
+    if (!cu && userId) {
+      cu = await convex.query(api.users.getCurrentUser, {
+        userId,
+        email: cleanEmail || undefined,
+      });
+    }
+    if (cu?.plan) {
+      plan = String(cu.plan).toUpperCase();
+    }
+  } catch {}
+
+  if (!["PRO", "BUSINESS", "ENTERPRISE"].includes(plan)) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "PLAN_UPGRADE_REQUIRED",
+        error: "L'exportation des données analytiques (CSV, Excel, ZIP) nécessite un abonnement PRO, BUSINESS ou ENTERPRISE.",
+      },
+      { status: 403 },
+    );
+  }
 
   try {
     // 2. Fetch real links, analytics, and custom domains in parallel from Cloudflare Worker

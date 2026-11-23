@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse, after } from "next/server";
 import bcrypt from "bcryptjs";
 import { sendSignupVerificationPinEmail, sendWelcomeEmail } from "@/lib/resend";
@@ -8,6 +9,7 @@ import {
   verifyStatelessPinToken,
 } from "@/lib/stateless-pin";
 import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
+import { checkRateLimit } from "@/lib/security-utils";
 import { parseBody, signupPinBodySchema } from "@/lib/api-schemas";
 
 const SIGNUP_COOKIE_NAME = "lsh_signup_token";
@@ -18,6 +20,26 @@ export async function POST(req: NextRequest) {
     if (error) return error;
 
     const { action } = body;
+    const clientIp =
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "local";
+
+    const rl = checkRateLimit(
+      `signup_pin:${action}:${clientIp}:${body.email}`,
+      action === "send" ? 5 : 10,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          valid: false,
+          message: "Too many verification attempts. Please wait a minute and try again.",
+        },
+        { status: 429 },
+      );
+    }
 
     // ── 1. SEND PIN (Stateless Option A) ───────────────────────────────────────
     if (action === "send") {
@@ -57,8 +79,8 @@ export async function POST(req: NextRequest) {
       // Securely hash password
       const passwordHash = await bcrypt.hash(password, 10);
 
-      // Generate 6-digit numeric PIN
-      const pin = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate cryptographically secure 6-digit numeric PIN
+      const pin = crypto.randomInt(100000, 1000000).toString();
 
       // Create stateless signed HMAC token (15-min validity)
       const token = createStatelessPinToken(

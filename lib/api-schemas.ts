@@ -12,33 +12,25 @@
  */
 
 import { z } from "zod";
+import { isSafeHttpUrl, isSelfLoopWebhookUrl } from "@/lib/security-utils";
 
 // ─── Helpers de base ────────────────────────────────────────────────────────
 
-/** URL HTTP ou HTTPS sûre — bloque javascript:, data:, file:, etc. */
+/** URL HTTP ou HTTPS sûre — bloque javascript:, data:, file:, localhost, RFC1918, etc. */
 export const safeHttpUrlSchema = z
   .string()
   .trim()
   .max(4096, "URL is too long")
   .refine(
-    (u) => {
-      if (!u) return false;
-      if (/[\x00-\x1F\x7F]/.test(u)) return false;
-      if (
-        /^(javascript|data|vbscript|file|blob|about|chrome|intent|ms-windows-store|ftp|gopher):/i.test(u)
-      )
-        return false;
-      try {
-        const candidate =
-          u.startsWith("http://") || u.startsWith("https://") ? u : `https://${u}`;
-        const parsed = new URL(candidate);
-        return parsed.protocol === "http:" || parsed.protocol === "https:";
-      } catch {
-        return false;
-      }
-    },
-    "Only HTTP and HTTPS URLs are permitted"
+    (u) => isSafeHttpUrl(u),
+    "Only valid public HTTP and HTTPS URLs are permitted"
   );
+
+/** URL de webhook sûre — bloque également les boucles vers lsho.cc / worker */
+export const safeWebhookUrlSchema = safeHttpUrlSchema.refine(
+  (u) => !isSelfLoopWebhookUrl(u),
+  "Webhook URL cannot target LShorter domains"
+);
 
 /** Optionnellement une URL sûre (vide = ok) */
 export const optionalSafeUrlSchema = safeHttpUrlSchema.optional().or(z.literal("")).transform(v => v || undefined);
@@ -53,6 +45,7 @@ export const redirectUrlSchema = z
       if (!u) return false;
       if (/[\x00-\x1F\x7F]/.test(u)) return false;
       if (/^(javascript|data|vbscript|file|blob):/i.test(u)) return false;
+      if (u.startsWith("//") || u.startsWith("/\\")) return false;
       if (u.startsWith("/")) return true;
       try {
         const parsed = new URL(u);
@@ -110,7 +103,13 @@ export const slugSchema = z
   .max(100, "Slug is too long")
   .regex(/^[a-zA-Z0-9_-]+$/, "Slug may only contain letters, numbers, hyphens and underscores");
 
-export const idSchema = z.string().trim().min(1, "ID is required").max(254);
+export const idSchema = z
+  .string()
+  .trim()
+  .min(1, "ID is required")
+  .max(128, "ID is too long")
+  .regex(/^[a-zA-Z0-9_.:@-]+$/, "Invalid ID format")
+  .refine((s) => !s.includes(".."), "Invalid ID");
 
 export const userIdSchema = z
   .string()
@@ -175,6 +174,8 @@ export const registerBodySchema = z.object({
   email: emailSchema,
   password: passwordSchema.optional(),
   passwordHash: bcryptHashSchema.optional(),
+  pin: pinSchema.optional(),
+  token: z.string().min(1).max(4096).optional(),
 }).refine(
   (d) => d.password || d.passwordHash,
   "Either password or passwordHash is required"
@@ -434,10 +435,82 @@ export const baseLinkBodySchema = z
     // Routing & Targeting
     routingRules: routingRulesFieldSchema,
     routing_rules: routingRulesFieldSchema,
-    geoTargeting: z.any().optional().nullable(),
-    geo_targeting: z.any().optional().nullable(),
-    deviceTargeting: z.any().optional().nullable(),
-    device_targeting: z.any().optional().nullable(),
+    geoTargeting: z
+      .any()
+      .optional()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        let obj = val;
+        if (typeof val === "string") {
+          try {
+            obj = JSON.parse(val);
+          } catch {
+            return false;
+          }
+        }
+        if (typeof obj !== "object" || Array.isArray(obj)) return false;
+        return Object.values(obj).every(
+          (u) => !u || (typeof u === "string" && isSafeHttpUrl(u))
+        );
+      }, "Invalid URL in geoTargeting"),
+    geo_targeting: z
+      .any()
+      .optional()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        let obj = val;
+        if (typeof val === "string") {
+          try {
+            obj = JSON.parse(val);
+          } catch {
+            return false;
+          }
+        }
+        if (typeof obj !== "object" || Array.isArray(obj)) return false;
+        return Object.values(obj).every(
+          (u) => !u || (typeof u === "string" && isSafeHttpUrl(u))
+        );
+      }, "Invalid URL in geo_targeting"),
+    deviceTargeting: z
+      .any()
+      .optional()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        let obj = val;
+        if (typeof val === "string") {
+          try {
+            obj = JSON.parse(val);
+          } catch {
+            return false;
+          }
+        }
+        if (typeof obj !== "object" || Array.isArray(obj)) return false;
+        return Object.values(obj).every(
+          (u) => !u || (typeof u === "string" && isSafeHttpUrl(u))
+        );
+      }, "Invalid URL in deviceTargeting"),
+    device_targeting: z
+      .any()
+      .optional()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        let obj = val;
+        if (typeof val === "string") {
+          try {
+            obj = JSON.parse(val);
+          } catch {
+            return false;
+          }
+        }
+        if (typeof obj !== "object" || Array.isArray(obj)) return false;
+        return Object.values(obj).every(
+          (u) => !u || (typeof u === "string" && isSafeHttpUrl(u))
+        );
+      }, "Invalid URL in device_targeting"),
     abVariations: abVariationsFieldSchema,
     ab_variations: abVariationsFieldSchema,
     mainWeight: optionalNullableWeightSchema,
@@ -667,7 +740,7 @@ export const webhookEventSchema = z.enum([
 ]);
 
 export const webhookCreateBodySchema = z.object({
-  url: safeHttpUrlSchema,
+  url: safeWebhookUrlSchema,
   events: z.array(webhookEventSchema).min(1).max(20).optional().default(["click.created"]),
   isActive: z.boolean().optional().default(true),
   name: z.string().trim().max(100).optional(),
@@ -678,12 +751,12 @@ export const webhookCreateBodySchema = z.object({
 }).passthrough();
 
 export const webhookUpdateBodySchema = webhookCreateBodySchema.partial().extend({
-  url: safeHttpUrlSchema.optional(),
+  url: safeWebhookUrlSchema.optional(),
   events: z.array(webhookEventSchema).min(1).max(20).optional(),
 });
 
 export const webhookTestBodySchema = z.object({
-  url: safeHttpUrlSchema,
+  url: safeWebhookUrlSchema,
   secretKey: z.string().trim().max(256).optional(),
 });
 
@@ -735,8 +808,8 @@ export const targetUpdateBodySchema = targetCreateBodySchema.partial();
 export const targetNotifyBodySchema = z
   .object({
     metricType: z.enum(["revenue", "clicks", "conversions", "unique_clicks"]).optional().default("revenue"),
-    achievedValue: z.number().optional(),
-    targetValue: z.number().optional(),
+    achievedValue: z.union([z.number(), z.string().trim().max(100)]).optional(),
+    targetValue: z.union([z.number(), z.string().trim().max(100)]).optional(),
     monthLabel: z.string().trim().max(100).optional(),
     linkTitle: z.string().trim().max(200).optional(),
     slug: z.string().trim().max(100).optional(),

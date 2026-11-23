@@ -1474,7 +1474,7 @@ export function LinkDrawer({
           pixels: isProPlan ? selectedPixels : [],
         };
 
-        if (password !== undefined) {
+        if (password !== undefined && password.trim() !== "••••••••") {
           updates.password = password ? password.trim() : null;
         }
 

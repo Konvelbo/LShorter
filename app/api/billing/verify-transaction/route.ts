@@ -45,8 +45,11 @@ export async function POST(request: NextRequest) {
           const subEmail = retrieved?.customer?.email
             ? String(retrieved.customer.email).toLowerCase().trim()
             : "";
+          const subStatus = String(retrieved?.status || "").toLowerCase().trim();
+          // Security: Strictly require status === "active" so pending/failed/cancelled checkouts can NEVER upgrade a plan
           if (
             retrieved &&
+            subStatus === "active" &&
             ((subUserId && subUserId === sessionUserId) ||
               (sessionEmail && subEmail && subEmail === sessionEmail))
           ) {
@@ -91,11 +94,35 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (targetSub && targetSub.subscription_id) {
+      if (targetSub && targetSub.subscription_id && String(targetSub.status || "").toLowerCase() === "active") {
         const subId = String(targetSub.subscription_id);
         const meta = targetSub.metadata || {};
+        const productId = String(targetSub.product_id || "").trim();
+
+        let productDerivedPlan = "";
+        if (
+          productId &&
+          (productId === process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_MONTHLY ||
+            productId === process.env.DODO_PAYMENTS_PRODUCT_ENTERPRISE_YEARLY)
+        ) {
+          productDerivedPlan = "ENTERPRISE";
+        } else if (
+          productId &&
+          (productId === process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_MONTHLY ||
+            productId === process.env.DODO_PAYMENTS_PRODUCT_BUSINESS_YEARLY)
+        ) {
+          productDerivedPlan = "BUSINESS";
+        } else if (
+          productId &&
+          (productId === process.env.DODO_PAYMENTS_PRODUCT_PRO_MONTHLY ||
+            productId === process.env.DODO_PAYMENTS_PRODUCT_PRO_YEARLY)
+        ) {
+          productDerivedPlan = "PRO";
+        }
+
+        // Security: Never trust client-supplied `requestedPlan` to elevate plan tier
         const rawPlan = String(
-          meta.planId || requestedPlan || "PRO"
+          productDerivedPlan || meta.planId || "PRO"
         ).toUpperCase();
         const planId = (
           ["PRO", "BUSINESS", "ENTERPRISE"].includes(rawPlan) ? rawPlan : "PRO"

@@ -1288,7 +1288,7 @@ export default function LinksPage() {
           setTimeout(() => setCopiedId(null), 2000);
         }}
         onShareLink={(l) => setSelectedShareLink(l)}
-        onSelectQr={(l) => setSelectedShareLink(l)}
+        onSelectQr={(l) => setSelectedQRLink(l)}
         onEditLink={(l) => linkDrawersRef.current?.openEdit(l)}
         onDeleteLink={(l) => promptDeleteSingle(l)}
         onDeleteMultiple={(ids) => promptDeleteBulk(ids)}

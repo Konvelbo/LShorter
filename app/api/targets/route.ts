@@ -268,6 +268,62 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
+
+      // Security: Verify that the target linkId belongs to the authenticated user before creating/attaching an alert
+      if (linkId && !isInternal) {
+        let linkAuthorized = false;
+        try {
+          const linkRows = await executeD1Query<{ id: string; user_id: string }>(
+            "SELECT id, user_id FROM links WHERE id = ? LIMIT 1",
+            [linkId]
+          );
+          if (linkRows && linkRows.length > 0) {
+            if (!candidateUserIds.includes(linkRows[0].user_id)) {
+              return NextResponse.json(
+                { success: false, error: "Forbidden: link does not belong to your account." },
+                { status: 403 }
+              );
+            }
+            linkAuthorized = true;
+          }
+        } catch {}
+
+        if (!linkAuthorized) {
+          const checkRes = await fetch(`${WORKER_URL}/api/v1/links/${encodeURIComponent(linkId)}`, {
+            headers: {
+              "X-Frontend-Secret": FRONTEND_SECRET || "",
+              Authorization: `Bearer ${FRONTEND_SECRET || ""}`,
+              "X-User-Id": effectiveId,
+            },
+            cache: "no-store",
+          }).catch(() => null);
+          if (checkRes) {
+            if (checkRes.status === 403) {
+              return NextResponse.json(
+                { success: false, error: "Forbidden: link does not belong to your account." },
+                { status: 403 }
+              );
+            }
+            if (checkRes.status === 404) {
+              return NextResponse.json(
+                { success: false, error: "Link not found." },
+                { status: 404 }
+              );
+            }
+            if (checkRes.ok) {
+              const checkJson = await checkRes.json().catch(() => null);
+              const linkObj = checkJson?.data || checkJson;
+              const ownerId = String(linkObj?.user_id || linkObj?.userId || "");
+              if (ownerId && !candidateUserIds.includes(ownerId)) {
+                return NextResponse.json(
+                  { success: false, error: "Forbidden: link does not belong to your account." },
+                  { status: 403 }
+                );
+              }
+            }
+          }
+        }
+      }
       const metricType = targetItem.metricType === "revenue" ? "revenue" : "clicks";
       const period = ["day", "week", "month"].includes(targetItem.period) ? targetItem.period : "month";
       const targetValue = Math.max(1, Number(targetItem.targetValue) || 1000);

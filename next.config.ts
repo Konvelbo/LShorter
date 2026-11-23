@@ -85,7 +85,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https: https://www.googletagmanager.com https://*.google-analytics.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https://*.convex.cloud https://*.dodopayments.com https://challenges.cloudflare.com https://*.cloudflare.com https://api.dicebear.com wss://*.convex.cloud https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cdn.jsdelivr.net https://ipapi.co https://ip-api.com",
-      "frame-src * 'self' https: http: data: blob: https://*.dodopayments.com https://challenges.cloudflare.com",
+      "frame-src 'self' https: data: blob: https://*.dodopayments.com https://challenges.cloudflare.com",
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -98,10 +98,6 @@ const nextConfig: NextConfig = {
           {
             key: "X-Content-Type-Options",
             value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
           },
           {
             key: "X-XSS-Protection",
@@ -121,6 +117,10 @@ const nextConfig: NextConfig = {
         source: "/:path(dashboard|login|register|checkout|onboarding|settings|reset-password|pricing|terms|privacy|refund|docs|showcase)(/.*)?",
         headers: [
           {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
             key: "X-Frame-Options",
             value: "SAMEORIGIN",
           },
@@ -133,6 +133,10 @@ const nextConfig: NextConfig = {
       {
         source: "/",
         headers: [
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
           {
             key: "X-Frame-Options",
             value: "SAMEORIGIN",
