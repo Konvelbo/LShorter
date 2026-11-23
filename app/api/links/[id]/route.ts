@@ -12,6 +12,7 @@ import { isSafeHttpUrl, isValidSlug } from "@/lib/security-utils";
 import { invalidateServerLinksCache } from "@/lib/server-links-cache";
 import { parseBody, parseParams, linkUpdateBodySchema, linkIdParamsSchema } from "@/lib/api-schemas";
 import { validateAndPersistOgImage } from "@/lib/og-image-validator";
+import { dispatchUserWebhooks } from "@/lib/redirect-engine/webhooks";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -633,6 +634,13 @@ export async function PATCH(
       (data.data as any)?.id || id,
       (data.data as any)?.slug || body.slug,
     );
+    if (requestUserId) {
+      dispatchUserWebhooks(requestUserId, "link.updated", {
+        linkId: (data.data as any)?.id || id,
+        slug: (data.data as any)?.slug || body.slug || "",
+        targetUrl: targetUrlClean || (data.data as any)?.targetUrl || (data.data as any)?.target_url || "",
+      }).catch(() => {});
+    }
     return NextResponse.json(
       {
         ...data,
@@ -868,6 +876,12 @@ export async function DELETE(
     }
 
     invalidateServerLinksCache(userId, userEmail);
+    if (userId) {
+      dispatchUserWebhooks(userId, "link.deleted", {
+        linkId: targetId,
+        slug: slug || "",
+      }).catch(() => {});
+    }
     return NextResponse.json({ success: true, data: { deleted: true, id: targetId } });
   } catch (error: any) {
     console.warn(

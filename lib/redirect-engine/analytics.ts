@@ -96,6 +96,17 @@ export async function trackClickAsync(
     };
     dispatchUserWebhooks(userId, "click.created", baseEventData).catch(() => {});
 
+    try {
+      const reqUrl = new URL(req.url);
+      const isQrScan =
+        reqUrl.searchParams.get("qr") === "1" ||
+        reqUrl.searchParams.get("source")?.toLowerCase() === "qr" ||
+        reqUrl.searchParams.get("utm_medium")?.toLowerCase() === "qr";
+      if (isQrScan) {
+        dispatchUserWebhooks(userId, "qr.scanned", baseEventData).catch(() => {});
+      }
+    } catch {}
+
     const maxClicks = Number(meta?.maxClicks ?? meta?.max_clicks ?? 0);
     const nextClicks = Number(meta?.clicks_count ?? meta?.clicks ?? 0) + 1;
     if (maxClicks > 0 && nextClicks >= maxClicks) {

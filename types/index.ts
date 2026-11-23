@@ -360,6 +360,7 @@ export interface FeedbackSubmission {
 
 export interface WebhookConfig {
   id: string;
+  name?: string;
   url: string;
   events: string[];
   isActive: boolean;

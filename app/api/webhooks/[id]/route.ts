@@ -66,6 +66,10 @@ export async function PATCH(
     const { data: body, error: bodyError } = await parseBody(req, webhookUpdateBodySchema);
     if (bodyError) return bodyError;
     body.userId = userId;
+    // Security: HMAC secret key is strictly read-only/immutable after webhook creation
+    delete (body as Record<string, unknown>).secretKey;
+    delete (body as Record<string, unknown>).secret_key;
+    delete (body as Record<string, unknown>).secret;
 
     const ownership = await verifyWebhookOwnership(id, userId);
     if (!ownership.ok) {
@@ -78,7 +82,7 @@ export async function PATCH(
     const plan = await resolveAuthoritativePlan(session);
     if (
       !PAID_PLANS.has(plan) &&
-      (body.isActive === true || body.url !== undefined || body.events !== undefined)
+      (body.isActive === true || body.name !== undefined || body.url !== undefined || body.events !== undefined)
     ) {
       return NextResponse.json(
         {

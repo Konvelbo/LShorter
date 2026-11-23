@@ -19,6 +19,7 @@ import {
 } from "@/lib/server-links-cache";
 import { parseBody, parseQuery, linkCreateBodySchema, linksQuerySchema } from "@/lib/api-schemas";
 import { validateAndPersistOgImage } from "@/lib/og-image-validator";
+import { dispatchUserWebhooks } from "@/lib/redirect-engine/webhooks";
 
 function parseTags(raw: any): string[] {
   if (!raw) return [];
@@ -785,6 +786,15 @@ export async function POST(req: Request) {
       session?.user?.id || body?.userId,
       session?.user?.email || body?.userEmail,
     );
+
+    if (res.ok && finalUserId) {
+      dispatchUserWebhooks(finalUserId, "link.created", {
+        linkId: (data.data as any)?.id || "",
+        slug: (data.data as any)?.slug || body.slug || "",
+        targetUrl: body.targetUrl || body.target_url || "",
+        shortUrl: (data.data as any)?.shortUrl || (data.data as any)?.short_url || "",
+      }).catch(() => {});
+    }
 
     return NextResponse.json(
       {

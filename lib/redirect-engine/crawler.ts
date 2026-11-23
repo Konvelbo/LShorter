@@ -20,7 +20,6 @@ const SOCIAL_CRAWLERS = [
   "slack-imgproxy",
   "discordbot",
   "pinterestbot",
-  "pinterest/",
   "applebot",
   "bingbot",
   "googlebot",
@@ -42,7 +41,6 @@ const SOCIAL_CRAWLERS = [
   "linkpreview",
   "cardvalidator",
   "unfurl",
-  "snapchat",
   "viber",
   "line-poker",
   "kakaotalk-scrap",
@@ -51,7 +49,12 @@ const SOCIAL_CRAWLERS = [
 export function isSocialCrawler(userAgentRaw: string): boolean {
   const ua = (userAgentRaw || "").toLowerCase();
   if (!ua) return false;
-  return SOCIAL_CRAWLERS.some((bot) => ua.includes(bot));
+  const isMobileWebView = ua.includes("iphone") || ua.includes("ipad") || ua.includes("android");
+  if (SOCIAL_CRAWLERS.some((bot) => ua.includes(bot))) return true;
+  if (/^whatsapp\b/.test(ua)) return true;
+  if (ua.includes("pinterest/") && (!isMobileWebView || ua.includes("bot") || ua.includes("pinterest.com"))) return true;
+  if (ua.includes("snapchat") && !isMobileWebView) return true;
+  return false;
 }
 
 // In-memory cache for bot responses (bounded to prevent memory leaks)
@@ -258,11 +261,13 @@ export function renderSocialHtml(options: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
+  <meta name="author" content="LShorter" />
   <meta name="theme-color" content="#0066FF" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <!-- Canonical URL -->
   <link rel="canonical" href="${safeCanonical}" />
+  <link rel="image_src" href="${safeOgImg}" />
 
   <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Telegram / Slack / Discord -->
   <meta property="og:site_name" content="LShorter" />
@@ -324,11 +329,13 @@ export function renderSocialHtml(options: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inspecteur de Bannière — ${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
+  <meta name="author" content="LShorter" />
   <meta name="theme-color" content="#0066FF" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <!-- Canonical URL -->
   <link rel="canonical" href="${safeCanonical}" />
+  <link rel="image_src" href="${safeOgImg}" />
 
   <meta property="og:site_name" content="LShorter" />
   <meta property="og:type" content="website" />

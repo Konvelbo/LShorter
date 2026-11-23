@@ -56,6 +56,7 @@ export async function GET() {
           : [];
     const normalizedWebhooks = rawList.map((wh: Record<string, unknown>) => ({
       ...wh,
+      name: typeof wh?.name === "string" ? wh.name : "",
       events: Array.isArray(wh?.events) && wh.events.length > 0 ? wh.events : ["click.created"],
       isActive: wh?.isActive !== false,
       secretKey: wh?.secretKey || wh?.secret_key || "",
@@ -115,6 +116,12 @@ export async function POST(req: Request) {
       createdWebhook && typeof createdWebhook === "object"
         ? {
             ...createdWebhook,
+            name:
+              typeof createdWebhook.name === "string"
+                ? createdWebhook.name
+                : typeof body.name === "string"
+                  ? body.name
+                  : "",
             secretKey: createdWebhook.secretKey || body.secretKey || "",
             events: Array.isArray(createdWebhook.events) ? createdWebhook.events : body.events || ["click.created"],
             isActive: createdWebhook.isActive ?? body.isActive ?? true,

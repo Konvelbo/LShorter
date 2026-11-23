@@ -238,16 +238,16 @@ function PixelDrawerForm({
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 dark:border-[#202024] shrink-0 bg-white dark:bg-[#121215]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0 bg-white dark:bg-[#111113]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[8px] bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-            <Target className="w-4.5 h-4.5" />
+          <div className="w-9 h-9 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/70 flex items-center justify-center text-zinc-700 dark:text-zinc-200 shrink-0">
+            <Target className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-zinc-950 dark:text-white">
-              Nouveau Pixel de Retargeting
+            <h3 className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Nouveau pixel de retargeting
             </h3>
-            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mt-0.5">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Associez vos audiences publicitaires à vos redirections courtes
             </p>
           </div>
@@ -257,29 +257,29 @@ function PixelDrawerForm({
           onClick={onClose}
           aria-label="Fermer"
           disabled={isSubmitting}
-          className="p-1.5 rounded-[8px] text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1f1f23] transition-colors cursor-pointer"
+          className="p-1.5 rounded-[8px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Form Body */}
-      <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5 text-xs">
+      <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col gap-5">
         {errorMsg && (
-          <div className="px-4 py-3 rounded-[8px] bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs font-semibold animate-in fade-in">
+          <div className="px-3.5 py-2.5 rounded-[8px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-[13px] font-medium animate-in fade-in">
             {errorMsg}
           </div>
         )}
 
         {/* Freemium Lock Banner */}
         {locked && (
-          <div className="p-4 rounded-[8px] bg-amber-500/10 border border-amber-500/25 flex items-start gap-3">
-            <Lock className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-amber-950 dark:text-amber-200">
+          <div className="p-3.5 rounded-[8px] bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/25 flex items-start gap-3">
+            <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[13px] font-medium text-amber-900 dark:text-amber-200">
                 Fonctionnalité Pro &amp; Business
               </span>
-              <p className="text-xs font-medium text-amber-900 dark:text-amber-300 leading-relaxed">
+              <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
                 L&apos;injection transparente de pixels publicitaires (Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat &amp; X) nécessite le forfait Pro.
               </p>
             </div>
@@ -289,10 +289,10 @@ function PixelDrawerForm({
         {/* Compact Narrow Platform Selector Pills (Accessible radiogroup with roving tabIndex) */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <span id="pixel-platform-label" className="text-xs font-bold text-zinc-950 dark:text-white shrink-0">
+            <span id="pixel-platform-label" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 shrink-0">
               Réseau publicitaire <span className="text-red-500">*</span>
             </span>
-            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
               {activePlatformInfo.name}
             </span>
           </div>
@@ -300,7 +300,7 @@ function PixelDrawerForm({
           <div
             role="radiogroup"
             aria-labelledby="pixel-platform-label"
-            className="grid grid-cols-2 sm:grid-cols-3 gap-1.5"
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2"
           >
             {PLATFORMS.map((p, idx) => {
               const isSelected = platform === p.id;
@@ -316,21 +316,21 @@ function PixelDrawerForm({
                   tabIndex={isSelected ? 0 : -1}
                   onClick={() => setPlatform(p.id)}
                   onKeyDown={(e) => handleRadioKeyDown(e, idx)}
-                  className={`px-2.5 py-2 rounded-[8px] border text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 select-none min-w-0 ${
+                  className={`px-3 py-2 rounded-[8px] border text-left transition-colors cursor-pointer flex items-center justify-between gap-1.5 select-none min-w-0 ${
                     isSelected
-                      ? "bg-purple-500/10 border-purple-500/75 shadow-2xs ring-1 ring-purple-500/25"
-                      : "bg-zinc-50/80 dark:bg-[#18181b]/60 border-zinc-200 dark:border-[#27272a] hover:border-zinc-400 dark:hover:border-zinc-600"
+                      ? "bg-blue-50/50 dark:bg-blue-500/[0.08] border-blue-300 dark:border-blue-500/40"
+                      : "bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <BrandColorLogo platform={p.id} className="w-4.5 h-4.5 shrink-0" decorative />
-                    <span className="text-[11.5px] font-semibold text-zinc-900 dark:text-white truncate">
+                    <BrandColorLogo platform={p.id} className="w-4 h-4 shrink-0" decorative />
+                    <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
                       {p.shortName}
                     </span>
                   </div>
                   {isSelected ? (
-                    <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0" aria-hidden="true">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    <div className="w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center shrink-0" aria-hidden="true">
+                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                   ) : (
                     <div className="w-3.5 h-3.5 rounded-full border border-zinc-300 dark:border-zinc-600 shrink-0" aria-hidden="true" />
@@ -342,27 +342,27 @@ function PixelDrawerForm({
         </div>
 
         {/* Pixel Name Field */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor="pixel-name-input" className="text-xs font-bold text-zinc-950 dark:text-white">
-            Libellé du Tag / Campagne
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="pixel-name-input" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
+            Libellé du tag / campagne
           </label>
           <Input
             id="pixel-name-input"
-            placeholder={`ex: Pixel Principal (${activePlatformInfo.badge})`}
+            placeholder={`Ex. Pixel principal (${activePlatformInfo.badge})`}
             value={pixelName}
             onChange={(e) => setPixelName(e.target.value)}
             disabled={isSubmitting}
-            className="h-10 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-xs font-medium text-zinc-950 dark:text-white"
+            className="h-10 rounded-[8px] bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 text-[13px] font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
           />
-          <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
             Nom interne pour distinguer vos différents pixels dans le tableau de bord.
           </span>
         </div>
 
         {/* Pixel ID Field */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor="pixel-id-input" className="text-xs font-bold text-zinc-950 dark:text-white">
-            Identifiant du Pixel (Pixel ID) <span className="text-red-500">*</span>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="pixel-id-input" className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">
+            Identifiant du pixel (Pixel ID) <span className="text-red-500">*</span>
           </label>
           <Input
             id="pixel-id-input"
@@ -371,38 +371,37 @@ function PixelDrawerForm({
             value={pixelId}
             onChange={(e) => setPixelId(e.target.value)}
             disabled={isSubmitting}
-            className="h-10 rounded-[8px] bg-zinc-50 dark:bg-[#18181b] border-zinc-200 dark:border-[#27272a] text-xs font-mono font-bold text-zinc-950 dark:text-white"
+            className="h-10 rounded-[8px] bg-white dark:bg-[#161619] border-zinc-200 dark:border-zinc-800 text-[13px] font-mono font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
           />
-          <div className="flex items-start gap-2 mt-0.5 text-zinc-700 dark:text-zinc-300 text-xs font-medium leading-relaxed">
-            <Info className="w-3.5 h-3.5 text-brand shrink-0 mt-0.5" />
+          <div className="flex items-start gap-1.5 mt-0.5 text-zinc-500 dark:text-zinc-400 text-xs leading-relaxed">
+            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
             <span>{activePlatformInfo.helper}</span>
           </div>
         </div>
 
         {/* Explanation Box */}
-        <div className="p-4 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/90 dark:border-[#222226] flex items-start gap-3">
-          <Sparkles className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-          <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
-            Une fois ce pixel enregistré, vous pourrez l&apos;activer en 1 clic dans le drawer de création de liens pour recibler automatiquement tous les visiteurs qui cliquent sur vos liens courts.
+        <div className="p-3.5 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-zinc-800 flex items-start gap-2.5">
+          <Sparkles className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+            Une fois ce pixel enregistré, vous pourrez l&apos;activer en un clic lors de la création de vos liens pour recibler automatiquement vos visiteurs.
           </p>
         </div>
 
         {/* Footer Submit Button */}
-        <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-[#202024] flex items-center justify-end gap-3">
+        <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-end gap-2.5">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="h-9 px-4 text-xs font-bold border-zinc-300 dark:border-[#27272a] text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
+            className="h-9 px-4 rounded-[8px] text-[13px] font-medium border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer"
           >
             Annuler
           </Button>
           <Button
             type="submit"
-            variant="glow"
             disabled={isSubmitting || !pixelId.trim()}
-            className="h-9 px-5 text-xs font-bold gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+            className="h-9 px-4 rounded-[8px] text-[13px] font-medium bg-brand hover:bg-brand-hover text-white gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -412,7 +411,7 @@ function PixelDrawerForm({
             ) : (
               <>
                 <Target className="w-3.5 h-3.5" />
-                <span>Connecter le Pixel</span>
+                <span>Connecter le pixel</span>
               </>
             )}
           </Button>

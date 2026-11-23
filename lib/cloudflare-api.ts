@@ -1062,6 +1062,7 @@ export async function cfDeletePixel(id: string, userId?: string) {
 export interface WebhookRecord {
   id: string;
   userId: string;
+  name?: string;
   url: string;
   events: string[];
   secretKey: string;
@@ -1082,6 +1083,7 @@ export async function cfGetWebhooks(userId: string) {
 
 export async function cfCreateWebhook(data: {
   userId: string;
+  name?: string;
   url: string;
   events?: string[];
   secretKey?: string;
@@ -1100,9 +1102,9 @@ export async function cfUpdateWebhook(
   id: string,
   data: {
     userId?: string;
+    name?: string;
     url?: string;
     events?: string[];
-    secretKey?: string;
     isActive?: boolean;
     lastStatus?: number;
     lastTriggeredAt?: string;

@@ -739,25 +739,39 @@ export const webhookEventSchema = z.enum([
   "subscription.renewed",
 ]);
 
+const webhookNameSchema = z
+  .string()
+  .trim()
+  .max(100, "Webhook name must be at most 100 characters")
+  .refine((v) => !/[<>]/.test(v), "Webhook name cannot contain HTML characters");
+
 export const webhookCreateBodySchema = z.object({
   url: safeWebhookUrlSchema,
   events: z.array(webhookEventSchema).min(1).max(20).optional().default(["click.created"]),
   isActive: z.boolean().optional().default(true),
-  name: z.string().trim().max(100).optional(),
+  name: webhookNameSchema.optional(),
   secret: z.string().trim().max(256).optional(),
   secretKey: z.string().trim().max(256).optional(),
   linkId: z.string().trim().max(254).optional(),
   description: z.string().trim().max(500).optional(),
 }).passthrough();
 
-export const webhookUpdateBodySchema = webhookCreateBodySchema.partial().extend({
-  url: safeWebhookUrlSchema.optional(),
-  events: z.array(webhookEventSchema).min(1).max(20).optional(),
-});
+export const webhookUpdateBodySchema = z
+  .object({
+    name: webhookNameSchema.optional(),
+    url: safeWebhookUrlSchema.optional(),
+    events: z.array(webhookEventSchema).min(1).max(20).optional(),
+    isActive: z.boolean().optional(),
+    description: z.string().trim().max(500).optional(),
+    userId: z.string().trim().max(254).optional(),
+  })
+  .passthrough();
 
 export const webhookTestBodySchema = z.object({
   url: safeWebhookUrlSchema,
   secretKey: z.string().trim().max(256).optional(),
+  webhookId: idSchema.optional(),
+  name: webhookNameSchema.optional(),
 });
 
 export const webhookIdParamsSchema = z.object({ id: idSchema });

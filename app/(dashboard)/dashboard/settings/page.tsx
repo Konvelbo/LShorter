@@ -798,6 +798,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [webhookToEdit, setWebhookToEdit] = useState<WebhookModalData | null>(null);
   const [isSavingWebhookModal, setIsSavingWebhookModal] = useState(false);
+  const [copiedWebhookSecretId, setCopiedWebhookSecretId] = useState<string | null>(null);
   const [isApiKeyDrawerOpen, setIsApiKeyDrawerOpen] = useState(false);
   const [isPixelDrawerOpen, setIsPixelDrawerOpen] = useState(false);
   const [isDomainDrawerOpen, setIsDomainDrawerOpen] = useState(false);
@@ -1721,12 +1722,27 @@ console.log("Top Countries:", topAudience.topCountries);`,
   const handleOpenEditWebhook = (wh: any) => {
     setWebhookToEdit({
       id: wh.id,
+      name: wh.name || "",
       url: wh.url,
       events: wh.events || [],
       isActive: wh.isActive,
       secretKey: wh.secretKey,
     });
     setIsWebhookModalOpen(true);
+  };
+
+  const handleCopyWebhookSecret = async (wh: any) => {
+    if (!wh?.secretKey) return;
+    try {
+      await navigator.clipboard.writeText(wh.secretKey);
+      setCopiedWebhookSecretId(wh.id);
+      showToast.success("Clé secrète HMAC copiée dans le presse-papiers.");
+      setTimeout(() => {
+        setCopiedWebhookSecretId((cur) => (cur === wh.id ? null : cur));
+      }, 2000);
+    } catch {
+      showToast.error("Impossible de copier la clé secrète.");
+    }
   };
 
   const handleSaveWebhookModal = async (data: WebhookModalData) => {
@@ -1737,21 +1753,22 @@ console.log("Top Countries:", topAudience.topCountries);`,
       if (data.id) {
         await cfUpdateWebhook(data.id, {
           userId,
+          name: data.name,
           url: data.url,
           events: data.events,
-          secretKey: data.secretKey,
           isActive: data.isActive,
         });
         showToast.success("Webhook mis à jour avec succès !");
       } else {
         await cfCreateWebhook({
           userId,
+          name: data.name,
           url: data.url,
           events: data.events,
           secretKey: data.secretKey,
           isActive: true,
         });
-        showToast.success("Webhook configuré et enregistré dans Cloudflare D1 !");
+        showToast.success("Webhook créé avec succès !");
       }
       setIsWebhookModalOpen(false);
       await loadWebhooks();
@@ -1764,12 +1781,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
   };
 
   const handleDeleteWebhookWithUndo = (wh: WebhookConfig) => {
+    const label = wh.name?.trim() || wh.url;
     triggerUndoDelete({
       id: wh.id,
       itemType: "webhook",
       title: "Webhook supprimé",
-      description: wh.url,
-      confirmText: wh.url,
+      description: label,
+      confirmText: label,
       onExecute: async () => {
         setWebhooks((prev) => prev.filter((w) => w.id !== wh.id));
         try {
@@ -1800,7 +1818,12 @@ console.log("Top Countries:", topAudience.topCountries);`,
     }
   };
 
-  const handleTestWebhook = async (url: string, secretKey?: string) => {
+  const handleTestWebhook = async (wh: {
+    id?: string;
+    name?: string;
+    url: string;
+    secretKey?: string;
+  }) => {
     if (plan === "FREEMIUM") {
       triggerPlanUpgrade({
         featureName: "Webhooks",
@@ -1816,13 +1839,23 @@ console.log("Top Countries:", topAudience.topCountries);`,
       const res = await fetch("/api/webhooks/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, secretKey }),
+        body: JSON.stringify({
+          webhookId: wh.id,
+          name: wh.name,
+          url: wh.url,
+          secretKey: wh.secretKey,
+        }),
       });
       const data = await res.json();
       setWebhookTestResponse(JSON.stringify(data, null, 2));
-      showToast.success(
-        `Ping sent! HTTP status ${data.status || 200} in ${data.durationMs || 45}ms`,
-      );
+      if (res.ok && data?.success) {
+        showToast.success(
+          `Ping envoyé (HTTP ${data.status || 200}) en ${data.durationMs ?? 0} ms`,
+        );
+        loadWebhooks();
+      } else {
+        showToast.error(data?.error || "Échec du test webhook");
+      }
     } catch (err) {
       setWebhookTestResponse(
         JSON.stringify(
@@ -1831,7 +1864,7 @@ console.log("Top Countries:", topAudience.topCountries);`,
           2,
         ),
       );
-      showToast.error("Webhook test failed");
+      showToast.error("Échec du test webhook");
     } finally {
       setIsTestingWebhook(false);
     }
@@ -2971,214 +3004,270 @@ console.log("Top Countries:", topAudience.topCountries);`,
           {/* TAB 5: WEBHOOKS & SIMULATOR */}
           {activeTab === "webhooks" && (
             <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-[#222225]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
-                      Webhooks &amp; Simulator
-                    </h2>
+                  <div className="flex items-center gap-2.5">
+                    <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                      Webhooks
+                    </h1>
                     {plan === "FREEMIUM" && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
-                        PLAN PRO
+                      <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                        PRO
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Receive instant HTTP (POST) notifications on every click and
-                    conversion of your short links.
+                  <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                    Recevez des notifications HTTP (POST) signées en HMAC-SHA256 à chaque événement de vos liens courts.
                   </p>
                 </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleOpenCreateWebhook}
+                  className="h-9 px-4 text-[13px] font-medium gap-1.5 shrink-0 rounded-[8px] bg-brand hover:bg-brand-hover text-white cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nouveau webhook</span>
+                </Button>
               </div>
 
               {/* Freemium Banner */}
               {plan === "FREEMIUM" && (
-                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200/90 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-8 h-8 rounded-[8px] bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 flex items-center justify-center text-zinc-600 dark:text-neutral-400 shrink-0">
+                    <div className="w-9 h-9 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/70 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0">
                       <Lock className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
-                          Webhooks API &amp; Real-Time Events
+                        <h3 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                          API Webhooks &amp; événements temps réel
                         </h3>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400 border border-zinc-200 dark:border-neutral-700">
+                        <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                           PRO
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                        Webhook subscriptions, HMAC SHA-256 signatures, and
-                        real-time click streams are reserved for Pro and
-                        Business plans.
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        Les webhooks, signatures HMAC-SHA256 et flux d&apos;événements temps réel sont inclus dès le forfait Pro.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() =>
-                    triggerPlanUpgrade({
-                      featureName: "Webhooks",
-                      reason:
-                        "Upgrade to PRO to unlock webhooks and the real-time simulator.",
-                      targetPlan: "PRO",
-                    })
-                  }
-                  className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
-                >
-                  Unlock with PRO
-                </button>
-              </div>
-            )}
+                      triggerPlanUpgrade({
+                        featureName: "Webhooks",
+                        reason:
+                          "Upgrade to PRO to unlock webhooks and the real-time simulator.",
+                        targetPlan: "PRO",
+                      })
+                    }
+                    className="shrink-0 text-[13px] h-9 px-3.5 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
+                  >
+                    Passer au plan PRO
+                  </button>
+                </div>
+              )}
 
-              {/* Webhooks Action Bar */}
-              <div className="flex items-center justify-between gap-3 p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
+              {/* Summary Bar */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] bg-zinc-50/70 dark:bg-[#141417] border border-zinc-200/80 dark:border-zinc-800/80">
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                    Points de terminaison Webhook ({webhooks.length})
+                  <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                    Points de terminaison configurés ({webhooks.length})
                   </span>
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                    Configurez vos endpoints avec choix des événements ou globalité
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                    Nommez vos webhooks, sélectionnez vos événements et vérifiez vos signatures HMAC-SHA256.
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glow"
-                  onClick={handleOpenCreateWebhook}
-                  className="h-8 px-3.5 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Nouveau Webhook</span>
-                </Button>
               </div>
 
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {isLoadingWebhooks && !isCreatingWebhook && webhooks.length === 0 ? (
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-3">
                     {[1, 2].map((i) => (
                       <div
                         key={i}
-                        className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] animate-pulse flex flex-col gap-2.5 text-xs shadow-xs"
+                        className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200/90 dark:border-zinc-800/80 animate-pulse flex flex-col gap-3"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="h-4 w-64 bg-zinc-200 dark:bg-neutral-800 rounded-[6px] font-mono" />
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
-                            <div className="h-6 w-14 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
-                            <div className="h-6 w-6 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
+                          <div className="flex flex-col gap-1.5">
+                            <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded-[6px]" />
+                            <div className="h-3.5 w-64 bg-zinc-100 dark:bg-zinc-800/70 rounded-[6px]" />
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-[#222225]">
-                          <div className="h-3 w-44 bg-zinc-200 dark:bg-neutral-800 rounded-[4px] font-mono" />
-                          <div className="h-3 w-32 bg-zinc-200 dark:bg-neutral-800 rounded-[4px]" />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="h-8 w-16 bg-zinc-200 dark:bg-zinc-800 rounded-[6px]" />
+                            <div className="h-7 w-14 bg-zinc-200 dark:bg-zinc-800 rounded-[6px]" />
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : webhooks.length === 0 && !isCreatingWebhook ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
-                    Aucun webhook configuré. Cliquez sur &quot;Nouveau Webhook&quot; pour connecter votre premier endpoint.
+                  <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-3 bg-white dark:bg-[#111113] rounded-[10px] border border-dashed border-zinc-200 dark:border-zinc-800">
+                    <div className="w-10 h-10 rounded-[10px] bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                      <Webhook className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        Aucun webhook configuré
+                      </p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1 leading-relaxed">
+                        Connectez votre premier endpoint pour recevoir vos événements de clics, conversions et liens en temps réel.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleOpenCreateWebhook}
+                      className="mt-1 h-9 px-4 text-[13px] font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Créer un webhook</span>
+                    </Button>
                   </div>
                 ) : (
                   <>
                     {/* Animated Skeleton Card when creating webhook */}
                     {isCreatingWebhook && (
-                      <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-blue-500/40 dark:border-blue-500/30 animate-pulse flex flex-col gap-2.5 text-xs shadow-xs">
+                      <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-blue-500/30 animate-pulse flex flex-col gap-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                            </span>
-                            <div className="h-4 w-60 sm:w-80 bg-blue-200/70 dark:bg-blue-900/40 rounded-[6px] font-mono" />
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="h-7 w-16 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
-                            <div className="h-6 w-14 bg-emerald-500/20 rounded-[6px]" />
-                            <div className="h-6 w-6 bg-zinc-200 dark:bg-neutral-800 rounded-[6px]" />
-                          </div>
+                          <div className="h-4 w-56 bg-zinc-200 dark:bg-zinc-800 rounded-[6px]" />
+                          <div className="h-7 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-[6px]" />
                         </div>
-                        <div className="flex items-center justify-between text-zinc-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-zinc-200 dark:border-[#222225]">
-                          <div className="h-3 w-48 bg-zinc-200 dark:bg-neutral-800 rounded-[4px] font-mono" />
-                          <div className="h-3 w-36 bg-zinc-200 dark:bg-neutral-800 rounded-[4px]" />
-                        </div>
+                        <div className="h-3.5 w-72 bg-zinc-100 dark:bg-zinc-800/70 rounded-[6px]" />
                       </div>
                     )}
                     {webhooks.map((wh: any) => {
                       const eventsList = Array.isArray(wh.events) && wh.events.length > 0 ? wh.events : ["click.created", "conversion.created"];
                       const isGlobal = eventsList.length >= 6;
+                      const displayName =
+                        (typeof wh.name === "string" && wh.name.trim()) ||
+                        (() => {
+                          try {
+                            return new URL(wh.url).hostname;
+                          } catch {
+                            return "Webhook";
+                          }
+                        })();
+                      const isSecretCopied = copiedWebhookSecretId === wh.id;
 
                       return (
                         <div
                           key={wh.id}
-                          className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] hover:border-zinc-300 dark:hover:border-[#38383e] transition-all flex flex-col gap-2.5 text-xs shadow-xs"
+                          data-testid={`webhook-card-${wh.id}`}
+                          className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200/90 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col gap-3"
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-neutral-900 dark:text-white font-semibold truncate">
-                              {wh.url}
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 mt-0.5">
+                                <Webhook className="w-4 h-4" />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
+                                    {displayName}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-[6px] text-[11px] font-medium border ${
+                                      wh.isActive
+                                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-500/20"
+                                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
+                                    }`}
+                                  >
+                                    {wh.isActive ? "Actif" : "En pause"}
+                                  </span>
+                                </div>
+                                <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                                  {wh.url}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-start">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 disabled={isTestingWebhook}
-                                onClick={() => handleTestWebhook(wh.url, wh.secretKey)}
-                                className="text-xs gap-1.5 h-7 px-2.5 rounded-[6px] border-neutral-200 dark:border-[#27272a] bg-white dark:bg-transparent cursor-pointer"
+                                onClick={() => handleTestWebhook(wh)}
+                                className="h-8 px-2.5 text-xs font-medium gap-1.5 rounded-[6px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-transparent text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer"
                               >
-                                <Send className="w-3 h-3 text-neutral-400" />
-                                <span>{isTestingWebhook ? "Sending..." : "Test"}</span>
+                                <Send className="w-3.5 h-3.5 text-zinc-400" />
+                                <span>{isTestingWebhook ? "Envoi..." : "Tester"}</span>
                               </Button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditWebhook(wh)}
                                 title="Modifier ce webhook"
-                                className="p-1.5 rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                                aria-label="Modifier ce webhook"
+                                className="h-8 w-8 flex items-center justify-center rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleToggleWebhook(wh.id)}
-                                className={`px-2 py-0.5 rounded-[6px] text-[11px] font-medium cursor-pointer transition-colors ${
-                                  wh.isActive
-                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
-                                }`}
+                                title={wh.isActive ? "Mettre en pause" : "Activer"}
+                                className="h-8 px-2.5 rounded-[6px] text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors"
                               >
-                                {wh.isActive ? "Active" : "Paused"}
+                                {wh.isActive ? "Pause" : "Activer"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteWebhookWithUndo(wh)}
-                                className="text-neutral-400 hover:text-red-400 p-1 rounded-[6px] cursor-pointer transition-colors"
+                                className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded-[6px] hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition-colors"
                                 title="Supprimer ce webhook"
+                                aria-label="Supprimer ce webhook"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-neutral-500 dark:text-neutral-400 text-[11px] pt-2 border-t border-neutral-200 dark:border-[#222225]">
+                          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-[10px] text-zinc-400">Événements:</span>
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-0.5">
+                                Événements :
+                              </span>
                               {isGlobal ? (
-                                <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                  Globalité (Tous les événements)
+                                <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-blue-50/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200/70 dark:border-blue-500/20">
+                                  Tous les événements
                                 </span>
                               ) : (
                                 eventsList.map((ev: string) => (
                                   <span
                                     key={ev}
-                                    className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-mono bg-zinc-200/70 dark:bg-neutral-800 text-zinc-700 dark:text-neutral-300 border border-zinc-300/50 dark:border-neutral-700/50"
+                                    className="px-2 py-0.5 rounded-[6px] text-[11px] font-mono text-zinc-600 dark:text-zinc-300 bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60"
                                   >
                                     {ev}
                                   </span>
                                 ))
                               )}
                             </div>
-                            <span className="font-mono text-[10px] text-zinc-400 truncate max-w-xs">
-                              Secret: {wh.secretKey || "—"}
-                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Clé HMAC :
+                              </span>
+                              <code className="font-mono text-[11.5px] text-zinc-600 dark:text-zinc-300 bg-zinc-100/80 dark:bg-zinc-800/80 px-2 py-0.5 rounded-[6px] max-w-[190px] truncate">
+                                {wh.secretKey || "—"}
+                              </code>
+                              {wh.secretKey && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyWebhookSecret(wh)}
+                                  title="Copier la clé secrète HMAC"
+                                  aria-label="Copier la clé secrète HMAC"
+                                  className="p-1.5 rounded-[6px] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
+                                >
+                                  {isSecretCopied ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -3199,13 +3288,13 @@ console.log("Top Countries:", topAudience.topCountries);`,
               {/* Webhook Test Response Viewer */}
               {webhookTestResponse && (
                 <div className="flex flex-col gap-2 animate-in fade-in">
-                  <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold px-1">
-                    <span>✓ Webhook test response:</span>
+                  <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400 font-medium px-1">
+                    <span>✓ Réponse du test webhook</span>
                     <button
                       onClick={() => setWebhookTestResponse(null)}
-                      className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+                      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                     >
-                      Close ✕
+                      Fermer ✕
                     </button>
                   </div>
                   <CodeBlock
@@ -3221,43 +3310,63 @@ console.log("Top Countries:", topAudience.topCountries);`,
           {/* TAB 6: PIXELS RETARGETING */}
           {activeTab === "pixels" && (
             <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-[#222225]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
-                      Retargeting Pixels
-                    </h2>
+                  <div className="flex items-center gap-2.5">
+                    <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                      Pixels de retargeting
+                    </h1>
                     {plan === "FREEMIUM" && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
-                        PLAN PRO
+                      <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                        PRO
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Attach your Facebook, Instagram, Google, YouTube, TikTok,
-                    LinkedIn, Pinterest, Snapchat, or X Ads tags to your short links.
+                  <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                    Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat et X Ads à vos liens courts.
                   </p>
                 </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (plan === "FREEMIUM" || plan === "STARTER") {
+                      triggerPlanUpgrade({
+                        featureName: "Retargeting Pixels",
+                        reason:
+                          "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
+                        targetPlan: "PRO",
+                      });
+                      return;
+                    }
+                    setIsPixelDrawerOpen(true);
+                  }}
+                  className="h-9 px-4 text-[13px] font-medium gap-1.5 shrink-0 rounded-[8px] bg-brand hover:bg-brand-hover text-white cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nouveau pixel</span>
+                </Button>
               </div>
 
               {/* Freemium Banner */}
               {plan === "FREEMIUM" && (
-                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200/90 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-8 h-8 rounded-[8px] bg-zinc-100 dark:bg-neutral-800 border border-zinc-200 dark:border-neutral-700 flex items-center justify-center text-zinc-600 dark:text-neutral-400 shrink-0">
+                    <div className="w-9 h-9 rounded-[8px] bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/70 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0">
                       <Lock className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
-                          Advertising Retargeting Pixels
+                        <h3 className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                          Pixels de reciblage publicitaire
                         </h3>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-neutral-800 text-zinc-600 dark:text-neutral-400 border border-zinc-200 dark:border-neutral-700">
+                        <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                           PRO
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500 dark:text-neutral-400 mt-0.5">
-                        Automatic pixel tracking for Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat, and X Ads is reserved for Pro and Business plans.
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        L&apos;injection de pixels publicitaires pour les 9 réseaux majeurs est incluse dès le forfait Pro.
                       </p>
                     </div>
                   </div>
@@ -3271,60 +3380,40 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         targetPlan: "PRO",
                       })
                     }
-                    className="shrink-0 text-xs h-8 px-3 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
+                    className="shrink-0 text-[13px] h-9 px-3.5 font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer transition-colors"
                   >
-                    Unlock with PRO
+                    Passer au plan PRO
                   </button>
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3 p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] shadow-xs">
+              {/* Summary Bar */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] bg-zinc-50/70 dark:bg-[#141417] border border-zinc-200/80 dark:border-zinc-800/80">
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                    Pixels de reciblage ({pixels.length})
+                  <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                    Pixels connectés ({pixels.length})
                   </span>
-                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                    Associez vos audiences Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat &amp; X Ads
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                    Activez ou mettez en pause vos tags publicitaires en un clic.
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glow"
-                  onClick={() => {
-                    if (plan === "FREEMIUM" || plan === "STARTER") {
-                      triggerPlanUpgrade({
-                        featureName: "Retargeting Pixels",
-                        reason:
-                          "Upgrade to PRO to unlock Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat & X Ads pixel retargeting.",
-                        targetPlan: "PRO",
-                      });
-                      return;
-                    }
-                    setIsPixelDrawerOpen(true);
-                  }}
-                  className="h-8.5 px-3.5 text-xs font-semibold gap-1.5 shrink-0 rounded-[8px] cursor-pointer shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Nouveau Pixel</span>
-                </Button>
               </div>
 
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {isLoadingPixels ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 dark:text-neutral-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200 dark:border-[#222225] shadow-xs">
-                    Loading connected pixels...
+                  <div className="py-10 text-center text-[13px] text-zinc-500 dark:text-zinc-400 bg-white dark:bg-[#111113] rounded-[10px] border border-zinc-200/90 dark:border-zinc-800/80">
+                    Chargement des pixels connectés...
                   </div>
                 ) : pixels.length === 0 ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-center gap-3 bg-white dark:bg-[#111113] rounded-[10px] border border-dashed border-zinc-200 dark:border-[#222225] shadow-xs px-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-3 bg-white dark:bg-[#111113] rounded-[10px] border border-dashed border-zinc-200 dark:border-zinc-800">
+                    <div className="w-10 h-10 rounded-[10px] bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
                       <Target className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-zinc-900 dark:text-white">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                         Aucun pixel configuré
                       </p>
-                      <p className="text-[11px] text-zinc-500 dark:text-neutral-400 max-w-sm mt-0.5">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1 leading-relaxed">
                         Connectez vos tags publicitaires Facebook, Instagram, Google, YouTube, TikTok, LinkedIn, Pinterest, Snapchat ou X Ads pour recibler vos visiteurs.
                       </p>
                     </div>
@@ -3343,56 +3432,59 @@ console.log("Top Countries:", topAudience.topCountries);`,
                         }
                         setIsPixelDrawerOpen(true);
                       }}
-                      className="h-8 text-xs px-3 font-semibold bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer"
+                      className="mt-1 h-9 px-4 text-[13px] font-medium bg-brand hover:bg-brand-hover text-white rounded-[8px] cursor-pointer gap-1.5"
                     >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Connecter un Pixel
+                      <Plus className="w-4 h-4" />
+                      <span>Connecter un pixel</span>
                     </Button>
                   </div>
                 ) : (
                   pixels.map((px: any) => (
                     <div
                       key={px.id}
-                      className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200 dark:border-[#222225] flex items-center justify-between text-xs shadow-xs"
+                      className="p-4 rounded-[10px] bg-white dark:bg-[#111113] border border-zinc-200/90 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-[#27272a] flex items-center justify-center shrink-0">
-                          <PixelBrandLogo platform={px} className="w-4 h-4" />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-[8px] bg-zinc-50 dark:bg-[#161619] border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-center shrink-0">
+                          <PixelBrandLogo platform={px} className="w-4.5 h-4.5" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-neutral-900 dark:text-white">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
                               {px.name}
                             </p>
-                            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 uppercase">
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-[6px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/60">
                               {getPixelPlatformShortLabel(px.platform || px.type || px.name)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-                            <span className="font-mono">ID: {px.pixelId}</span>
-                            <span>•</span>
-                            <span>{px.eventsTrackedCount ?? 0} events tracked</span>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            <span className="font-mono text-[11.5px] text-zinc-600 dark:text-zinc-300">
+                              ID : {px.pixelId}
+                            </span>
+                            <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                            <span>{px.eventsTrackedCount ?? 0} événements suivis</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         <button
                           type="button"
                           onClick={() => handleTogglePixel(px.id)}
-                          className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                          className={`h-8 px-2.5 rounded-[6px] text-xs font-medium border transition-colors cursor-pointer ${
                             px.isActive
-                              ? "bg-[#0066FF]/10 text-[#0066FF] dark:text-[#5294FF] border border-[#0066FF]/20"
-                              : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"
+                              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-500/20"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
                           }`}
                         >
-                          {px.isActive ? "Active" : "Paused"}
+                          {px.isActive ? "Actif" : "En pause"}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeletePixelWithUndo(px)}
-                          className="text-neutral-400 hover:text-red-400 p-1 cursor-pointer transition-colors"
+                          className="h-8 w-8 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded-[6px] hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer transition-colors"
                           title="Supprimer ce pixel"
+                          aria-label="Supprimer ce pixel"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

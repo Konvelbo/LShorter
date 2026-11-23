@@ -3,6 +3,8 @@ import { WORKER_URL, FRONTEND_SECRET } from "@/lib/backend-config";
 import { isSafeHttpUrl } from "@/lib/security-utils";
 
 interface StoredWebhookRecord {
+  id?: string;
+  name?: string;
   url?: string;
   events?: unknown[];
   secretKey?: string;
@@ -94,6 +96,7 @@ export async function dispatchUserWebhooks(
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
           "X-LShorter-Event": eventName,
+          ...(wh.id ? { "X-LShorter-Webhook-Id": String(wh.id) } : {}),
           "User-Agent": "LShorter-Webhook-Delivery/1.0",
         };
         if (signingSecret) {
@@ -103,13 +106,39 @@ export async function dispatchUserWebhooks(
             .digest("hex")}`;
         }
 
-        await fetch(String(wh.url), {
-          method: "POST",
-          redirect: "manual",
-          headers,
-          body: rawBody,
-          signal: AbortSignal.timeout(3500),
-        });
+        let deliveryStatus = 502;
+        try {
+          const deliveryRes = await fetch(String(wh.url), {
+            method: "POST",
+            redirect: "manual",
+            headers,
+            body: rawBody,
+            signal: AbortSignal.timeout(3500),
+          });
+          deliveryStatus = deliveryRes.status;
+        } catch {
+          deliveryStatus = 502;
+        }
+
+        if (wh.id && WORKER_URL && FRONTEND_SECRET) {
+          fetch(
+            `${WORKER_URL}/api/v1/webhooks/${encodeURIComponent(String(wh.id))}?userId=${encodeURIComponent(userId)}`,
+            {
+              method: "PATCH",
+              headers: {
+                "X-Frontend-Secret": FRONTEND_SECRET,
+                Authorization: `Bearer ${FRONTEND_SECRET}`,
+                "X-User-Id": userId,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                lastStatus: deliveryStatus,
+                lastTriggeredAt: new Date().toISOString(),
+              }),
+              signal: AbortSignal.timeout(2500),
+            }
+          ).catch(() => {});
+        }
       })
     );
 

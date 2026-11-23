@@ -234,6 +234,7 @@ export async function GET(
 
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
+        "Vary": "User-Agent",
         "Cache-Control": hasCacheBuster || !meta
           ? "no-store, no-cache, must-revalidate, max-age=0"
           : "public, max-age=5, s-maxage=10, stale-while-revalidate=20",
