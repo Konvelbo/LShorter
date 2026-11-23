@@ -645,11 +645,7 @@ function SettingsPageContent() {
     if (subDetails?.formattedPeriodEnd) {
       return subDetails.formattedPeriodEnd;
     }
-    return new Date(Date.now() + 30 * 86400000).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    return "—";
   }, [currentPeriodEndTimestamp, subDetails?.formattedPeriodEnd]);
 
   const subCycle = (
@@ -1453,8 +1449,8 @@ console.log("Top Countries:", topAudience.topCountries);`,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          email: session?.user?.email || "founder@lshorter.com",
-          name: session?.user?.name || "Founder",
+          email: session?.user?.email || "",
+          name: session?.user?.name || "",
           linkTitle: isGlobal ? "Global Workspace" : (alert.linkTitle || (alert.slug ? `lsho.cc/${alert.slug}` : "Link")),
           slug: alert.slug || "",
           metricType: alert.metricType,

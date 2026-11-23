@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { Clock, ArrowRight } from "lucide-react";
 
 export function SubscriptionGraceBanner() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const [subData, setSubData] = useState<{
     plan?: string;
     currentPeriodEnd?: number;
@@ -25,6 +25,27 @@ export function SubscriptionGraceBanner() {
         if (data?.success && data?.subscription) {
           setNow(Date.now());
           setSubData(data.subscription);
+          const serverPlan = String(data.subscription.plan || "").toUpperCase();
+          const sessionPlan = String((session?.user as any)?.plan || "").toUpperCase();
+          if (
+            serverPlan &&
+            sessionPlan &&
+            serverPlan !== sessionPlan &&
+            !(
+              (serverPlan === "FREE" || serverPlan === "FREEMIUM") &&
+              (sessionPlan === "FREE" || sessionPlan === "FREEMIUM")
+            )
+          ) {
+            try {
+              localStorage.setItem("lshorter_user_plan", serverPlan);
+              window.dispatchEvent(
+                new CustomEvent("lshorter_plan_updated", {
+                  detail: { plan: serverPlan },
+                })
+              );
+              updateSession();
+            } catch {}
+          }
         }
       })
       .catch(() => null);

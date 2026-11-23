@@ -290,3 +290,28 @@ export function getDodoProductId(planId: string, cycle: 'MONTHLY' | 'YEARLY'): s
   const envValue = (process.env[envVarName] || "").trim();
   return envValue || null;
 }
+
+/**
+ * Reverse-lookup plan tier and billing cycle from a Dodo Payments product_id.
+ * Server-only helper (uses server process.env.DODO_PAYMENTS_PRODUCT_*).
+ */
+export function resolvePlanFromDodoProductId(productId?: string | null): {
+  planId: 'PRO' | 'BUSINESS' | 'ENTERPRISE';
+  cycle: 'MONTHLY' | 'YEARLY';
+} | null {
+  const cleanId = (productId || "").trim();
+  if (!cleanId) return null;
+
+  const plans: Array<'PRO' | 'BUSINESS' | 'ENTERPRISE'> = ['PRO', 'BUSINESS', 'ENTERPRISE'];
+  const cycles: Array<'MONTHLY' | 'YEARLY'> = ['MONTHLY', 'YEARLY'];
+
+  for (const planId of plans) {
+    for (const cycle of cycles) {
+      const configured = getDodoProductId(planId, cycle);
+      if (configured && configured === cleanId) {
+        return { planId, cycle };
+      }
+    }
+  }
+  return null;
+}

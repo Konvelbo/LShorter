@@ -648,10 +648,17 @@ export function isDisallowedLoopHost(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr);
     const host = parsed.hostname.toLowerCase();
+    let workerHost = "";
+    if (WORKER_URL) {
+      try {
+        workerHost = new URL(WORKER_URL).hostname.toLowerCase();
+      } catch {}
+    }
     return (
       host === "lsho.cc" ||
       host.endsWith(".lsho.cc") ||
-      host === "lshorter-api.fiatechnologiecam.workers.dev"
+      host.endsWith(".workers.dev") ||
+      Boolean(workerHost && host === workerHost)
     );
   } catch {
     return true;

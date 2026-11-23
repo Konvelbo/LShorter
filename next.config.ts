@@ -296,6 +296,16 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    const backendApiUrl = (
+      process.env.BACKEND_API_URL ||
+      process.env.CLOUDFLARE_WORKER_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      ""
+    )
+      .replace(/['"]/g, "")
+      .trim()
+      .replace(/\/+$/, "");
+
     return {
       beforeFiles: [],
       afterFiles: [
@@ -303,10 +313,14 @@ const nextConfig: NextConfig = {
           source: "/api/og.png",
           destination: "/api/og",
         },
-        {
-          source: "/api/v1/:path((?!images/).*)",
-          destination: "https://lshorter-api.fiatechnologiecam.workers.dev/api/v1/:path*",
-        },
+        ...(backendApiUrl
+          ? [
+              {
+                source: "/api/v1/:path((?!images/).*)",
+                destination: `${backendApiUrl}/api/v1/:path*`,
+              },
+            ]
+          : []),
         {
           source: "/banners/og",
           destination: "/api/og",

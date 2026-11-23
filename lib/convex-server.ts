@@ -1,11 +1,15 @@
 import { ConvexHttpClient } from "convex/browser";
 
 export function getCleanConvexUrl(): string {
-  const raw =
+  const raw = (
     process.env.CONVEX_URL ||
     process.env.NEXT_PUBLIC_CONVEX_URL ||
-    "https://beloved-avocet-415.convex.cloud";
-  return raw.trim().replace(/\/+$/, "");
+    ""
+  )
+    .replace(/['"]/g, "")
+    .trim()
+    .replace(/\/+$/, "");
+  return raw;
 }
 
 export const convexUrl = getCleanConvexUrl();

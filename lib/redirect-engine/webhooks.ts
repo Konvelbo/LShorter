@@ -14,10 +14,17 @@ function isSelfWebhookTarget(rawUrl: unknown): boolean {
   if (typeof rawUrl !== "string") return true;
   try {
     const host = new URL(rawUrl).hostname.toLowerCase().replace(/\.$/, "");
+    let workerHost = "";
+    if (WORKER_URL) {
+      try {
+        workerHost = new URL(WORKER_URL).hostname.toLowerCase();
+      } catch {}
+    }
     return (
       host === "lsho.cc" ||
       host.endsWith(".lsho.cc") ||
-      host === "lshorter-api.fiatechnologiecam.workers.dev"
+      host.endsWith(".workers.dev") ||
+      Boolean(workerHost && host === workerHost)
     );
   } catch {
     return true;

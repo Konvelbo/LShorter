@@ -286,8 +286,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   secret:
     process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    (process.env.NODE_ENV === "production" ? undefined : "lshorter_dev_secret_session_2026"),
+    process.env.NEXTAUTH_SECRET,
 
   trustHost: true,
 

@@ -121,10 +121,22 @@ export function isSelfLoopWebhookUrl(urlStr: unknown): boolean {
         ? trimmed
         : `https://${trimmed}`;
     const host = new URL(candidate).hostname.toLowerCase().replace(/\.$/, "");
+    const rawWorkerUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.CLOUDFLARE_WORKER_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      "";
+    let workerHost = "";
+    if (rawWorkerUrl) {
+      try {
+        workerHost = new URL(rawWorkerUrl).hostname.toLowerCase();
+      } catch {}
+    }
     return (
       host === "lsho.cc" ||
       host.endsWith(".lsho.cc") ||
-      host === "lshorter-api.fiatechnologiecam.workers.dev"
+      host.endsWith(".workers.dev") ||
+      Boolean(workerHost && host === workerHost)
     );
   } catch {
     return true;

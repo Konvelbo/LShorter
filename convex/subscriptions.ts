@@ -33,6 +33,22 @@ export const getSubscription = query({
   },
 });
 
+// ─── Get subscription by providerSubscriptionId (for renewal webhooks) ───────
+export const getSubscriptionByProviderId = query({
+  args: { providerSubscriptionId: v.string() },
+  handler: async (ctx, args) => {
+    const cleanId = (args.providerSubscriptionId || "").trim();
+    if (!cleanId) return null;
+    try {
+      const all = await ctx.db.query("subscriptions").collect();
+      return all.find((s) => s.providerSubscriptionId === cleanId) || null;
+    } catch (err) {
+      console.warn("[subscriptions:getSubscriptionByProviderId] Safe catch:", err);
+      return null;
+    }
+  },
+});
+
 // ─── Upsert subscription (created or updated from Dodo Payments webhook) ────
 export const upsertSubscription = mutation({
   args: {
@@ -270,6 +286,28 @@ export const downgradeSubscriptionToFree = mutation({
         plan: "FREE",
         updatedAt: now,
       });
+    }
+
+    // 3. Also downgrade any matching organization in "organizations" table
+    try {
+      const orgSlug = `org_${cleanUserId}`;
+      const org =
+        (await ctx.db
+          .query("organizations")
+          .withIndex("by_slug", (q) => q.eq("slug", orgSlug))
+          .first()) ||
+        (await ctx.db
+          .query("organizations")
+          .withIndex("by_slug", (q) => q.eq("slug", sub.orgId))
+          .first());
+      if (org) {
+        await ctx.db.patch(org._id, {
+          plan: "FREE",
+          updatedAt: now,
+        });
+      }
+    } catch {
+      // Safe fallback if organizations table has no matching row
     }
 
     return {

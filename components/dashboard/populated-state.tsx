@@ -933,8 +933,8 @@ export function PopulatedState({
   const handleTestTargetNotification = async () => {
     try {
       setIsTestingTargetNotif(true);
-      const targetEmail = session?.user?.email || "contact@lsho.cc";
-      const targetName = userName || "Founder";
+      const targetEmail = session?.user?.email || "";
+      const targetName = userName || session?.user?.name || "";
       const metricAchieved =
         targetMetric === "revenue"
           ? `$${displayRevenue.toLocaleString("en-US")}`
@@ -1002,8 +1002,8 @@ export function PopulatedState({
         if (!alreadyAlerted) {
           localStorage.setItem(alertedKey, "sent");
 
-          const targetEmail = session?.user?.email || "contact@lsho.cc";
-          const targetName = userName || "Founder";
+          const targetEmail = session?.user?.email || "";
+          const targetName = userName || session?.user?.name || "";
           const metricAchieved =
             targetMetric === "revenue"
               ? `$${displayRevenue.toLocaleString("en-US")}`

@@ -5,11 +5,15 @@
  * variables without exposing them to the client or hardcoding values in source code.
  */
 
-export const WORKER_URL =
+export const WORKER_URL = (
   process.env.BACKEND_API_URL ||
   process.env.CLOUDFLARE_WORKER_URL ||
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
+  ""
+)
+  .replace(/['"]/g, "")
+  .trim()
+  .replace(/\/+$/, "");
 
 export const FRONTEND_SECRET = (process.env.FRONTEND_API_SECRET || "").trim();
 

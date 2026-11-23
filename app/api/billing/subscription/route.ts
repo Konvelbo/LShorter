@@ -4,6 +4,8 @@ import { getDodoPaymentsClient } from "@/lib/dodo/dodo-server";
 import { convexHttp as convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
+import { syncUserToCloudflare } from "@/lib/sync-user-server";
+import { resolvePlanFromDodoProductId } from "@/src/config/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -48,18 +50,24 @@ export async function GET(request: NextRequest) {
     let cancelAtPeriodEnd = Boolean(convexSub?.cancelAtPeriodEnd);
     let currentPeriodStart = convexSub?.currentPeriodStart || null;
     let currentPeriodEnd = convexSub?.currentPeriodEnd || null;
+    let lifecycleStatus: string | null = convexSub?.lifecycleStatus || null;
+    let gracePeriodEndsAt: number | null = convexSub?.gracePeriodEndsAt || null;
+    let lastLifecycleAlert: string | null = convexSub?.lastLifecycleAlert || null;
     let plan =
-      userPlan !== "FREE" && userPlan !== "FREEMIUM" && userPlan !== "STARTER"
-        ? userPlan
-        : convexSub?.plan || userPlan;
+      lifecycleStatus === "DOWNGRADED"
+        ? "FREE"
+        : userPlan !== "FREE" && userPlan !== "FREEMIUM" && userPlan !== "STARTER"
+          ? userPlan
+          : convexSub?.plan || userPlan;
     let cycle = convexSub?.cycle || "MONTHLY";
-    let status = convexSub?.lifecycleStatus === "DOWNGRADED"
+    let status = lifecycleStatus === "DOWNGRADED"
       ? "canceled"
-      : convexSub?.lifecycleStatus === "GRACE_PERIOD"
+      : lifecycleStatus === "GRACE_PERIOD"
         ? "past_due"
         : "active";
 
     // 2. Sync live state from Dodo Payments
+    let confirmedActiveRenewal = false;
     const dodoClient = providerSubscriptionId ? getDodoPaymentsClient() : null;
     if (dodoClient && providerSubscriptionId) {
       try {
@@ -113,16 +121,22 @@ export async function GET(request: NextRequest) {
         if (dodoSub) {
           status = dodoSub.status || status;
           cancelAtPeriodEnd = Boolean(dodoSub.cancel_at_next_billing_date);
-          if (dodoSub.metadata?.planId) {
-            const metaPlan = String(dodoSub.metadata.planId).toUpperCase();
-            if (["PRO", "BUSINESS", "ENTERPRISE"].includes(metaPlan)) {
-              plan = metaPlan;
+          const productResolved = resolvePlanFromDodoProductId(dodoSub.product_id);
+          if (productResolved) {
+            plan = productResolved.planId;
+            cycle = productResolved.cycle;
+          } else {
+            if (dodoSub.metadata?.planId) {
+              const metaPlan = String(dodoSub.metadata.planId).toUpperCase();
+              if (["PRO", "BUSINESS", "ENTERPRISE"].includes(metaPlan)) {
+                plan = metaPlan;
+              }
             }
-          }
-          if (dodoSub.metadata?.cycle) {
-            const metaCycle = String(dodoSub.metadata.cycle).toUpperCase();
-            if (metaCycle === "YEARLY" || metaCycle === "MONTHLY") {
-              cycle = metaCycle;
+            if (dodoSub.metadata?.cycle) {
+              const metaCycle = String(dodoSub.metadata.cycle).toUpperCase();
+              if (metaCycle === "YEARLY" || metaCycle === "MONTHLY") {
+                cycle = metaCycle;
+              }
             }
           }
           const nextMs = dodoSub.next_billing_date ? new Date(dodoSub.next_billing_date).getTime() : NaN;
@@ -136,20 +150,39 @@ export async function GET(request: NextRequest) {
           if (
             dodoSub.status === "active" &&
             userId &&
-            (providerSubscriptionId !== convexSub?.providerSubscriptionId ||
-              plan !== convexSub?.plan ||
-              (currentPeriodEnd && currentPeriodEnd > (convexSub?.currentPeriodEnd || 0)))
+            currentPeriodEnd &&
+            currentPeriodEnd > Date.now()
           ) {
-            await convex.mutation(api.subscriptions.upsertSubscription, {
-              orgId: userId,
-              provider: "dodo",
-              providerSubscriptionId,
-              currentPeriodStart: currentPeriodStart || Date.now(),
-              currentPeriodEnd: currentPeriodEnd || Date.now() + 30 * 86400000,
-              cancelAtPeriodEnd,
-              plan,
-              cycle,
-            }).catch((e) => console.warn("[Subscription API] Dodo sync to Convex failed:", e));
+            confirmedActiveRenewal = true;
+            lifecycleStatus = "ACTIVE";
+            gracePeriodEndsAt = null;
+            if (
+              providerSubscriptionId !== convexSub?.providerSubscriptionId ||
+              plan !== convexSub?.plan ||
+              convexSub?.lifecycleStatus !== "ACTIVE" ||
+              currentPeriodEnd > (convexSub?.currentPeriodEnd || 0)
+            ) {
+              await convex.mutation(api.subscriptions.upsertSubscription, {
+                orgId: userId,
+                provider: "dodo",
+                providerSubscriptionId,
+                currentPeriodStart: currentPeriodStart || Date.now(),
+                currentPeriodEnd,
+                cancelAtPeriodEnd,
+                plan,
+                cycle,
+              }).catch((e) => console.warn("[Subscription API] Dodo sync to Convex failed:", e));
+
+              if (userPlan !== plan && ["PRO", "BUSINESS", "ENTERPRISE"].includes(plan)) {
+                await convex.mutation(api.users.updatePlan, { userId, plan }).catch(() => {});
+                await syncUserToCloudflare({
+                  id: userId,
+                  email,
+                  name: session.user.name || userId,
+                  plan: plan as "PRO" | "BUSINESS" | "ENTERPRISE",
+                }).catch(() => {});
+              }
+            }
           }
         }
       } catch (dodoErr) {
@@ -157,8 +190,70 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Default period end if paid plan but no date recorded yet
-    if (!currentPeriodEnd && (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE")) {
+    // 3. Real-Time Lazy Lifecycle Enforcement (Grace Period & Freemium Downgrade)
+    const now = Date.now();
+    if (
+      convexSub?._id &&
+      !confirmedActiveRenewal &&
+      lifecycleStatus !== "DOWNGRADED" &&
+      currentPeriodEnd &&
+      now >= currentPeriodEnd
+    ) {
+      if (
+        lifecycleStatus === "GRACE_PERIOD" &&
+        typeof gracePeriodEndsAt === "number" &&
+        now >= gracePeriodEndsAt
+      ) {
+        // 24h Grace Period expired without renewal -> Downgrade to FREE immediately
+        try {
+          await convex.mutation(api.subscriptions.downgradeSubscriptionToFree, {
+            subscriptionId: convexSub._id,
+          });
+          if (userId) {
+            await syncUserToCloudflare({
+              id: userId,
+              email,
+              name: session.user.name || userId,
+              plan: "FREE",
+            }).catch(() => {});
+          }
+          plan = "FREE";
+          status = "canceled";
+          lifecycleStatus = "DOWNGRADED";
+          lastLifecycleAlert = "DOWNGRADED";
+        } catch (downErr) {
+          console.warn("[Subscription API] Lazy downgrade warning:", downErr);
+        }
+      } else if (lifecycleStatus !== "GRACE_PERIOD") {
+        // Period ended without renewal -> Enter 24h Grace Period immediately
+        try {
+          const newGraceEnd = now + 24 * 60 * 60 * 1000;
+          const graceRes = await convex.mutation(
+            api.subscriptions.markSubscriptionGracePeriod,
+            {
+              providerSubscriptionId: providerSubscriptionId || undefined,
+              orgId: userId,
+              gracePeriodEndsAt: newGraceEnd,
+            }
+          );
+          if (graceRes?.success) {
+            lifecycleStatus = "GRACE_PERIOD";
+            gracePeriodEndsAt = graceRes.gracePeriodEndsAt || newGraceEnd;
+            lastLifecycleAlert = "GRACE_PERIOD";
+            status = "past_due";
+          }
+        } catch (graceErr) {
+          console.warn("[Subscription API] Lazy grace activation warning:", graceErr);
+        }
+      }
+    }
+
+    // Default period end if paid plan has no subscription document yet
+    if (
+      !currentPeriodEnd &&
+      lifecycleStatus !== "DOWNGRADED" &&
+      (plan === "PRO" || plan === "BUSINESS" || plan === "ENTERPRISE")
+    ) {
       currentPeriodEnd = Date.now() + 30 * 86400000;
       currentPeriodStart = Date.now();
     }
@@ -184,9 +279,9 @@ export async function GET(request: NextRequest) {
         currentPeriodStart,
         currentPeriodEnd,
         formattedPeriodEnd,
-        lifecycleStatus: convexSub?.lifecycleStatus || null,
-        gracePeriodEndsAt: convexSub?.gracePeriodEndsAt || null,
-        lastLifecycleAlert: convexSub?.lastLifecycleAlert || null,
+        lifecycleStatus,
+        gracePeriodEndsAt,
+        lastLifecycleAlert,
       },
     });
   } catch (error: any) {

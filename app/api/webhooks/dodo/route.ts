@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { syncUserToCloudflare } from "@/lib/sync-user-server";
 import { cancelReplacedSubscriptions } from "@/lib/billing/cancel-replaced-subscription";
 import { normalizeGatewayAmount, formatCurrencyDisplay } from "@/lib/billing/currency";
+import { resolvePlanFromDodoProductId } from "@/src/config/pricing";
 import {
   sendGracePeriodAlertEmail,
   sendPlanPurchaseEmail,
@@ -58,11 +59,30 @@ function formatAmountFromCents(rawEventData: any): {
 
 async function resolveDodoContext(eventData: any) {
   const customData = eventData.metadata || {};
-  const customerEmail =
+  let customerEmail =
     eventData.customer?.email || customData.customerEmail || "";
-  const customerName = eventData.customer?.name || "Customer";
+  let customerName = eventData.customer?.name || "Customer";
+
+  const candidateSubId = String(
+    eventData.subscription_id || eventData.id || ""
+  ).trim();
+  let subByProviderId: any = null;
+  if (candidateSubId && candidateSubId.startsWith("sub_")) {
+    try {
+      subByProviderId = await convex.query(
+        api.subscriptions.getSubscriptionByProviderId,
+        { providerSubscriptionId: candidateSubId }
+      );
+    } catch {
+      subByProviderId = null;
+    }
+  }
 
   let userId = customData.userId ? String(customData.userId) : "";
+  if (!userId && subByProviderId?.orgId) {
+    userId = String(subByProviderId.orgId).replace(/^org_/, "");
+  }
+
   if (!userId && customerEmail && !customerEmail.endsWith("@lshorter.local")) {
     try {
       const userDoc = await convex.query(api.users.getUserByEmail, {
@@ -76,41 +96,74 @@ async function resolveDodoContext(eventData: any) {
     }
   }
 
+  if (userId && (!customerEmail || customerEmail.endsWith("@lshorter.local"))) {
+    try {
+      const userDoc = await convex.query(api.users.getCurrentUser, {
+        userId,
+      });
+      if (userDoc?.email) customerEmail = userDoc.email;
+      if (userDoc?.name && customerName === "Customer") customerName = userDoc.name;
+    } catch {
+      // Safe fallback
+    }
+  }
+
   const orgId = customData.orgId
     ? String(customData.orgId)
-    : userId
-      ? `org_${userId}`
-      : "default";
+    : subByProviderId?.orgId
+      ? String(subByProviderId.orgId)
+      : userId
+        ? `org_${userId}`
+        : "default";
 
-  let rawPlanId = customData.planId
-    ? String(customData.planId).toUpperCase()
-    : "";
+  const rawProductId = String(
+    eventData.product_id ||
+      (Array.isArray(eventData.product_cart) && eventData.product_cart[0]?.product_id) ||
+      ""
+  ).trim();
+  const productResolved = resolvePlanFromDodoProductId(rawProductId);
 
-  if (!rawPlanId && (userId || orgId !== "default")) {
+  let rawPlanId = productResolved?.planId
+    ? productResolved.planId
+    : customData.planId
+      ? String(customData.planId).toUpperCase()
+      : "";
+
+  let existingSub = subByProviderId;
+  if (!existingSub && (userId || orgId !== "default")) {
     try {
-      const existingSub = await convex.query(api.subscriptions.getSubscription, {
+      existingSub = await convex.query(api.subscriptions.getSubscription, {
         orgId: userId || orgId,
       });
-      if (
-        existingSub?.plan &&
-        existingSub.plan !== "FREE" &&
-        existingSub.plan !== "FREEMIUM"
-      ) {
-        rawPlanId = String(existingSub.plan).toUpperCase();
-      }
     } catch {
-      // Ignore fallback lookup errors
+      existingSub = null;
     }
+  }
+
+  if (
+    !rawPlanId &&
+    existingSub?.plan &&
+    existingSub.plan !== "FREE" &&
+    existingSub.plan !== "FREEMIUM"
+  ) {
+    rawPlanId = String(existingSub.plan).toUpperCase();
   }
 
   const planId = (
     ["PRO", "BUSINESS", "ENTERPRISE"].includes(rawPlanId) ? rawPlanId : "PRO"
   ) as "PRO" | "BUSINESS" | "ENTERPRISE";
 
-  const cycle =
-    String(customData.cycle || "MONTHLY").toUpperCase() === "YEARLY"
-      ? "YEARLY"
-      : "MONTHLY";
+  const rawCycle = productResolved?.cycle
+    ? productResolved.cycle
+    : customData.cycle
+      ? String(customData.cycle).toUpperCase()
+      : eventData.subscription_period_interval === "Year"
+        ? "YEARLY"
+        : existingSub?.cycle
+          ? String(existingSub.cycle).toUpperCase()
+          : "MONTHLY";
+
+  const cycle = rawCycle === "YEARLY" ? "YEARLY" : "MONTHLY";
 
   return {
     customData,
@@ -118,8 +171,9 @@ async function resolveDodoContext(eventData: any) {
     orgId,
     planId,
     cycle,
-    customerEmail: customerEmail || `${userId || "customer"}@lshorter.local`,
+    customerEmail: customerEmail || "",
     customerName,
+    existingSub,
   };
 }
 
@@ -304,14 +358,21 @@ export async function POST(request: NextRequest) {
 
         // Fetch existing subscription BEFORE upserting so we can inspect previous period & overage state
         const existingSubBeforeUpsert =
-          userId || orgId !== "default"
+          ctx.existingSub ||
+          (userId || orgId !== "default"
             ? await convex
                 .query(api.subscriptions.getSubscription, { orgId: userId || orgId })
                 .catch(() => null)
-            : null;
+            : null);
+
+        const alreadySettledThisCycle = isOverageAlreadySettledForCycle(
+          existingSubBeforeUpsert?.lastOverageChargedPeriodStart,
+          periodStart
+        );
 
         const isRenewal =
           eventData.charge_type === "renewal" ||
+          alreadySettledThisCycle ||
           (!eventData.charge_type &&
             Boolean(newSubId) &&
             existingSubBeforeUpsert?.providerSubscriptionId === newSubId &&
@@ -585,10 +646,18 @@ export async function POST(request: NextRequest) {
 
       case "subscription.active":
       case "subscription.renewed": {
-        const subId = eventData.subscription_id || eventData.id;
-        const customData = eventData.metadata || {};
-        const userId = customData.userId || "";
-        const orgId = userId || customData.orgId || "default";
+        const subId = String(eventData.subscription_id || eventData.id || "").trim();
+        const ctx = await resolveDodoContext(eventData);
+        const {
+          customData,
+          userId,
+          planId: activePlan,
+          cycle: resolvedCycle,
+          customerEmail,
+          customerName,
+          existingSub,
+        } = ctx;
+        const orgId = userId || (ctx.orgId !== "default" ? ctx.orgId : "default");
 
         const parsedStart = eventData.previous_billing_date
           ? new Date(eventData.previous_billing_date).getTime()
@@ -597,25 +666,12 @@ export async function POST(request: NextRequest) {
           ? new Date(eventData.next_billing_date).getTime()
           : NaN;
         const periodStart = Number.isNaN(parsedStart) ? Date.now() : parsedStart;
+        const cycleDurationMs = (resolvedCycle === "YEARLY" ? 365 : 30) * 86400000;
         const periodEnd = Number.isNaN(parsedEnd)
-          ? Date.now() + 30 * 86400000
+          ? periodStart + cycleDurationMs
           : parsedEnd;
 
-        let resolvedPlan = customData.planId
-          ? String(customData.planId).toUpperCase()
-          : undefined;
-        let resolvedCycle = customData.cycle
-          ? String(customData.cycle).toUpperCase()
-          : undefined;
-
         try {
-          const existingSub =
-            orgId !== "default"
-              ? await convex
-                  .query(api.subscriptions.getSubscription, { orgId })
-                  .catch(() => null)
-              : null;
-
           // Guard against a stale renewal or delayed active event from an older replaced subscription
           const isStaleEventForDifferentSub =
             existingSub?.providerSubscriptionId &&
@@ -641,21 +697,6 @@ export async function POST(request: NextRequest) {
             });
             break;
           }
-
-          if (!resolvedPlan && existingSub) {
-            if (existingSub?.plan && existingSub.plan !== "FREE" && existingSub.plan !== "FREEMIUM") {
-              resolvedPlan = String(existingSub.plan).toUpperCase();
-            }
-            if (!resolvedCycle && existingSub?.cycle) {
-              resolvedCycle = String(existingSub.cycle).toUpperCase();
-            }
-          }
-
-          const activePlan = (
-            ["PRO", "BUSINESS", "ENTERPRISE"].includes(resolvedPlan || "")
-              ? resolvedPlan
-              : "PRO"
-          ) as "PRO" | "BUSINESS" | "ENTERPRISE";
 
           const upsertRes: any = await convex.mutation(
             api.subscriptions.upsertSubscription,
@@ -683,8 +724,7 @@ export async function POST(request: NextRequest) {
             await cancelReplacedSubscriptions({
               userId: userId || undefined,
               orgId,
-              customerEmail:
-                eventData.customer?.email || customData.customerEmail || undefined,
+              customerEmail: customerEmail || undefined,
               dodoCustomerId: eventData.customer?.customer_id
                 ? String(eventData.customer.customer_id)
                 : undefined,
@@ -702,31 +742,41 @@ export async function POST(request: NextRequest) {
             await convex
               .mutation(api.users.updatePlan, { userId, plan: activePlan })
               .catch(() => {});
-            const customerEmail =
-              eventData.customer?.email ||
-              customData.customerEmail ||
-              `${userId}@lshorter.local`;
-            const customerName = eventData.customer?.name || "Customer";
+            await convex
+              .mutation(api.organizations.getOrCreateUserOrganization, {
+                userId,
+                name: `org_${userId}`,
+                email: customerEmail || "",
+                plan: activePlan,
+              })
+              .catch(() => {});
             await syncUserToCloudflare({
               id: userId,
-              email: customerEmail,
+              email: customerEmail || "",
               name: customerName,
               plan: activePlan,
             }).catch(() => {});
+            if (customerEmail && customerEmail !== userId) {
+              await syncUserToCloudflare({
+                id: customerEmail,
+                email: customerEmail,
+                name: customerName,
+                plan: activePlan,
+              }).catch(() => {});
+            }
           }
 
           if (eventType === "subscription.renewed" && orgId !== "default") {
-            const customerEmail =
-              eventData.customer?.email ||
-              customData.customerEmail ||
-              (userId ? `${userId}@lshorter.local` : undefined);
             const alreadyCharged = isOverageAlreadySettledForCycle(
               existingSub?.lastOverageChargedPeriodStart,
               periodStart
             );
 
             if (!alreadyCharged && subId) {
-              const rawTotalClicks = await getRawUserTotalClicks(orgId, customerEmail);
+              const rawTotalClicks = await getRawUserTotalClicks(
+                userId || orgId,
+                customerEmail || undefined
+              );
               const baselineClicks =
                 typeof existingSub?.periodStartClicksSnapshot === "number"
                   ? existingSub.periodStartClicksSnapshot

@@ -183,20 +183,12 @@ export async function GET(
       ? dodoPaymentMeta?.settlement_amount
       : dodoPaymentMeta?.total_amount;
 
-    const rawAmount = searchParams.get("amount");
-    const parsedQueryAmount = rawAmount ? parseFloat(rawAmount) : NaN;
     const amountPaid =
       typeof rawTotal === "number"
         ? normalizeGatewayAmount(rawTotal, resolvedCurrency)
         : typeof convexInvoice?.amountPaid === "number"
           ? correctStoredInvoiceAmount(convexInvoice.amountPaid, resolvedCurrency)
-          : !Number.isNaN(parsedQueryAmount)
-            ? parsedQueryAmount
-            : planId === "BUSINESS"
-              ? 49
-              : planId === "ENTERPRISE"
-                ? 199
-                : 15;
+          : plan.monthlyPrice;
 
     const nowMs = dodoPaymentMeta?.created_at
       ? new Date(dodoPaymentMeta.created_at).getTime()
@@ -213,14 +205,11 @@ export async function GET(
     const companyName =
       dodoPaymentMeta?.customer?.name ||
       session.user.name ||
-      searchParams.get("companyName") ||
-      searchParams.get("name") ||
-      "Compte Pro";
+      "Compte Client";
     const customerEmail =
       dodoPaymentMeta?.customer?.email ||
       session.user.email ||
-      searchParams.get("email") ||
-      "contact@client.com";
+      "";
     const taxId = searchParams.get("taxId") || undefined;
     const billingAddress = searchParams.get("address") || undefined;
 

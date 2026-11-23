@@ -9,7 +9,7 @@ import {
   sendSubscriptionDowngradedEmail,
   sendPlanPurchaseEmail,
 } from "@/lib/resend";
-import { getPlanDefinition } from "@/src/config/pricing";
+import { getPlanDefinition, resolvePlanFromDodoProductId } from "@/src/config/pricing";
 import {
   computeCycleClickUsage,
   getRawUserTotalClicks,
@@ -98,6 +98,7 @@ async function handleLifecycleProcess(req: Request) {
     }
 
     const now = Date.now();
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://lsho.cc").replace(/\/+$/, "");
     const dodoClient = getDodoPaymentsClient();
     const results = {
       evaluated: activeSubs.length,
@@ -141,15 +142,29 @@ async function handleLifecycleProcess(req: Request) {
           .catch((uPlanErr) =>
             console.warn("[Lifecycle] Convex updatePlan warning:", uPlanErr)
           );
-        if (opts.userEmail) {
+        await convex
+          .mutation(api.organizations.getOrCreateUserOrganization, {
+            userId: opts.cleanUserId,
+            name: `org_${opts.cleanUserId}`,
+            email: opts.userEmail || "",
+            plan: opts.planName as "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE",
+          })
+          .catch(() => {});
+        await syncUserToCloudflare({
+          id: opts.cleanUserId,
+          name: opts.userName || opts.cleanUserId,
+          email: opts.userEmail || "",
+          plan: opts.planName as "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE",
+        }).catch((e) =>
+          console.warn("[Lifecycle] Cloudflare plan sync error:", e)
+        );
+        if (opts.userEmail && opts.userEmail !== opts.cleanUserId) {
           await syncUserToCloudflare({
-            id: opts.cleanUserId,
+            id: opts.userEmail,
             name: opts.userName || opts.cleanUserId,
             email: opts.userEmail,
             plan: opts.planName as "FREE" | "FREEMIUM" | "PRO" | "BUSINESS" | "ENTERPRISE",
-          }).catch((e) =>
-            console.warn("[Lifecycle] Cloudflare plan sync error:", e)
-          );
+          }).catch(() => {});
         }
       }
 
@@ -323,12 +338,20 @@ async function handleLifecycleProcess(req: Request) {
               const prevBillingMs = dodoSub.previous_billing_date
                 ? new Date(dodoSub.previous_billing_date).getTime()
                 : currentPeriodEnd;
+              const productResolved = resolvePlanFromDodoProductId(
+                (dodoSub as any)?.product_id
+              );
+              const renewedPlanName =
+                productResolved?.planId ||
+                ((dodoSub as any)?.metadata?.planId
+                  ? String((dodoSub as any).metadata.planId).toUpperCase()
+                  : planName);
               await syncConfirmedRenewal({
                 sub,
                 cleanUserId,
                 userEmail,
                 userName,
-                planName,
+                planName: renewedPlanName,
                 provider: "dodo",
                 providerLabel: "Dodo Payments",
                 prevBillingMs: Number.isNaN(prevBillingMs) ? currentPeriodEnd : prevBillingMs,
@@ -366,16 +389,24 @@ async function handleLifecycleProcess(req: Request) {
           subscriptionId: sub._id,
         });
 
-        // Sync FREE plan limits to Cloudflare D1 Edge
-        if (cleanUserId && userEmail) {
+        // Sync FREE plan limits to Cloudflare D1 Edge (both userId and email keys)
+        if (cleanUserId) {
           await syncUserToCloudflare({
             id: cleanUserId,
             name: userName || cleanUserId,
-            email: userEmail,
+            email: userEmail || "",
             plan: "FREE",
           }).catch((cfErr) =>
             console.warn("[Lifecycle] Cloudflare downgrade sync error:", cfErr)
           );
+          if (userEmail && userEmail !== cleanUserId) {
+            await syncUserToCloudflare({
+              id: userEmail,
+              name: userName || cleanUserId,
+              email: userEmail,
+              plan: "FREE",
+            }).catch(() => {});
+          }
         }
 
         // In-App Notification
@@ -398,7 +429,7 @@ async function handleLifecycleProcess(req: Request) {
               to: userEmail,
               name: userName,
               previousPlan: planName,
-              upgradeUrl: "https://lsho.cc/dashboard/pricing",
+              upgradeUrl: `${appUrl}/dashboard/pricing`,
             });
           } catch (mailErr) {
             console.error("[Lifecycle] Email downgrade error:", mailErr);
@@ -424,6 +455,7 @@ async function handleLifecycleProcess(req: Request) {
       if (inGraceWindow) {
         if (lastAlert !== "GRACE_PERIOD" && lastAlert !== "DOWNGRADED") {
           const full24hGraceEndsAt = now + 24 * 60 * 60 * 1000;
+          const isPaymentFailure = !sub.cancelAtPeriodEnd;
           // Record Grace Period in Convex with a full 24h window from notification dispatch
           await convex.mutation(subscriptionsApi.recordLifecycleAlert, {
             subscriptionId: sub._id,
@@ -436,8 +468,12 @@ async function handleLifecycleProcess(req: Request) {
           try {
             await convex.mutation(notificationsApi.createNotification, {
               orgId: sub.orgId,
-              title: "⚠️ Échec de renouvellement — 24h restantes",
-              message: `Le renouvellement de votre abonnement ${planName} a échoué. Il vous reste 24h pour renouveler votre abonnement avant que votre plan soit ramené en Freemium.`,
+              title: isPaymentFailure
+                ? "⚠️ Échec de renouvellement — 24h restantes"
+                : "⏳ Fin d'abonnement — 24h restantes",
+              message: isPaymentFailure
+                ? `Le renouvellement de votre abonnement ${planName} a échoué. Il vous reste 24h pour renouveler votre abonnement avant que votre plan soit ramené en Freemium.`
+                : `Votre abonnement ${planName} est arrivé à échéance. Il vous reste 24h de période de grâce pour le renouveler avant le passage au plan Freemium.`,
               type: "ALERT",
               linkUrl: "/dashboard/pricing",
             });
@@ -452,8 +488,8 @@ async function handleLifecycleProcess(req: Request) {
                 to: userEmail,
                 name: userName,
                 plan: planName,
-                renewUrl: "https://lsho.cc/dashboard/pricing",
-                isPaymentFailure: true,
+                renewUrl: `${appUrl}/dashboard/pricing`,
+                isPaymentFailure,
               });
             } catch (mailErr) {
               console.error("[Lifecycle] Email grace error:", mailErr);
@@ -564,8 +600,8 @@ async function handleLifecycleProcess(req: Request) {
                 daysRemaining,
                 isAutoRenew,
                 renewUrl: isAutoRenew
-                  ? "https://lsho.cc/dashboard/settings?tab=billing"
-                  : "https://lsho.cc/dashboard/pricing",
+                  ? `${appUrl}/dashboard/settings?tab=billing`
+                  : `${appUrl}/dashboard/pricing`,
                 overageInfo,
               });
             } catch (mailErr) {

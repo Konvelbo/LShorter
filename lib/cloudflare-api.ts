@@ -7,9 +7,14 @@
 
 import { compressImageFile } from "./image-compress";
 
-const WORKER_URL =
+const WORKER_URL = (
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  "https://lshorter-api.fiatechnologiecam.workers.dev";
+  process.env.BACKEND_API_URL ||
+  ""
+)
+  .replace(/['"]/g, "")
+  .trim()
+  .replace(/\/+$/, "");
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
