@@ -890,6 +890,35 @@ export function HeroShortener() {
         )}
       </AnimatePresence>
 
+      {/* Prompt for new visitors who haven't shortened any link yet */}
+      {!isAuthenticated && !activeLink && (
+        <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(12.5px,min(3.6vw,1.8svh),14.5px)] sm:text-[13.5px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 leading-[1.55] sm:leading-relaxed max-w-[660px] mx-auto px-2">
+          {isFr ? (
+            <>
+              Testez directement le raccourcisseur dans le champ ci-dessus ou accédez directement à plus de fonctionnalités comme le tracking et le studio QR code{" "}
+              <Link
+                href="/register"
+                className="font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline transition-colors"
+              >
+                en vous inscrivant
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              Test the shortener directly in the field above or access more features like analytics tracking and the QR code studio{" "}
+              <Link
+                href="/register"
+                className="font-semibold text-[#0066FF] dark:text-[#60A5FA] underline-offset-4 hover:underline transition-colors"
+              >
+                by signing up
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      )}
+
       {/* Greeting for authenticated users when no link has been shortened in this Hero yet */}
       {isAuthenticated && !activeLink && (
         <p className="mt-[clamp(10px,1.8svh,18px)] sm:mt-3 text-center text-[clamp(13px,min(3.8vw,1.85svh),15px)] sm:text-[13.5px] text-[#0F2952]/85 dark:text-[#BFDBFE]/85 leading-[1.55] sm:leading-relaxed">

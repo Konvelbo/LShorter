@@ -248,7 +248,7 @@ export function DemoVideoSection() {
                   }`}
                 >
                   <div
-                    className={`font-mono text-[11.5px] font-medium tabular-nums mb-1 ${
+                    className={`font-poppins text-[12px] font-medium tracking-wide mb-1 transition-colors ${
                       isActive
                         ? "text-blue-100"
                         : "text-[#0066FF] dark:text-[#5294FF]"
