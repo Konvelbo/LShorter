@@ -2179,6 +2179,12 @@ export function LinkDrawer({
             data-1p-ignore="true"
             data-bwignore="true"
             onSubmit={handleSubmit}
+            onKeyDown={(e) => {
+              // Prevent accidental form submission when pressing Enter in single-line inputs across the drawer
+              if (e.key === "Enter" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+                e.preventDefault();
+              }
+            }}
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto px-6 py-5 drawer-scroll-hidden"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}

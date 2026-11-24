@@ -495,7 +495,15 @@ export function SectionProtectionExpiry({
                   >
                     {isFr ? "Préfixes de sous-chemins autorisés" : "Allowed Subpath Prefix"}
                   </label>
-                  <div className="lshorter-tag-container w-full flex flex-col items-start">
+                  <div
+                    className="lshorter-tag-container w-full flex flex-col items-start"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        // Crucial: stop propagation so pressing Enter in the route tag input NEVER submits the parent drawer form
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     <TagInput
                       id={prefixTagInputId}
                       tags={emblorPrefixTags}
@@ -506,7 +514,7 @@ export function SectionProtectionExpiry({
                       inputFieldPosition="top"
                       addTagsOnBlur
                       addOnPaste
-                      delimiterList={[",", ";", " "]}
+                      delimiterList={["Enter", ",", ";", " "]}
                       placeholder={
                         isFr
                           ? "Ajoutez des routes autorisées (ex. /pricing, /checkout)... vide = tout (/)"

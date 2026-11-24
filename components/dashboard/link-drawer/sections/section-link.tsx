@@ -289,7 +289,15 @@ export const SectionLink = React.memo(function SectionLink({
           <TagIcon className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
           <span>{isFr ? "Tags (Optionnel)" : "Tags (Optional)"}</span>
         </Label>
-        <div className="lshorter-tag-container w-full flex flex-col items-start">
+        <div
+          className="lshorter-tag-container w-full flex flex-col items-start"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              // Crucial: stop propagation so pressing Enter in the tags input NEVER submits the parent drawer form
+              e.stopPropagation();
+            }
+          }}
+        >
           <TagInput
             id={tagInputId}
             tags={emblorTags}
