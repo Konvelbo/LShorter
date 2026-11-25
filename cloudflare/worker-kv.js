@@ -942,10 +942,38 @@ export default {
               if (rawRef) {
                 try {
                   const u = new URL(rawRef);
-                  detectedRef = u.hostname.replace(/^www\./, '');
+                  const host = u.hostname.replace(/^www\./, '');
+                  if (host.includes('instagram') || host.includes('instagr.am')) detectedRef = 'Instagram';
+                  else if (host.includes('facebook') || host.includes('fb.com') || host.includes('fb.me')) detectedRef = 'Facebook';
+                  else if (host.includes('twitter') || host.includes('x.com') || host.includes('t.co')) detectedRef = 'Twitter / X';
+                  else if (host.includes('linkedin') || host.includes('lnkd.in')) detectedRef = 'LinkedIn';
+                  else if (host.includes('youtube') || host.includes('youtu.be')) detectedRef = 'YouTube';
+                  else if (host.includes('whatsapp') || host.includes('wa.me')) detectedRef = 'WhatsApp';
+                  else if (host.includes('tiktok')) detectedRef = 'TikTok';
+                  else if (host.includes('reddit') || host.includes('redd.it')) detectedRef = 'Reddit';
+                  else if (host.includes('discord')) detectedRef = 'Discord';
+                  else if (host.includes('telegram') || host.includes('t.me')) detectedRef = 'Telegram';
+                  else if (host.includes('pinterest') || host.includes('pin.it')) detectedRef = 'Pinterest';
+                  else if (host.includes('threads.net')) detectedRef = 'Threads';
+                  else if (host.includes('github')) detectedRef = 'GitHub';
+                  else if (host.includes('bsky.app') || host.includes('bluesky')) detectedRef = 'Bluesky';
+                  else if (host.includes('spotify')) detectedRef = 'Spotify';
+                  else detectedRef = host;
                 } catch {
                   detectedRef = rawRef.slice(0, 50);
                 }
+              }
+              if (detectedRef === 'Direct' || !detectedRef) {
+                const reqUrlStr = request.url || '';
+                if (userAgent.includes('instagram') || reqUrlStr.includes('igshid=')) detectedRef = 'Instagram';
+                else if (userAgent.includes('fban') || userAgent.includes('fbav') || reqUrlStr.includes('fbclid=')) detectedRef = 'Facebook';
+                else if (userAgent.includes('tiktok') || userAgent.includes('musical_ly') || reqUrlStr.includes('ttclid=')) detectedRef = 'TikTok';
+                else if (userAgent.includes('twitter') || userAgent.includes('tweetie') || reqUrlStr.includes('twclid=')) detectedRef = 'Twitter / X';
+                else if (userAgent.includes('threads')) detectedRef = 'Threads';
+                else if (userAgent.includes('linkedin')) detectedRef = 'LinkedIn';
+                else if (userAgent.includes('snapchat')) detectedRef = 'Snapchat';
+                else if (userAgent.includes('whatsapp')) detectedRef = 'WhatsApp';
+                else if (userAgent.includes('telegram')) detectedRef = 'Telegram';
               }
 
               let detectedBrowser = 'Other';
@@ -1119,7 +1147,21 @@ export default {
         const device = clickBody.device || request.headers.get('x-device') || detectedDev;
         const browser = clickBody.browser || request.headers.get('x-browser') || detectedBr;
         const os = clickBody.os || request.headers.get('x-os') || detectedSys;
-        const referrer = clickBody.referrer || request.headers.get('x-referrer') || 'Direct';
+        let referrer = clickBody.referrer || clickBody.referer || request.headers.get('x-referrer') || request.headers.get('referer') || 'Direct';
+        if (referrer === 'Direct' || !referrer) {
+          if (userAgentHeader.includes('instagram')) referrer = 'Instagram';
+          else if (userAgentHeader.includes('fban') || userAgentHeader.includes('fbav') || userAgentHeader.includes('fb_iab')) referrer = 'Facebook';
+          else if (userAgentHeader.includes('tiktok') || userAgentHeader.includes('musical_ly') || userAgentHeader.includes('bytedance')) referrer = 'TikTok';
+          else if (userAgentHeader.includes('twitter') || userAgentHeader.includes('tweetie')) referrer = 'Twitter / X';
+          else if (userAgentHeader.includes('threads')) referrer = 'Threads';
+          else if (userAgentHeader.includes('linkedin')) referrer = 'LinkedIn';
+          else if (userAgentHeader.includes('whatsapp')) referrer = 'WhatsApp';
+          else if (userAgentHeader.includes('telegram')) referrer = 'Telegram';
+          else if (userAgentHeader.includes('snapchat')) referrer = 'Snapchat';
+          else if (userAgentHeader.includes('pinterest')) referrer = 'Pinterest';
+          else if (userAgentHeader.includes('reddit')) referrer = 'Reddit';
+          else if (userAgentHeader.includes('discord')) referrer = 'Discord';
+        }
         const ipHash = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
         const customerEmail = clickBody.customer?.email || clickBody.customerEmail || clickBody.customer_email || clickBody.email || request.headers.get('x-customer-email') || null;
         const customerName = clickBody.customer?.name || clickBody.customerName || clickBody.customer_name || clickBody.customerFullName || clickBody.fullName || clickBody.name || request.headers.get('x-customer-name') || null;

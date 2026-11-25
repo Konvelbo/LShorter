@@ -288,9 +288,75 @@ export function parseVisitorDetails(
       else if (host.includes("pinterest") || host.includes("pin.it")) referrer = "Pinterest";
       else if (host.includes("threads.net")) referrer = "Threads";
       else if (host.includes("github")) referrer = "GitHub";
+      else if (host.includes("bsky.app") || host.includes("bluesky")) referrer = "Bluesky";
+      else if (host.includes("spotify")) referrer = "Spotify";
+      else if (host.includes("twitch.tv")) referrer = "Twitch";
+      else if (host.includes("snapchat")) referrer = "Snapchat";
+      else if (host.includes("slack.com")) referrer = "Slack";
+      else if (host.includes("medium.com")) referrer = "Medium";
+      else if (host.includes("substack.com")) referrer = "Substack";
+      else if (host.includes("quora.com")) referrer = "Quora";
+      else if (host.includes("tumblr.com")) referrer = "Tumblr";
+      else if (host.includes("wechat") || host.includes("weixin")) referrer = "WeChat";
+      else if (host.includes("line.me")) referrer = "Line";
+      else if (host.includes("duckduckgo")) referrer = "DuckDuckGo";
+      else if (host.includes("bing")) referrer = "Bing";
       else referrer = host;
     } catch {
       referrer = rawReferrer;
+    }
+  }
+
+  // Fallback to User-Agent & query params when in-app mobile browsers strip the Referer header
+  if (referrer === "Direct" || !referrer) {
+    try {
+      const reqUrl = new URL(req.url);
+      const utmSource = (reqUrl.searchParams.get("utm_source") || "").toLowerCase();
+      if (reqUrl.searchParams.has("igshid") || utmSource === "instagram" || ua.includes("instagram")) {
+        referrer = "Instagram";
+      } else if (reqUrl.searchParams.has("fbclid") || utmSource === "facebook" || ua.includes("fban") || ua.includes("fbav") || ua.includes("fb_iab")) {
+        referrer = "Facebook";
+      } else if (reqUrl.searchParams.has("ttclid") || utmSource === "tiktok" || ua.includes("tiktok") || ua.includes("musical_ly") || ua.includes("bytedance")) {
+        referrer = "TikTok";
+      } else if (reqUrl.searchParams.has("twclid") || utmSource === "twitter" || utmSource === "x" || ua.includes("twitter") || ua.includes("tweetie")) {
+        referrer = "Twitter / X";
+      } else if (utmSource === "threads" || ua.includes("threads")) {
+        referrer = "Threads";
+      } else if (utmSource === "linkedin" || ua.includes("linkedin")) {
+        referrer = "LinkedIn";
+      } else if (utmSource === "youtube" || ua.includes("youtube")) {
+        referrer = "YouTube";
+      } else if (utmSource === "whatsapp" || ua.includes("whatsapp")) {
+        referrer = "WhatsApp";
+      } else if (utmSource === "telegram" || ua.includes("telegram")) {
+        referrer = "Telegram";
+      } else if (utmSource === "pinterest" || ua.includes("pinterest")) {
+        referrer = "Pinterest";
+      } else if (utmSource === "snapchat" || ua.includes("snapchat")) {
+        referrer = "Snapchat";
+      } else if (utmSource === "reddit" || ua.includes("reddit")) {
+        referrer = "Reddit";
+      } else if (utmSource === "discord" || ua.includes("discord")) {
+        referrer = "Discord";
+      } else if (utmSource === "bluesky" || ua.includes("bluesky")) {
+        referrer = "Bluesky";
+      } else if (utmSource === "spotify" || ua.includes("spotify")) {
+        referrer = "Spotify";
+      } else if (utmSource === "wechat" || ua.includes("micromessenger")) {
+        referrer = "WeChat";
+      } else if (utmSource === "line" || ua.includes("line/")) {
+        referrer = "Line";
+      } else if (reqUrl.searchParams.has("gclid") || utmSource === "google") {
+        referrer = "Google";
+      } else if (reqUrl.searchParams.has("msclkid") || utmSource === "bing") {
+        referrer = "Bing";
+      }
+    } catch {
+      if (ua.includes("instagram")) referrer = "Instagram";
+      else if (ua.includes("fban") || ua.includes("fbav") || ua.includes("fb_iab")) referrer = "Facebook";
+      else if (ua.includes("tiktok") || ua.includes("musical_ly")) referrer = "TikTok";
+      else if (ua.includes("twitter") || ua.includes("tweetie")) referrer = "Twitter / X";
+      else if (ua.includes("threads")) referrer = "Threads";
     }
   }
 

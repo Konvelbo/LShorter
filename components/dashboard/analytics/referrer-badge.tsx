@@ -202,6 +202,7 @@ export function parseReferrer(rawReferrer?: string | null): {
     lower.includes("instagram") ||
     cleanDomain.includes("instagram.com") ||
     cleanDomain === "instagr.am" ||
+    cleanDomain.endsWith(".instagr.am") ||
     lower === "instagram" ||
     lower === "ig" ||
     lower.includes("com.instagram");
@@ -219,22 +220,19 @@ export function parseReferrer(rawReferrer?: string | null): {
         badgeText: "text-[#E1306C] dark:text-[#FF6599]",
       },
       icon: (cls = "w-5 h-5") => (
-        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
-          <defs>
-            <linearGradient id="lshorter_ig_grad" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f09433" />
-              <stop offset="25%" stopColor="#e6683c" />
-              <stop offset="50%" stopColor="#dc2743" />
-              <stop offset="75%" stopColor="#cc2366" />
-              <stop offset="100%" stopColor="#bc1888" />
-            </linearGradient>
-          </defs>
-          <rect width="24" height="24" rx="5.5" fill="url(#lshorter_ig_grad)" />
-          <path
-            d="M12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88zM17.8 2H6.2A4.2 4.2 0 002 6.2v11.6A4.2 4.2 0 006.2 22h11.6a4.2 4.2 0 004.2-4.2V6.2A4.2 4.2 0 0017.8 2zm2.037 15.8a2.237 2.237 0 01-2.237 2.237H6.4a2.237 2.237 0 01-2.237-2.237V6.4A2.237 2.237 0 016.4 4.163h11.2a2.237 2.237 0 012.237 2.237v11.4z"
-            fill="#FFFFFF"
-          />
-        </svg>
+        <span
+          className={`shrink-0 inline-flex items-center justify-center rounded-[5.5px] overflow-hidden p-[14%] ${cls}`}
+          style={{
+            background:
+              "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%)",
+          }}
+        >
+          <svg viewBox="0 0 24 24" className="w-full h-full" fill="none">
+            <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="#FFFFFF" strokeWidth="2.2" />
+            <circle cx="12" cy="12" r="4.5" stroke="#FFFFFF" strokeWidth="2.2" />
+            <circle cx="17.5" cy="6.5" r="1.3" fill="#FFFFFF" />
+          </svg>
+        </span>
       ),
     };
   }
@@ -669,20 +667,19 @@ export function parseReferrer(rawReferrer?: string | null): {
         badgeText: "text-blue-600 dark:text-blue-400",
       },
       icon: (cls = "w-5 h-5") => (
-        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
-          <defs>
-            <linearGradient id="lshorter_msg_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00B2FE" />
-              <stop offset="50%" stopColor="#006AFF" />
-              <stop offset="100%" stopColor="#A033FF" />
-            </linearGradient>
-          </defs>
-          <circle cx="12" cy="12" r="12" fill="url(#lshorter_msg_grad)" />
-          <path
-            d="M6 12c0-3.314 2.686-6 6-6s6 2.686 6 6c0 3.314-2.686 6-6 6-.61 0-1.19-.09-1.74-.26l-2.48.78.69-2.2A5.96 5.96 0 016 12zm3.82.74l1.83 1.95a.75.75 0 001.12-.04l2.45-2.65a.4.4 0 00-.54-.58l-1.83 1.95a.75.75 0 00-1.12.04l-2.45-2.65a.4.4 0 00-.54.58l.08.06z"
-            fill="#FFFFFF"
-          />
-        </svg>
+        <span
+          className={`shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden ${cls}`}
+          style={{
+            background: "linear-gradient(135deg, #00B2FE 0%, #006AFF 50%, #A033FF 100%)",
+          }}
+        >
+          <svg viewBox="0 0 24 24" className="w-full h-full p-[14%]" fill="none">
+            <path
+              d="M12 3C6.48 3 2 7.03 2 12c0 2.83 1.46 5.37 3.75 7.03V22l2.85-1.57c1.05.29 2.21.45 3.4.45 5.52 0 10-4.03 10-9S17.52 3 12 3zm1.18 12.18l-2.54-2.71-4.96 2.71 5.46-5.8 2.59 2.71 4.91-2.71-5.46 5.8z"
+              fill="#FFFFFF"
+            />
+          </svg>
+        </span>
       ),
     };
   }
@@ -746,7 +743,201 @@ export function parseReferrer(rawReferrer?: string | null): {
     };
   }
 
-  // 20. Hacker News
+  // 20. Bluesky
+  const isBluesky =
+    lower.includes("bluesky") ||
+    lower.includes("bsky") ||
+    cleanDomain.includes("bsky.app") ||
+    cleanDomain.includes("bsky.social") ||
+    lower === "bluesky" ||
+    lower === "bsky";
+
+  if (isBluesky) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Bluesky",
+        domain: "bsky.app",
+        category: "social",
+        color: "#1185FE",
+        badgeBg: "bg-sky-500/10",
+        badgeBorder: "border-sky-500/30",
+        badgeText: "text-sky-600 dark:text-sky-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <span
+          className={`shrink-0 inline-flex items-center justify-center rounded-[5.5px] overflow-hidden ${cls}`}
+          style={{ background: "#1185FE" }}
+        >
+          <svg viewBox="0 0 24 24" className="w-full h-full p-[12%]" fill="none">
+            <path
+              d="M12 10.8c-1.32-2.55-4.93-7.3-8.24-8.8C1.04 8.76 5.08 17.08 8.8 19.4c1.1.7 2.33 1.1 3.2 1.1s2.1-.4 3.2-1.1c3.72-2.32 7.76-10.64 5.04-17.4-3.31 1.5-6.92 6.25-8.24 8.8z"
+              fill="#FFFFFF"
+            />
+          </svg>
+        </span>
+      ),
+    };
+  }
+
+  // 21. Spotify
+  const isSpotify =
+    lower.includes("spotify") ||
+    cleanDomain.includes("spotify.com") ||
+    lower === "spotify";
+
+  if (isSpotify) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Spotify",
+        domain: "spotify.com",
+        category: "social",
+        color: "#1DB954",
+        badgeBg: "bg-emerald-500/10",
+        badgeBorder: "border-emerald-500/30",
+        badgeText: "text-emerald-600 dark:text-emerald-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <circle cx="12" cy="12" r="12" fill="#1DB954" />
+          <path
+            d="M17.5 16.2c-.2.3-.5.4-.8.2-2.2-1.3-5-1.6-8.2-.9-.4.1-.7-.1-.8-.5-.1-.4.1-.7.5-.8 3.6-.8 6.7-.4 9.1 1.1.4.3.4.6.2.9zm1.3-2.8c-.3.4-.8.5-1.2.3-2.6-1.6-6.5-2.1-9.6-1.1-.5.1-.9-.1-1.1-.6-.1-.5.1-.9.6-1.1 3.5-1.1 7.9-.5 10.9 1.3.4.3.5.8.4 1.2zm.1-3C15.8 8.5 10.7 8.3 7.7 9.2c-.6.2-1.1-.2-1.3-.7-.2-.6.2-1.1.7-1.3 3.5-1.1 9.2-.8 12.8 1.3.5.3.7 1 .4 1.5-.3.6-1 .7-1.4.1z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      ),
+    };
+  }
+
+  // 22. WeChat
+  const isWeChat =
+    lower.includes("wechat") ||
+    lower.includes("weixin") ||
+    cleanDomain.includes("wechat.com") ||
+    cleanDomain.includes("weixin.qq.com") ||
+    lower === "wechat";
+
+  if (isWeChat) {
+    return {
+      raw: ref,
+      info: {
+        platform: "WeChat",
+        domain: "wechat.com",
+        category: "chat",
+        color: "#07C160",
+        badgeBg: "bg-emerald-500/10",
+        badgeBorder: "border-emerald-500/30",
+        badgeText: "text-emerald-600 dark:text-emerald-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <circle cx="12" cy="12" r="12" fill="#07C160" />
+          <path
+            d="M9.5 5.5c-3.3 0-6 2.3-6 5.2 0 1.6.8 3.1 2.2 4.1-.1.5-.4 1.4-.8 1.9 0 0 1.2-.2 2.3-.9.7.2 1.5.3 2.3.3.4 0 .7 0 1.1-.1-.3-.6-.4-1.3-.4-2 0-2.8 2.7-5.1 6-5.1.3 0 .6 0 .9.1C16.4 6.8 13.2 5.5 9.5 5.5zm-2 3.8a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2zm4.2 0a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2zm4.3 3.7c-2.8 0-5 1.9-5 4.3 0 1.4.7 2.6 1.8 3.4-.1.4-.4 1.2-.7 1.6 0 0 1-.2 1.9-.7.6.2 1.3.3 2 .3 2.8 0 5-1.9 5-4.3s-2.2-4.6-5-4.6zm-1.8 3.1a.9.9 0 110 1.8.9.9 0 010-1.8zm3.6 0a.9.9 0 110 1.8.9.9 0 010-1.8z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      ),
+    };
+  }
+
+  // 23. Line
+  const isLine =
+    cleanDomain.includes("line.me") ||
+    lower === "line" ||
+    lower === "line app" ||
+    lower.includes("line/");
+
+  if (isLine) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Line",
+        domain: "line.me",
+        category: "chat",
+        color: "#06C755",
+        badgeBg: "bg-emerald-500/10",
+        badgeBorder: "border-emerald-500/30",
+        badgeText: "text-emerald-600 dark:text-emerald-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="5" fill="#06C755" />
+          <path
+            d="M19.4 10.9c0-4.1-3.6-7.4-8-7.4s-8 3.3-8 7.4c0 3.6 3.1 6.6 7.2 7.3.3.1.7.2.8.5.1.3 0 .7-.1 1.1l-.3 1.2c-.1.3-.2.8.2.9.2.1.5 0 .8-.2 1.8-1.3 4.9-3.7 6.7-6.3 1.1-1.3 1.7-2.9 1.7-4.5z"
+            fill="#FFFFFF"
+          />
+          <path
+            d="M8.2 12.8H7.3V9.5h.9v3.3zm2.5 0h-1.8V9.5h.9v2.5h.9v.8zm1.8 0h-.9V9.5h.9v3.3zm3.7 0h-1.8V9.5h1.8v.8h-.9v.5h.8v.7h-.8v.5h.9v.8z"
+            fill="#06C755"
+          />
+        </svg>
+      ),
+    };
+  }
+
+  // 24. Quora
+  const isQuora =
+    lower.includes("quora") ||
+    cleanDomain.includes("quora.com") ||
+    lower === "quora";
+
+  if (isQuora) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Quora",
+        domain: "quora.com",
+        category: "social",
+        color: "#B92B27",
+        badgeBg: "bg-rose-500/10",
+        badgeBorder: "border-rose-500/30",
+        badgeText: "text-rose-600 dark:text-rose-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="5" fill="#B92B27" />
+          <path
+            d="M13.2 17.8c-.8.5-1.7.8-2.7.8-3.1 0-5.5-2.5-5.5-5.8 0-3.3 2.5-5.9 5.8-5.9s5.7 2.6 5.7 5.9c0 1.4-.4 2.6-1.2 3.6l1.8 1.8c.2.2.2.5 0 .7s-.5.2-.7 0l-1.9-1.9zm-2.4-.8c2.2 0 3.9-1.8 3.9-4.2s-1.7-4.2-3.9-4.2-3.9 1.8-3.9 4.2 1.7 4.2 3.9 4.2z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      ),
+    };
+  }
+
+  // 25. Tumblr
+  const isTumblr =
+    lower.includes("tumblr") ||
+    cleanDomain.includes("tumblr.com") ||
+    lower === "tumblr";
+
+  if (isTumblr) {
+    return {
+      raw: ref,
+      info: {
+        platform: "Tumblr",
+        domain: "tumblr.com",
+        category: "social",
+        color: "#36465D",
+        badgeBg: "bg-slate-500/10",
+        badgeBorder: "border-slate-500/30",
+        badgeText: "text-slate-700 dark:text-slate-300",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <rect width="24" height="24" rx="5" fill="#36465D" />
+          <path
+            d="M14.5 18.5c-2.3 0-3.8-1.2-3.8-3.6v-5.2H8.5V7.4c2.2-.6 3.1-2.4 3.2-4.1h2.3v3.8h2.8v2.6H14v4.8c0 .9.5 1.5 1.4 1.5.5 0 1-.2 1.2-.3v2.4c-.6.3-1.4.4-2.1.4z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      ),
+    };
+  }
+
+  // 26. Hacker News
   const isHackerNews =
     cleanDomain.includes("ycombinator") ||
     lower.includes("hackernews") ||
@@ -854,6 +1045,36 @@ export function parseReferrer(rawReferrer?: string | null): {
     };
   }
 
+  // 30. DuckDuckGo
+  const isDuckDuckGo =
+    cleanDomain.includes("duckduckgo.com") ||
+    lower === "duckduckgo" ||
+    lower === "ddg";
+
+  if (isDuckDuckGo) {
+    return {
+      raw: ref,
+      info: {
+        platform: "DuckDuckGo",
+        domain: "duckduckgo.com",
+        category: "search",
+        color: "#DE5833",
+        badgeBg: "bg-orange-500/10",
+        badgeBorder: "border-orange-500/30",
+        badgeText: "text-orange-600 dark:text-orange-400",
+      },
+      icon: (cls = "w-5 h-5") => (
+        <svg viewBox="0 0 24 24" className={`shrink-0 ${cls}`} width="100%" height="100%">
+          <circle cx="12" cy="12" r="12" fill="#DE5833" />
+          <circle cx="12" cy="11.5" r="5.5" fill="#FFFFFF" />
+          <circle cx="10" cy="10" r="1" fill="#333333" />
+          <polygon points="12,11 16.5,12 12,13" fill="#FBBC05" />
+          <path d="M7 16c1.5 1.5 4 2 6 1.5l-1-1.5H8l-1 1z" fill="#34A853" />
+        </svg>
+      ),
+    };
+  }
+
   // 24. Email / Mail
   const isEmail =
     lower.includes("mail") ||
@@ -913,22 +1134,19 @@ export function parseReferrer(rawReferrer?: string | null): {
             }}
           />
         )}
-        <svg
-          viewBox="0 0 24 24"
-          className="w-full h-full shrink-0"
-          style={{ display: cleanLabel && cleanLabel.includes(".") ? "none" : "block" }}
+        <span
+          className="w-full h-full rounded-full overflow-hidden shrink-0 inline-flex items-center justify-center"
+          style={{
+            display: cleanLabel && cleanLabel.includes(".") ? "none" : "inline-flex",
+            background: "linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)",
+          }}
         >
-          <defs>
-            <linearGradient id="lshorter_web_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#4F46E5" />
-              <stop offset="100%" stopColor="#06B6D4" />
-            </linearGradient>
-          </defs>
-          <circle cx="12" cy="12" r="12" fill="url(#lshorter_web_grad)" />
-          <circle cx="12" cy="12" r="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
-          <ellipse cx="12" cy="12" rx="3.5" ry="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
-          <line x1="4.5" y1="12" x2="19.5" y2="12" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.9" />
-        </svg>
+          <svg viewBox="0 0 24 24" className="w-full h-full" fill="none">
+            <circle cx="12" cy="12" r="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
+            <ellipse cx="12" cy="12" rx="3.5" ry="7.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.9" />
+            <line x1="4.5" y1="12" x2="19.5" y2="12" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.9" />
+          </svg>
+        </span>
       </span>
     ),
   };

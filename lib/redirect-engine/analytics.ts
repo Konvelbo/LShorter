@@ -44,6 +44,65 @@ export async function trackClickAsync(
   const linkId = meta?.id || slug;
   const userId = String(meta?.userId || meta?.user_id || "");
 
+  // Detect true referrer when in-app mobile browsers (Instagram, Facebook, TikTok, etc.) strip the Referer header
+  let resolvedReferrer = referer;
+  const uaLower = userAgent.toLowerCase();
+  if (!resolvedReferrer || resolvedReferrer.toLowerCase() === "direct") {
+    try {
+      const reqUrl = new URL(req.url);
+      const utmSource = (reqUrl.searchParams.get("utm_source") || "").toLowerCase();
+      if (reqUrl.searchParams.has("igshid") || utmSource === "instagram" || uaLower.includes("instagram")) {
+        resolvedReferrer = "Instagram";
+      } else if (reqUrl.searchParams.has("fbclid") || utmSource === "facebook" || uaLower.includes("fban") || uaLower.includes("fbav") || uaLower.includes("fb_iab")) {
+        resolvedReferrer = "Facebook";
+      } else if (reqUrl.searchParams.has("ttclid") || utmSource === "tiktok" || uaLower.includes("tiktok") || uaLower.includes("musical_ly") || uaLower.includes("bytedance")) {
+        resolvedReferrer = "TikTok";
+      } else if (reqUrl.searchParams.has("twclid") || utmSource === "twitter" || utmSource === "x" || uaLower.includes("twitter") || uaLower.includes("tweetie")) {
+        resolvedReferrer = "Twitter / X";
+      } else if (utmSource === "threads" || uaLower.includes("threads")) {
+        resolvedReferrer = "Threads";
+      } else if (utmSource === "linkedin" || uaLower.includes("linkedin")) {
+        resolvedReferrer = "LinkedIn";
+      } else if (utmSource === "youtube" || uaLower.includes("youtube")) {
+        resolvedReferrer = "YouTube";
+      } else if (utmSource === "whatsapp" || uaLower.includes("whatsapp")) {
+        resolvedReferrer = "WhatsApp";
+      } else if (utmSource === "telegram" || uaLower.includes("telegram")) {
+        resolvedReferrer = "Telegram";
+      } else if (utmSource === "pinterest" || uaLower.includes("pinterest")) {
+        resolvedReferrer = "Pinterest";
+      } else if (utmSource === "snapchat" || uaLower.includes("snapchat")) {
+        resolvedReferrer = "Snapchat";
+      } else if (utmSource === "reddit" || uaLower.includes("reddit")) {
+        resolvedReferrer = "Reddit";
+      } else if (utmSource === "discord" || uaLower.includes("discord")) {
+        resolvedReferrer = "Discord";
+      } else if (utmSource === "bluesky" || uaLower.includes("bluesky")) {
+        resolvedReferrer = "Bluesky";
+      } else if (utmSource === "spotify" || uaLower.includes("spotify")) {
+        resolvedReferrer = "Spotify";
+      } else if (utmSource === "wechat" || uaLower.includes("micromessenger")) {
+        resolvedReferrer = "WeChat";
+      } else if (utmSource === "line" || uaLower.includes("line/")) {
+        resolvedReferrer = "Line";
+      } else if (reqUrl.searchParams.has("gclid") || utmSource === "google") {
+        resolvedReferrer = "Google";
+      } else if (reqUrl.searchParams.has("msclkid") || utmSource === "bing") {
+        resolvedReferrer = "Bing";
+      }
+    } catch {
+      if (uaLower.includes("instagram")) resolvedReferrer = "Instagram";
+      else if (uaLower.includes("fban") || uaLower.includes("fbav") || uaLower.includes("fb_iab")) resolvedReferrer = "Facebook";
+      else if (uaLower.includes("tiktok") || uaLower.includes("musical_ly")) resolvedReferrer = "TikTok";
+      else if (uaLower.includes("twitter") || uaLower.includes("tweetie")) resolvedReferrer = "Twitter / X";
+      else if (uaLower.includes("threads")) resolvedReferrer = "Threads";
+    }
+  }
+
+  if (!resolvedReferrer) {
+    resolvedReferrer = "Direct";
+  }
+
   // Update in-memory click count immediately so rapid subsequent requests honor max_clicks
   if (slug) incrementWorkerLinkClicks(slug);
   if (meta?.id && meta.id !== slug) incrementWorkerLinkClicks(meta.id);
@@ -69,13 +128,15 @@ export async function trackClickAsync(
       "CF-IPCountry": country,
       "X-Country": country,
       "X-City": city,
-      Referer: referer,
+      "X-Referrer": resolvedReferrer,
+      Referer: referer || resolvedReferrer,
     },
     body: JSON.stringify({
       slug,
       country,
       city,
-      referer,
+      referer: referer || resolvedReferrer,
+      referrer: resolvedReferrer,
       userAgent,
       timestamp: Date.now(),
     }),

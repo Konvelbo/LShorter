@@ -30,6 +30,7 @@ import {
 import { AnalyticsSourcesSkeleton } from "@/components/ui/skeleton";
 import { formatNumber } from "@/lib/utils";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { ReferrerLogo } from "@/components/dashboard/analytics/referrer-badge";
 
 type ChannelCategory = "Direct" | "Social" | "Search" | "Referral";
 type DateRangeOption = "day" | "week" | "month" | "year";
@@ -146,36 +147,17 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     .replace(/\/+$/, "");
   const host = extractHostname(trimmed);
 
+  // 1. Instagram
   if (
-    hostMatches(host, "t.co") ||
-    hostMatches(host, "x.com") ||
-    hostMatches(host, "twitter.com")
+    low === "instagram" ||
+    low === "ig" ||
+    low.includes("instagram") ||
+    hostMatches(host, "instagram.com") ||
+    hostMatches(host, "instagr.am")
   ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "x.com",
-      channel: "Social",
-      platformName: "X (Twitter)",
-      shortName: "X",
-      badgeText: "X",
-    };
-  }
-
-  if (hostMatches(host, "linkedin.com") || hostMatches(host, "lnkd.in")) {
-    return {
-      raw: trimmed,
-      displayHost: displayHost || host || "linkedin.com",
-      channel: "Social",
-      platformName: "LinkedIn",
-      shortName: "LinkedIn",
-      badgeText: "in",
-    };
-  }
-
-  if (hostMatches(host, "instagram.com") || hostMatches(host, "instagr.am")) {
-    return {
-      raw: trimmed,
-      displayHost: displayHost || host || "instagram.com",
+      displayHost: "instagram.com",
       channel: "Social",
       platformName: "Instagram",
       shortName: "Instagram",
@@ -183,14 +165,18 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     };
   }
 
+  // 2. Facebook
   if (
+    low === "facebook" ||
+    low === "fb" ||
+    low.includes("facebook") ||
     hostMatches(host, "facebook.com") ||
     hostMatches(host, "fb.com") ||
     hostMatches(host, "fb.me")
   ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "facebook.com",
+      displayHost: "facebook.com",
       channel: "Social",
       platformName: "Facebook",
       shortName: "Facebook",
@@ -198,47 +184,52 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     };
   }
 
-  if (hostMatches(host, "whatsapp.com") || hostMatches(host, "wa.me")) {
-    return {
-      raw: trimmed,
-      displayHost: displayHost || host || "wa.me",
-      channel: "Social",
-      platformName: "WhatsApp",
-      shortName: "WhatsApp",
-      badgeText: "WA",
-    };
-  }
-
+  // 3. Twitter / X
   if (
-    hostMatches(host, "t.me") ||
-    hostMatches(host, "telegram.me") ||
-    hostMatches(host, "telegram.org")
+    low === "x" ||
+    low === "twitter" ||
+    low === "twitter / x" ||
+    low.includes("twitter") ||
+    hostMatches(host, "t.co") ||
+    hostMatches(host, "x.com") ||
+    hostMatches(host, "twitter.com")
   ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "t.me",
+      displayHost: "x.com",
       channel: "Social",
-      platformName: "Telegram",
-      shortName: "Telegram",
-      badgeText: "TG",
+      platformName: "X (Twitter)",
+      shortName: "X",
+      badgeText: "X",
     };
   }
 
-  if (hostMatches(host, "youtube.com") || hostMatches(host, "youtu.be")) {
+  // 4. LinkedIn
+  if (
+    low === "linkedin" ||
+    low.includes("linkedin") ||
+    hostMatches(host, "linkedin.com") ||
+    hostMatches(host, "lnkd.in")
+  ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "youtube.com",
+      displayHost: "linkedin.com",
       channel: "Social",
-      platformName: "YouTube",
-      shortName: "YouTube",
-      badgeText: "YT",
+      platformName: "LinkedIn",
+      shortName: "LinkedIn",
+      badgeText: "in",
     };
   }
 
-  if (hostMatches(host, "tiktok.com")) {
+  // 5. TikTok
+  if (
+    low === "tiktok" ||
+    low.includes("tiktok") ||
+    hostMatches(host, "tiktok.com")
+  ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "tiktok.com",
+      displayHost: "tiktok.com",
       channel: "Social",
       platformName: "TikTok",
       shortName: "TikTok",
@@ -246,10 +237,85 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     };
   }
 
-  if (hostMatches(host, "reddit.com") || hostMatches(host, "redd.it")) {
+  // 6. YouTube
+  if (
+    low === "youtube" ||
+    low === "yt" ||
+    low.includes("youtube") ||
+    hostMatches(host, "youtube.com") ||
+    hostMatches(host, "youtu.be")
+  ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "reddit.com",
+      displayHost: "youtube.com",
+      channel: "Social",
+      platformName: "YouTube",
+      shortName: "YouTube",
+      badgeText: "YT",
+    };
+  }
+
+  // 7. WhatsApp
+  if (
+    low === "whatsapp" ||
+    low.includes("whatsapp") ||
+    hostMatches(host, "whatsapp.com") ||
+    hostMatches(host, "wa.me")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "wa.me",
+      channel: "Social",
+      platformName: "WhatsApp",
+      shortName: "WhatsApp",
+      badgeText: "WA",
+    };
+  }
+
+  // 8. Threads
+  if (
+    low === "threads" ||
+    low.includes("threads") ||
+    hostMatches(host, "threads.net")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "threads.net",
+      channel: "Social",
+      platformName: "Threads",
+      shortName: "Threads",
+      badgeText: "TH",
+    };
+  }
+
+  // 9. Telegram
+  if (
+    low === "telegram" ||
+    low.includes("telegram") ||
+    hostMatches(host, "t.me") ||
+    hostMatches(host, "telegram.me") ||
+    hostMatches(host, "telegram.org")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "t.me",
+      channel: "Social",
+      platformName: "Telegram",
+      shortName: "Telegram",
+      badgeText: "TG",
+    };
+  }
+
+  // 10. Reddit
+  if (
+    low === "reddit" ||
+    low.includes("reddit") ||
+    hostMatches(host, "reddit.com") ||
+    hostMatches(host, "redd.it")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "reddit.com",
       channel: "Social",
       platformName: "Reddit",
       shortName: "Reddit",
@@ -257,10 +323,148 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     };
   }
 
-  if (hostMatches(host, "github.com")) {
+  // 11. Pinterest
+  if (
+    low === "pinterest" ||
+    low.includes("pinterest") ||
+    hostMatches(host, "pinterest.com") ||
+    hostMatches(host, "pin.it")
+  ) {
     return {
       raw: trimmed,
-      displayHost: displayHost || host || "github.com",
+      displayHost: "pinterest.com",
+      channel: "Social",
+      platformName: "Pinterest",
+      shortName: "Pinterest",
+      badgeText: "Pin",
+    };
+  }
+
+  // 12. Snapchat
+  if (
+    low === "snapchat" ||
+    low.includes("snapchat") ||
+    hostMatches(host, "snapchat.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "snapchat.com",
+      channel: "Social",
+      platformName: "Snapchat",
+      shortName: "Snapchat",
+      badgeText: "SC",
+    };
+  }
+
+  // 13. Discord
+  if (
+    low === "discord" ||
+    low.includes("discord") ||
+    hostMatches(host, "discord.com") ||
+    hostMatches(host, "discord.gg")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "discord.com",
+      channel: "Social",
+      platformName: "Discord",
+      shortName: "Discord",
+      badgeText: "DC",
+    };
+  }
+
+  // 14. Bluesky
+  if (
+    low === "bluesky" ||
+    low === "bsky" ||
+    low.includes("bluesky") ||
+    hostMatches(host, "bsky.app") ||
+    hostMatches(host, "bsky.social")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "bsky.app",
+      channel: "Social",
+      platformName: "Bluesky",
+      shortName: "Bluesky",
+      badgeText: "BS",
+    };
+  }
+
+  // 15. Spotify
+  if (
+    low === "spotify" ||
+    low.includes("spotify") ||
+    hostMatches(host, "spotify.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "spotify.com",
+      channel: "Social",
+      platformName: "Spotify",
+      shortName: "Spotify",
+      badgeText: "SP",
+    };
+  }
+
+  // 16. Twitch
+  if (
+    low === "twitch" ||
+    low.includes("twitch") ||
+    hostMatches(host, "twitch.tv")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "twitch.tv",
+      channel: "Social",
+      platformName: "Twitch",
+      shortName: "Twitch",
+      badgeText: "TW",
+    };
+  }
+
+  // 17. Messenger
+  if (
+    low === "messenger" ||
+    low.includes("messenger") ||
+    hostMatches(host, "messenger.com") ||
+    hostMatches(host, "m.me")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "messenger.com",
+      channel: "Social",
+      platformName: "Messenger",
+      shortName: "Messenger",
+      badgeText: "FB",
+    };
+  }
+
+  // 18. Slack
+  if (
+    low === "slack" ||
+    low.includes("slack") ||
+    hostMatches(host, "slack.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "slack.com",
+      channel: "Social",
+      platformName: "Slack",
+      shortName: "Slack",
+      badgeText: "SL",
+    };
+  }
+
+  // 19. GitHub
+  if (
+    low === "github" ||
+    low.includes("github") ||
+    hostMatches(host, "github.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "github.com",
       channel: "Social",
       platformName: "GitHub",
       shortName: "GitHub",
@@ -268,7 +472,105 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     };
   }
 
+  // 20. WeChat
   if (
+    low === "wechat" ||
+    low === "weixin" ||
+    hostMatches(host, "wechat.com") ||
+    hostMatches(host, "weixin.qq.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "wechat.com",
+      channel: "Social",
+      platformName: "WeChat",
+      shortName: "WeChat",
+      badgeText: "WC",
+    };
+  }
+
+  // 21. Line
+  if (
+    low === "line" ||
+    low.includes("line/") ||
+    hostMatches(host, "line.me")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "line.me",
+      channel: "Social",
+      platformName: "Line",
+      shortName: "Line",
+      badgeText: "LN",
+    };
+  }
+
+  // 22. Quora
+  if (
+    low === "quora" ||
+    hostMatches(host, "quora.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "quora.com",
+      channel: "Social",
+      platformName: "Quora",
+      shortName: "Quora",
+      badgeText: "Q",
+    };
+  }
+
+  // 23. Tumblr
+  if (
+    low === "tumblr" ||
+    hostMatches(host, "tumblr.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "tumblr.com",
+      channel: "Social",
+      platformName: "Tumblr",
+      shortName: "Tumblr",
+      badgeText: "TB",
+    };
+  }
+
+  // 24. Medium
+  if (
+    low === "medium" ||
+    hostMatches(host, "medium.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "medium.com",
+      channel: "Social",
+      platformName: "Medium",
+      shortName: "Medium",
+      badgeText: "MD",
+    };
+  }
+
+  // 25. Substack
+  if (
+    low === "substack" ||
+    hostMatches(host, "substack.com")
+  ) {
+    return {
+      raw: trimmed,
+      displayHost: "substack.com",
+      channel: "Social",
+      platformName: "Substack",
+      shortName: "Substack",
+      badgeText: "SS",
+    };
+  }
+
+  // 26. Search Engines
+  if (
+    low === "google" ||
+    low === "bing" ||
+    low === "duckduckgo" ||
+    low === "yahoo" ||
     hostMatches(host, "google.com") ||
     host.startsWith("google.") ||
     host.includes(".google.") ||
@@ -277,11 +579,12 @@ function classifyReferrer(rawRef?: string | null): ClassifiedReferrer {
     hostMatches(host, "yahoo.com")
   ) {
     const isGoogle =
+      low === "google" ||
       host.startsWith("google.") ||
       host.includes(".google.") ||
       hostMatches(host, "google.com");
-    const isBing = hostMatches(host, "bing.com");
-    const isDdg = hostMatches(host, "duckduckgo.com");
+    const isBing = low === "bing" || hostMatches(host, "bing.com");
+    const isDdg = low === "duckduckgo" || hostMatches(host, "duckduckgo.com");
     const pName = isGoogle
       ? "Google"
       : isBing
@@ -1093,14 +1396,21 @@ export default function SourcesAnalyticsPage() {
             </span>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-[#E4E7EC] dark:border-[#222225]">
-            <span className="text-xs ds-text-muted truncate">
-              {topSocialPlatform
-                ? isFr
-                  ? `Mené par ${topSocialPlatform.platformName}`
-                  : `Led by ${topSocialPlatform.platformName}`
-                : isFr
+            <span className="text-xs ds-text-muted truncate flex items-center gap-1.5 min-w-0">
+              {topSocialPlatform ? (
+                <>
+                  <ReferrerLogo referrer={topSocialPlatform.platformName} size={14} className="shrink-0" />
+                  <span className="truncate">
+                    {isFr
+                      ? `Mené par ${topSocialPlatform.platformName}`
+                      : `Led by ${topSocialPlatform.platformName}`}
+                  </span>
+                </>
+              ) : (
+                isFr
                   ? "Aucun trafic social encore"
-                  : "No social traffic yet"}
+                  : "No social traffic yet"
+              )}
             </span>
             <span className="text-xs font-semibold text-[#0066FF] shrink-0 ml-1">
               Social
@@ -1118,7 +1428,10 @@ export default function SourcesAnalyticsPage() {
               <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2 truncate">
+          <div className="flex items-center gap-2 truncate">
+            {topReferrerHighlight && topReferrerHighlight.channel !== "Direct" && (
+              <ReferrerLogo referrer={topReferrerHighlight.displayHost} size={22} className="shrink-0" />
+            )}
             <span className="font-bold ds-text-primary text-xl sm:text-2xl truncate leading-none">
               {topReferrerHighlight ? topReferrerHighlight.displayHost : "—"}
             </span>
@@ -1269,9 +1582,9 @@ export default function SourcesAnalyticsPage() {
                       key={platform.platformName}
                       className="flex items-center gap-3"
                     >
-                      <span className="inline-grid place-items-center w-6 h-6 rounded-[6px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] ds-text-primary font-bold text-[11px] shrink-0">
-                        {platform.badgeText}
-                      </span>
+                      <div className="w-6 h-6 rounded-[6px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] inline-flex items-center justify-center shrink-0 p-0.5">
+                        <ReferrerLogo referrer={platform.platformName} size={20} />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between text-xs sm:text-sm font-semibold ds-text-primary">
                           <span className="truncate">
@@ -1335,6 +1648,9 @@ export default function SourcesAnalyticsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center text-xs sm:text-sm font-semibold ds-text-primary gap-2">
                           <div className="flex items-center gap-2 min-w-0">
+                            {!isDirect && (
+                              <ReferrerLogo referrer={ref.displayHost} size={18} className="shrink-0" />
+                            )}
                             <span className="truncate">{ref.displayHost}</span>
                             <em
                               className={`not-italic inline-flex items-center px-2 py-0.5 rounded-[10px] text-[11px] font-semibold shrink-0 border ${
@@ -1474,11 +1790,9 @@ export default function SourcesAnalyticsPage() {
                           Direct
                         </span>
                       ) : (
-                        <span className="inline-flex items-center font-medium text-zinc-800 dark:text-neutral-200">
-                          <span className="inline-grid place-items-center w-5 h-5 rounded-[5px] bg-zinc-100 dark:bg-[#1c1c20] border border-[#E4E7EC] dark:border-[#27272a] ds-text-primary font-bold text-[10px] mr-1.5">
-                            {info.badgeText}
-                          </span>
-                          {info.shortName}
+                        <span className="inline-flex items-center gap-1.5 font-medium text-zinc-800 dark:text-neutral-200">
+                          <ReferrerLogo referrer={ev.referrer || info.platformName || info.displayHost} size={18} className="shrink-0" />
+                          <span>{info.shortName}</span>
                         </span>
                       )}
                     </td>
