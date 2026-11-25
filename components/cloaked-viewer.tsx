@@ -162,13 +162,23 @@ export function CloakedViewer({
 
     const handleMessage = (e: MessageEvent) => {
       if (!e.data || typeof e.data !== "object") return;
+      if (e.data.type === "PATHLOCK_LOADING") {
+        setIsReloading(Boolean(e.data.loading));
+        return;
+      }
+      if (e.data.type === "PATHLOCK_READY") {
+        setIsReloading(false);
+        return;
+      }
       if (e.data.type === "PATHLOCK_UPSTREAM_RESTRICTED") {
+        setIsReloading(false);
         setIsBlocked(false);
         return;
       }
       if (e.data.type === "PATHLOCK_NAVIGATE") {
         if (isDevUnlocked) return;
         if (e.data.blocked) {
+          setIsReloading(false);
           setIsBlocked(true);
           return;
         }
@@ -209,7 +219,7 @@ export function CloakedViewer({
           effectivePathnameRef.current = effPath;
         }
         const currentPath = win.location.pathname;
-        validateAndEnforce(currentPath);
+        validateAndEnforce(effPath || currentPath);
       }
     } catch {
       // Cross-origin fallback handled via postMessage

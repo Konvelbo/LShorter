@@ -4,22 +4,49 @@ import { mergeLinkWithExtras } from "./link-extras-store";
 import { dispatchUserWebhooks } from "./webhooks";
 
 const MAX_CACHE_ENTRIES = 2000;
-const workerLinkCache = new Map<string, { link: LinkMetadata | null; expiresAt: number }>();
+const FRESH_TTL_MS = 60_000;
+const STALE_TTL_MS = 300_000;
+
+interface WorkerLinkCacheEntry {
+  link: LinkMetadata | null;
+  freshUntil: number;
+  expiresAt: number;
+}
+
+const globalWorkerStore = globalThis as unknown as {
+  __lshorterWorkerLinkCache?: Map<string, WorkerLinkCacheEntry>;
+  __lshorterWorkerLinkInFlight?: Map<string, Promise<LinkMetadata | null>>;
+};
+
+const workerLinkCache =
+  globalWorkerStore.__lshorterWorkerLinkCache ??
+  (globalWorkerStore.__lshorterWorkerLinkCache = new Map<string, WorkerLinkCacheEntry>());
+
+const workerLinkInFlight =
+  globalWorkerStore.__lshorterWorkerLinkInFlight ??
+  (globalWorkerStore.__lshorterWorkerLinkInFlight = new Map<string, Promise<LinkMetadata | null>>());
 
 function setWorkerLinkCache(key: string, link: LinkMetadata | null, ttlMs: number): void {
   if (workerLinkCache.size >= MAX_CACHE_ENTRIES) {
     const oldestKey = workerLinkCache.keys().next().value;
     if (oldestKey !== undefined) workerLinkCache.delete(oldestKey);
   }
-  workerLinkCache.set(key, { link, expiresAt: Date.now() + ttlMs });
+  const now = Date.now();
+  workerLinkCache.set(key, {
+    link,
+    freshUntil: now + ttlMs,
+    expiresAt: now + (link ? Math.max(ttlMs, STALE_TTL_MS) : ttlMs),
+  });
 }
 
 export function invalidateWorkerLinkCache(slugOrId?: string): void {
   if (slugOrId) {
     const key = slugOrId.toLowerCase();
     workerLinkCache.delete(key);
+    workerLinkInFlight.delete(key);
   } else {
     workerLinkCache.clear();
+    workerLinkInFlight.clear();
   }
 }
 
@@ -50,18 +77,11 @@ export function incrementWorkerLinkClicks(slugOrId: string): void {
   }
 }
 
-export async function fetchWorkerLink(
+async function fetchWorkerLinkFromNetwork(
   slug: string,
-  bypassCache: boolean = false,
+  cacheKey: string,
+  bypassCache: boolean,
 ): Promise<LinkMetadata | null> {
-  const cacheKey = (slug || "").trim().toLowerCase();
-  if (cacheKey && !bypassCache) {
-    const cached = workerLinkCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
-      return cached.link;
-    }
-  }
-
   try {
     const singleUrl = bypassCache
       ? `${WORKER_URL}/api/v1/links/${encodeURIComponent(slug)}?forceRefresh=true&_t=${Date.now()}`
@@ -72,6 +92,7 @@ export async function fetchWorkerLink(
         Authorization: `Bearer ${FRONTEND_SECRET}`,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     }).catch(() => null);
 
     if (singleRes && singleRes.ok) {
@@ -80,7 +101,7 @@ export async function fetchWorkerLink(
       if (found && (found.target_url || found.targetUrl)) {
         const merged = mergeLinkWithExtras(found);
         if (cacheKey) {
-          setWorkerLinkCache(cacheKey, merged, 30000);
+          setWorkerLinkCache(cacheKey, merged, FRESH_TTL_MS);
         }
         return merged;
       }
@@ -92,6 +113,7 @@ export async function fetchWorkerLink(
         Authorization: `Bearer ${FRONTEND_SECRET}`,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     }).catch(() => null);
 
     if (listRes && listRes.ok) {
@@ -104,7 +126,7 @@ export async function fetchWorkerLink(
         ) || null;
       const merged = matched ? mergeLinkWithExtras(matched) : null;
       if (cacheKey) {
-        setWorkerLinkCache(cacheKey, merged, merged ? 30000 : 3000);
+        setWorkerLinkCache(cacheKey, merged, merged ? FRESH_TTL_MS : 3000);
       }
       return merged;
     }
@@ -112,10 +134,50 @@ export async function fetchWorkerLink(
     console.warn("[Worker Link Lookup error]:", err);
   }
 
-  if (cacheKey) {
+  if (cacheKey && !workerLinkCache.has(cacheKey)) {
     setWorkerLinkCache(cacheKey, null, 3000);
   }
-  return null;
+  return workerLinkCache.get(cacheKey)?.link ?? null;
+}
+
+export async function fetchWorkerLink(
+  slug: string,
+  bypassCache: boolean = false,
+): Promise<LinkMetadata | null> {
+  const cacheKey = (slug || "").trim().toLowerCase();
+  const now = Date.now();
+
+  if (cacheKey && !bypassCache) {
+    const cached = workerLinkCache.get(cacheKey);
+    if (cached && now < cached.freshUntil) {
+      return cached.link;
+    }
+    // Stale-while-revalidate: serve immediately in 0ms while refreshing once in background
+    if (cached && cached.link && now < cached.expiresAt) {
+      if (!workerLinkInFlight.has(cacheKey)) {
+        const bgPromise = fetchWorkerLinkFromNetwork(slug, cacheKey, false).finally(() => {
+          workerLinkInFlight.delete(cacheKey);
+        });
+        workerLinkInFlight.set(cacheKey, bgPromise);
+      }
+      return cached.link;
+    }
+    // Coalesce concurrent cold lookups for the same slug (prevents thundering herd on parallel assets)
+    const inFlight = workerLinkInFlight.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+  }
+
+  const networkPromise = fetchWorkerLinkFromNetwork(slug, cacheKey, bypassCache).finally(() => {
+    if (cacheKey) workerLinkInFlight.delete(cacheKey);
+  });
+
+  if (cacheKey && !bypassCache) {
+    workerLinkInFlight.set(cacheKey, networkPromise);
+  }
+
+  return networkPromise;
 }
 
 export async function markLinkExpiredAsync(linkIdOrSlug: string, linkMeta?: any): Promise<void> {

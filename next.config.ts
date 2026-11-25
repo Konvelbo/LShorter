@@ -169,7 +169,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Access-Control-Allow-Methods",
-            value: "GET, HEAD, OPTIONS",
+            value: "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
           },
         ],
       },

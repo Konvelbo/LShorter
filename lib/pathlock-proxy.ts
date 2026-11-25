@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { isSafeHttpUrl } from "@/lib/security-utils";
 import { fetchWorkerLink } from "@/lib/redirect-engine/worker-client";
 import { parsePathLockRoutes } from "@/lib/pathlock-routes";
@@ -191,7 +192,125 @@ export async function safeUpstreamFetch(
   throw new Error("TOO_MANY_REDIRECTS");
 }
 
-const effectiveHostCache = new Map<string, { hosts: string[]; expiresAt: number }>();
+const globalPathLockStore = globalThis as unknown as {
+  __lshorterEffectiveHostCache?: Map<string, { hosts: string[]; expiresAt: number }>;
+  __lshorterHostProbeInFlight?: Map<string, Promise<string[]>>;
+};
+
+const effectiveHostCache =
+  globalPathLockStore.__lshorterEffectiveHostCache ??
+  (globalPathLockStore.__lshorterEffectiveHostCache = new Map<string, { hosts: string[]; expiresAt: number }>());
+
+const hostProbeInFlight =
+  globalPathLockStore.__lshorterHostProbeInFlight ??
+  (globalPathLockStore.__lshorterHostProbeInFlight = new Map<string, Promise<string[]>>());
+
+export interface PathLockSignedContext {
+  slug: string;
+  targetUrl: string;
+  hosts: string[];
+  exp: number;
+}
+
+const PATHLOCK_CTX_COOKIE = "lsh_pl_ctx";
+
+function getProxySigningSecret(): string {
+  return (
+    process.env.FRONTEND_API_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    ""
+  ).trim();
+}
+
+/**
+ * Generates a short-lived HMAC-SHA256 signed context cookie scoped to `/r/<slug>/proxy`
+ * so parallel asset & dynamic RSC requests can verify host authorization in <0.1ms
+ * without repeating Worker lookups across cold serverless instances.
+ */
+export function createPathLockContextCookie(
+  ctx: Omit<PathLockSignedContext, "exp">,
+  reqUrl: URL,
+  forwardedProto?: string | null,
+  ttlMs: number = 30 * 60 * 1000,
+): string | null {
+  const secret = getProxySigningSecret();
+  if (!secret) return null;
+  const payloadObj: PathLockSignedContext = {
+    slug: ctx.slug,
+    targetUrl: ctx.targetUrl,
+    hosts: Array.from(new Set(ctx.hosts.map((h) => h.toLowerCase()).filter(Boolean))),
+    exp: Date.now() + ttlMs,
+  };
+  const encoded = Buffer.from(JSON.stringify(payloadObj), "utf8").toString("base64url");
+  const sig = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+  const isHttps =
+    reqUrl.protocol === "https:" || (forwardedProto || "").toLowerCase() === "https";
+  const scopedPath = `/r/${encodeURIComponent(ctx.slug)}/proxy`;
+  const maxAgeSec = Math.max(10, Math.floor(ttlMs / 1000));
+  return `${PATHLOCK_CTX_COOKIE}=${encoded}.${sig}; Path=${scopedPath}; SameSite=Lax${isHttps ? "; Secure" : ""}; HttpOnly; Max-Age=${maxAgeSec}`;
+}
+
+/**
+ * Verifies the short-lived HMAC-SHA256 signed PathLock context cookie from incoming headers.
+ */
+export function verifyPathLockContextFromCookieHeader(
+  cookieHeader: string | null | undefined,
+  expectedSlug: string,
+): PathLockSignedContext | null {
+  const secret = getProxySigningSecret();
+  if (!secret || !cookieHeader) return null;
+  let tokenValue = "";
+  for (const part of cookieHeader.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === PATHLOCK_CTX_COOKIE) {
+      tokenValue = part.slice(eq + 1).trim();
+      break;
+    }
+  }
+  if (!tokenValue) return null;
+  const dotIdx = tokenValue.indexOf(".");
+  if (dotIdx === -1) return null;
+  const encoded = tokenValue.slice(0, dotIdx);
+  const sig = tokenValue.slice(dotIdx + 1);
+  if (!encoded || !sig) return null;
+
+  const expectedSig = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+  const a = Buffer.from(sig, "utf8");
+  const b = Buffer.from(expectedSig, "utf8");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    ) as PathLockSignedContext;
+    if (
+      !parsed ||
+      typeof parsed.slug !== "string" ||
+      parsed.slug.toLowerCase() !== expectedSlug.toLowerCase() ||
+      typeof parsed.targetUrl !== "string" ||
+      !Array.isArray(parsed.hosts) ||
+      typeof parsed.exp !== "number" ||
+      Date.now() > parsed.exp
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Produces a short collision-resistant session fingerprint for isolating per-user HTML prefetch cache entries.
+ */
+export function hashCookieFingerprint(mergedCookie: string): string {
+  if (!mergedCookie) return "anon";
+  return crypto.createHash("sha256").update(mergedCookie).digest("base64url").slice(0, 16);
+}
 
 const RESERVED_ORIGIN_COOKIE_PATTERNS = [
   /^__secure-authjs/i,
@@ -358,6 +477,40 @@ export async function getAllowedHostsForConfig(
     return Array.from(new Set([baseHost, ...cached.hosts]));
   }
   return [baseHost];
+}
+
+/**
+ * Probes the configured target URL via HEAD (with in-flight deduplication) to discover
+ * canonical redirect hosts on cold worker instances without firing duplicate probes.
+ */
+export async function probeAllowedHostsForSlug(
+  slug: string,
+  configuredTargetUrl: string,
+): Promise<string[]> {
+  const key = `${(slug || "").toLowerCase()}|${configuredTargetUrl}`;
+  const existing = hostProbeInFlight.get(key);
+  if (existing) return existing;
+
+  const probePromise = (async () => {
+    try {
+      const probe = await safeUpstreamFetch(
+        configuredTargetUrl,
+        { method: "HEAD", signal: AbortSignal.timeout(4000) },
+        configuredTargetUrl,
+        null,
+      ).catch(() => null);
+      if (probe?.finalUrl) {
+        const effHost = new URL(probe.finalUrl).hostname;
+        rememberAllowedHostsForSlug(slug, [effHost]);
+      }
+    } catch {}
+    return getAllowedHostsForConfig(slug, configuredTargetUrl);
+  })().finally(() => {
+    hostProbeInFlight.delete(key);
+  });
+
+  hostProbeInFlight.set(key, probePromise);
+  return probePromise;
 }
 
 /**
@@ -538,13 +691,42 @@ export function rewriteHtmlForPathLock(
           `${attr}=${q}${toProxyAssetUrl(url, effectiveUrl, slug, allowedHosts)}${q}`,
       );
       nextAttrs = nextAttrs.replace(
-        /\bsrcset=(["'])([^"']+)\1/gi,
-        (_am: string, q: string, val: string) =>
-          `srcset=${q}${rewriteSrcsetValue(val, effectiveUrl, slug, allowedHosts)}${q}`,
+        /\b(srcset|data-srcset)=(["'])([^"']+)\2/gi,
+        (_am: string, attr: string, q: string, val: string) =>
+          `${attr}=${q}${rewriteSrcsetValue(val, effectiveUrl, slug, allowedHosts)}${q}`,
       );
       return `<${tag}${nextAttrs}>`;
     },
   );
+
+  // Nested same-site <iframe> embeds (e.g. shadcn /create live preview frame)
+  out = out.replace(/<iframe\b([^>]*?)>/gi, (_m, attrs) => {
+    const nextAttrs = attrs.replace(
+      /\bsrc=(["'])([^"']+)\1/gi,
+      (_am: string, q: string, url: string) => {
+        const trimmed = decodeHtmlUrlEntities(url.trim());
+        if (
+          !trimmed ||
+          trimmed === "about:blank" ||
+          trimmed.startsWith("data:") ||
+          trimmed.startsWith("blob:") ||
+          trimmed.startsWith("javascript:") ||
+          trimmed.startsWith(`/r/${encodeURIComponent(slug)}/proxy`) ||
+          trimmed.startsWith(`/r/${slug}/proxy`)
+        ) {
+          return `src=${q}${url}${q}`;
+        }
+        try {
+          const resolved = new URL(trimmed, effectiveUrl);
+          if (isSameSiteOrAllowedHost(resolved.href, allowedHosts)) {
+            return `src=${q}/r/${encodeURIComponent(slug)}/proxy?url=${encodeURIComponent(resolved.href)}&embed=1${q}`;
+          }
+        } catch {}
+        return `src=${q}${url}${q}`;
+      },
+    );
+    return `<iframe${nextAttrs}>`;
+  });
 
   // <link>: stylesheets, preloads, fonts, icons, manifests (skip canonical/alternate/preconnect)
   out = out.replace(/<link\b([^>]*?)>/gi, (full, attrs) => {
@@ -558,16 +740,24 @@ export function rewriteHtmlForPathLock(
     ) {
       return full;
     }
+    let hrefWasProxied = false;
     let nextAttrs = attrs.replace(
       /\bhref=(["'])([^"']+)\1/gi,
-      (_hm: string, q: string, url: string) =>
-        `href=${q}${toProxyAssetUrl(url, effectiveUrl, slug, allowedHosts)}${q}`,
+      (_hm: string, q: string, url: string) => {
+        const proxied = toProxyAssetUrl(url, effectiveUrl, slug, allowedHosts);
+        if (proxied !== url) hrefWasProxied = true;
+        return `href=${q}${proxied}${q}`;
+      },
     );
     nextAttrs = nextAttrs.replace(
       /\bimagesrcset=(["'])([^"']+)\1/gi,
       (_sm: string, q: string, val: string) =>
         `imagesrcset=${q}${rewriteSrcsetValue(val, effectiveUrl, slug, allowedHosts)}${q}`,
     );
+    // Strip SRI integrity on rewritten stylesheets since CSS url() rewriting alters bytes
+    if (hrefWasProxied && rel.includes("stylesheet")) {
+      nextAttrs = nextAttrs.replace(/\s+integrity=(["'])[^"']*\1/gi, "");
+    }
     return `<link${nextAttrs}>`;
   });
 
@@ -591,6 +781,51 @@ export function rewriteHtmlForPathLock(
     return `<astro-island${nextAttrs}>`;
   });
 
+  // Existing <script type="importmap"> blocks: rewrite same-site paths & add root prefix mapping
+  out = out.replace(
+    /(<script\b[^>]*\btype=["']importmap["'][^>]*>)([\s\S]*?)(<\/script>)/gi,
+    (full, open, jsonBody, close) => {
+      try {
+        const parsed = JSON.parse(jsonBody);
+        if (parsed && typeof parsed === "object") {
+          const effU = new URL(effectiveUrl);
+          const proxyBase = `/r/${encodeURIComponent(slug)}/proxy/__p/${effU.protocol.replace(":", "")}/${encodeURIComponent(effU.host)}/`;
+          const rewriteMap = (mapObj: Record<string, string>) => {
+            const next: Record<string, string> = {};
+            for (const [k, v] of Object.entries(mapObj)) {
+              next[k] = typeof v === "string" ? toProxyAssetUrl(v, effectiveUrl, slug, allowedHosts) : v;
+            }
+            return next;
+          };
+          parsed.imports = { "/": proxyBase, ...(parsed.imports ? rewriteMap(parsed.imports) : {}) };
+          if (parsed.scopes && typeof parsed.scopes === "object") {
+            const nextScopes: Record<string, Record<string, string>> = {};
+            for (const [scopeKey, scopeVal] of Object.entries(parsed.scopes)) {
+              if (scopeVal && typeof scopeVal === "object") {
+                nextScopes[toProxyAssetUrl(scopeKey, effectiveUrl, slug, allowedHosts)] = rewriteMap(
+                  scopeVal as Record<string, string>,
+                );
+              }
+            }
+            parsed.scopes = nextScopes;
+          }
+          return open + JSON.stringify(parsed).replace(/</g, "\\u003c") + close;
+        }
+      } catch {}
+      return full;
+    },
+  );
+
+  // Inline style="...url(...)..." and style='...url(...)...' attributes
+  out = out.replace(
+    /\bstyle="([^"]*url\([^"]*)"/gi,
+    (_m, cssVal) => `style="${rewriteCssForPathLock(cssVal, effectiveUrl, slug, allowedHosts)}"`,
+  );
+  out = out.replace(
+    /\bstyle='([^']*url\([^']*)'/gi,
+    (_m, cssVal) => `style='${rewriteCssForPathLock(cssVal, effectiveUrl, slug, allowedHosts)}'`,
+  );
+
   // Inline <style> blocks
   out = out.replace(
     /(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi,
@@ -599,6 +834,50 @@ export function rewriteHtmlForPathLock(
   );
 
   return out;
+}
+
+/**
+ * Parses `/r/[slug]/proxy/__p/<scheme>/<encodedHost>/...` from the raw request pathname,
+ * preserving percent-encoded dynamic route segments (e.g. `%5Bid%5D`, `%2F`) and trailing slashes.
+ */
+export function parseProxyAssetFromPathname(
+  rawPathname: string,
+  rawSearch: string,
+  fallbackSegments?: string[],
+): { url: string; host: string } | null {
+  const match = rawPathname.match(/\/proxy\/__p\/(https?)\/([^/]+)(\/.*)?$/i);
+  if (match) {
+    const scheme = match[1].toLowerCase();
+    let host = "";
+    try {
+      host = decodeURIComponent(match[2] || "").trim();
+    } catch {
+      return null;
+    }
+    if (!host || /[\s/@\\]/.test(host)) {
+      return null;
+    }
+    const rawRest = match[3] || "/";
+    let cleanSearch = rawSearch ? (rawSearch.startsWith("?") ? rawSearch : `?${rawSearch}`) : "";
+    let effectiveRest = rawRest;
+    if (cleanSearch && /(?:^\?|&)_plts=1(?:&|$)/.test(cleanSearch)) {
+      const sp = new URLSearchParams(cleanSearch.slice(1));
+      sp.delete("_plts");
+      const nextQ = sp.toString();
+      cleanSearch = nextQ ? `?${nextQ}` : "";
+      if (!effectiveRest.endsWith("/")) {
+        effectiveRest += "/";
+      }
+    }
+    const rebuilt = `${scheme}://${host}${effectiveRest}${cleanSearch}`;
+    try {
+      const parsed = new URL(rebuilt);
+      return { url: parsed.href, host: parsed.host };
+    } catch {
+      return null;
+    }
+  }
+  return fallbackSegments ? parseProxyAssetSegments(fallbackSegments, rawSearch) : null;
 }
 
 /**
@@ -760,6 +1039,47 @@ export function buildRestrictedFallbackHtml(
 </html>`;
 }
 
+/**
+ * Returns a clean PathLock-blocked HTML response that immediately activates the parent
+ * CloakedViewer Security Gate overlay without ever leaking the raw destination URL.
+ */
+export function buildPathLockBlockedHtml(
+  blockedUrl: string,
+  message?: string,
+): string {
+  const safeMsg = escapeHtmlText(
+    message || "Cette route est restreinte par la protection PathLock™.",
+  );
+  const payload = JSON.stringify({
+    type: "PATHLOCK_NAVIGATE",
+    url: blockedUrl || "/blocked",
+    blocked: true,
+  }).replace(/</g, "\\u003c");
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accès restreint — PathLock™</title>
+  <script>
+    try {
+      window.parent.postMessage(${payload}, "*");
+    } catch (e) {}
+  </script>
+</head>
+<body style="margin:0;min-height:100vh;background:#0B0C0E;color:#f4f4f5;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+  <div style="max-width:420px;width:100%;background:#111114;border:1px solid #27272a;border-radius:14px;padding:28px;text-align:center;">
+    <div style="display:inline-flex;padding:5px 12px;border-radius:999px;background:rgba(59,130,246,.14);border:1px solid rgba(96,140,255,.35);color:#A9C4FF;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;">
+      PathLock™ Security Gate
+    </div>
+    <h1 style="margin:0 0 10px;font-size:18px;font-weight:700;color:#fff;">Accès hors périmètre bloqué</h1>
+    <p style="margin:0;font-size:13.5px;line-height:1.55;color:#a1a1aa;">${safeMsg}</p>
+  </div>
+</body>
+</html>`;
+}
+
 export interface HeadInjectionOptions {
   slug: string;
   targetUrl: string;
@@ -771,6 +1091,8 @@ export interface HeadInjectionOptions {
   mode: string;
   prefix: string;
   initialUnlocked: boolean;
+  hasExistingImportMap?: boolean;
+  isNestedEmbed?: boolean;
 }
 
 /**
@@ -796,6 +1118,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     effectiveVirtualPath: effVirtualPath || "/",
     proxyPrefix,
     proxyAssetBase,
+    isNestedEmbed: Boolean(opts.isNestedEmbed),
     mode: String(opts.mode || "strict").trim().toLowerCase(),
     prefix: opts.prefix || "",
     filterType: parsedRoutes.filterType,
@@ -808,15 +1131,16 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
 
   // JSON-safe embed (escape `<` so `</script>` can never break out of inline script)
   const serializedCfg = JSON.stringify(clientConfig).replace(/</g, "\\u003c");
-  const importMapJson = JSON.stringify({
-    imports: {
-      "/": `${proxyAssetBase}/${effScheme}/${effHostEnc}/`,
-    },
-  }).replace(/</g, "\\u003c");
+  const importMapTag = opts.hasExistingImportMap
+    ? ""
+    : `<script type="importmap">${JSON.stringify({
+        imports: {
+          "/": `${proxyAssetBase}/${effScheme}/${effHostEnc}/`,
+        },
+      }).replace(/</g, "\\u003c")}</script>\n`;
 
   return `
-<script type="importmap">${importMapJson}</script>
-<script>
+${importMapTag}<script>
 (function() {
   var CFG = ${serializedCfg};
   var isUnlocked = Boolean(CFG.initialUnlocked);
@@ -910,14 +1234,20 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         u = new URL(u.pathname + u.search + u.hash, CFG.effectiveOrigin);
       }
       if (isAssetSubdomainOrSame(u.hostname)) {
+        var pathPart = u.pathname === "/" ? "" : u.pathname;
+        var searchPart = u.search;
+        if (pathPart.length > 1 && pathPart.charAt(pathPart.length - 1) === "/") {
+          pathPart = pathPart.slice(0, -1);
+          searchPart = searchPart ? searchPart + "&_plts=1" : "?_plts=1";
+        }
         return (
           CFG.proxyAssetBase +
           "/" +
           u.protocol.replace(":", "") +
           "/" +
           encodeURIComponent(u.host) +
-          u.pathname +
-          u.search +
+          pathPart +
+          searchPart +
           u.hash
         );
       }
@@ -925,9 +1255,175 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     return rawUrl;
   }
 
-  // Transparently route dynamic scripts, styles, fetch, XHR & sendBeacon via same-origin proxy
+  function toVirtualOriginUrl(rawUrl) {
+    if (!rawUrl) return rawUrl;
+    var s = String(rawUrl).trim();
+    try {
+      var u = new URL(s, window.location.origin);
+      var prefixP = CFG.proxyAssetBase + "/";
+      if (u.origin.toLowerCase() === window.location.origin.toLowerCase() && u.pathname.indexOf(prefixP) === 0) {
+        var rest = u.pathname.slice(prefixP.length);
+        var parts = rest.split("/");
+        if (parts.length >= 2) {
+          var innerPath = "/" + parts.slice(2).join("/");
+          var innerSearch = u.search;
+          if (innerSearch && /(?:^\\?|&)_plts=1(?:&|$)/.test(innerSearch)) {
+            var sp = new URLSearchParams(innerSearch.slice(1));
+            sp.delete("_plts");
+            var nextQ = sp.toString();
+            innerSearch = nextQ ? "?" + nextQ : "";
+            if (innerPath.charAt(innerPath.length - 1) !== "/") innerPath += "/";
+          }
+          return window.location.origin + innerPath + innerSearch + u.hash;
+        }
+      }
+      if (isHostAllowed(u.hostname)) {
+        return window.location.origin + u.pathname + u.search + u.hash;
+      }
+    } catch (e) {}
+    return rawUrl;
+  }
+
+  function patchProxiedResponse(res, virtualUrl, wasRedirected) {
+    if (!res) return res;
+    try {
+      if (virtualUrl && virtualUrl !== res.url) {
+        Object.defineProperty(res, "url", {
+          value: virtualUrl,
+          configurable: true,
+          enumerable: true,
+        });
+      }
+      if (wasRedirected) {
+        Object.defineProperty(res, "redirected", {
+          value: true,
+          configurable: true,
+          enumerable: true,
+        });
+      }
+      var origClone = res.clone;
+      if (typeof origClone === "function") {
+        res.clone = function() {
+          return patchProxiedResponse(origClone.call(this), virtualUrl, wasRedirected);
+        };
+      }
+    } catch (e) {}
+    return res;
+  }
+
+  function getHeaderValue(headersObj, targetName) {
+    if (!headersObj) return null;
+    var lowTarget = targetName.toLowerCase();
+    try {
+      if (typeof Headers !== "undefined" && headersObj instanceof Headers) {
+        return headersObj.get(targetName);
+      }
+      if (Array.isArray(headersObj)) {
+        for (var i = 0; i < headersObj.length; i++) {
+          if (headersObj[i] && String(headersObj[i][0] || "").toLowerCase() === lowTarget) {
+            return String(headersObj[i][1] || "");
+          }
+        }
+        return null;
+      }
+      if (typeof headersObj === "object") {
+        var keys = Object.keys(headersObj);
+        for (var j = 0; j < keys.length; j++) {
+          if (keys[j].toLowerCase() === lowTarget) {
+            return String(headersObj[keys[j]] || "");
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function toProxyIframeUrl(rawUrl) {
+    if (!rawUrl) return rawUrl;
+    var s = String(rawUrl).trim();
+    if (
+      !s ||
+      s === "about:blank" ||
+      s.indexOf("data:") === 0 ||
+      s.indexOf("blob:") === 0 ||
+      s.indexOf("javascript:") === 0 ||
+      s.indexOf(CFG.proxyPrefix) === 0
+    ) {
+      return rawUrl;
+    }
+    try {
+      var u = new URL(s, CFG.effectiveUrl);
+      if (u.origin.toLowerCase() === window.location.origin.toLowerCase()) {
+        if (u.pathname.indexOf(CFG.proxyPrefix) === 0) return rawUrl;
+        u = new URL(u.pathname + u.search + u.hash, CFG.effectiveOrigin);
+      }
+      if (isAssetSubdomainOrSame(u.hostname)) {
+        return CFG.proxyPrefix + "?url=" + encodeURIComponent(u.href) + "&embed=1" + (isUnlocked ? "&unlocked=1" : "");
+      }
+    } catch (e) {}
+    return rawUrl;
+  }
+
+  function toVirtualAttrPath(rawAttr) {
+    if (!rawAttr || typeof rawAttr !== "string") return rawAttr;
+    var prefixP = CFG.proxyAssetBase + "/";
+    if (rawAttr.indexOf(prefixP) !== 0) return rawAttr;
+    try {
+      var rest = rawAttr.slice(prefixP.length);
+      var slash1 = rest.indexOf("/");
+      if (slash1 === -1) return rawAttr;
+      var scheme = rest.slice(0, slash1);
+      var afterScheme = rest.slice(slash1 + 1);
+      var slash2 = afterScheme.indexOf("/");
+      var encHost = slash2 === -1 ? afterScheme : afterScheme.slice(0, slash2);
+      var pathAndQuery = slash2 === -1 ? "/" : afterScheme.slice(slash2);
+      var host = decodeURIComponent(encHost);
+      var hostnameOnly = host.split(":")[0];
+      if (isHostAllowed(hostnameOnly)) {
+        return pathAndQuery;
+      }
+      return scheme + "://" + host + pathAndQuery;
+    } catch (e) {
+      return rawAttr;
+    }
+  }
+
+  function rewriteAssetSelector(sel) {
+    if (!sel || typeof sel !== "string") return sel;
+    if (sel.indexOf("script[") === -1 && sel.indexOf("SCRIPT[") === -1 && sel.indexOf("link[") === -1 && sel.indexOf("LINK[") === -1) {
+      return sel;
+    }
+    return sel.replace(/(script|link)([^,]*?)\\[(src|href)(\\^?=)(["'])([^"']+)\\5\\]/gi, function(full, tag, mid, attr, op, q, val) {
+      if (!val || val.indexOf(CFG.proxyPrefix) === 0) return full;
+      var mapped = toProxyAsset(val);
+      if (mapped === val) return full;
+      if (val.charAt(val.length - 1) === "?" && mapped.charAt(mapped.length - 1) !== "?") {
+        mapped += "?";
+      }
+      return tag + mid + "[" + attr + op + q + mapped + q + "]";
+    });
+  }
+
+  function rewriteSrcset(val) {
+    if (!val || typeof val !== "string") return val;
+    return val
+      .split(/,\\s+(?=\\S)/)
+      .map(function(entry) {
+        var trimmed = entry.trim();
+        if (!trimmed) return entry;
+        var spaceIdx = trimmed.search(/\\s/);
+        if (spaceIdx === -1) return toProxyAsset(trimmed);
+        return toProxyAsset(trimmed.slice(0, spaceIdx)) + trimmed.slice(spaceIdx);
+      })
+      .join(", ");
+  }
+
+  // Transparently route dynamic scripts, styles, iframes, srcset, fetch, XHR, EventSource & sendBeacon via same-origin proxy
+  // while keeping script/link virtual paths intact for Next.js Turbopack, React Flight & Webpack chunk registries!
   try {
     var origSetAttr = Element.prototype.setAttribute;
+    var origGetAttr = Element.prototype.getAttribute;
+
     Element.prototype.setAttribute = function(name, val) {
       var lowerName = String(name || "").toLowerCase();
       var tag = this.tagName;
@@ -936,8 +1432,14 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         (tag === "SCRIPT" || tag === "IMG" || tag === "SOURCE" || tag === "VIDEO" || tag === "AUDIO")
       ) {
         val = toProxyAsset(val);
+      } else if ((lowerName === "srcset" || lowerName === "data-srcset") && (tag === "IMG" || tag === "SOURCE")) {
+        val = rewriteSrcset(val);
+      } else if (lowerName === "imagesrcset" && tag === "LINK") {
+        val = rewriteSrcset(val);
+      } else if (lowerName === "src" && tag === "IFRAME") {
+        val = toProxyIframeUrl(val);
       } else if (lowerName === "href" && (tag === "LINK" || tag === "USE" || tag === "IMAGE")) {
-        var rel = String(this.getAttribute("rel") || "").toLowerCase();
+        var rel = String(origGetAttr.call(this, "rel") || "").toLowerCase();
         if (rel !== "canonical" && rel !== "alternate" && rel !== "preconnect" && rel !== "dns-prefetch") {
           val = toProxyAsset(val);
         }
@@ -945,19 +1447,79 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       return origSetAttr.call(this, name, val);
     };
 
+    if (origGetAttr) {
+      Element.prototype.getAttribute = function(name) {
+        var raw = origGetAttr.call(this, name);
+        if (!raw) return raw;
+        var lowerName = String(name || "").toLowerCase();
+        var tag = this.tagName;
+        if ((tag === "SCRIPT" && lowerName === "src") || (tag === "LINK" && lowerName === "href")) {
+          return toVirtualAttrPath(raw);
+        }
+        return raw;
+      };
+    }
+
+    if (typeof Document !== "undefined" && Document.prototype) {
+      var origDocQsa = Document.prototype.querySelectorAll;
+      if (origDocQsa) {
+        Document.prototype.querySelectorAll = function(sel) {
+          return origDocQsa.call(this, rewriteAssetSelector(sel));
+        };
+      }
+      var origDocQs = Document.prototype.querySelector;
+      if (origDocQs) {
+        Document.prototype.querySelector = function(sel) {
+          return origDocQs.call(this, rewriteAssetSelector(sel));
+        };
+      }
+    }
+
+    if (typeof Element !== "undefined" && Element.prototype) {
+      var origElQsa = Element.prototype.querySelectorAll;
+      if (origElQsa) {
+        Element.prototype.querySelectorAll = function(sel) {
+          return origElQsa.call(this, rewriteAssetSelector(sel));
+        };
+      }
+      var origElQs = Element.prototype.querySelector;
+      if (origElQs) {
+        Element.prototype.querySelector = function(sel) {
+          return origElQs.call(this, rewriteAssetSelector(sel));
+        };
+      }
+    }
+
     var scriptDesc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, "src");
     if (scriptDesc && scriptDesc.set) {
       Object.defineProperty(HTMLScriptElement.prototype, "src", {
-        get: scriptDesc.get,
+        get: function() {
+          var raw = scriptDesc.get ? scriptDesc.get.call(this) : "";
+          return toVirtualOriginUrl(raw);
+        },
         set: function(v) { return scriptDesc.set.call(this, toProxyAsset(v)); },
         configurable: true,
       });
     }
 
+    if (typeof HTMLIFrameElement !== "undefined") {
+      var iframeDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, "src");
+      if (iframeDesc && iframeDesc.set) {
+        Object.defineProperty(HTMLIFrameElement.prototype, "src", {
+          get: iframeDesc.get,
+          set: function(v) { return iframeDesc.set.call(this, toProxyIframeUrl(v)); },
+          configurable: true,
+        });
+      }
+    }
+
     var linkDesc = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, "href");
     if (linkDesc && linkDesc.set) {
       Object.defineProperty(HTMLLinkElement.prototype, "href", {
-        get: linkDesc.get,
+        get: function() {
+          var raw = linkDesc.get ? linkDesc.get.call(this) : "";
+          return toVirtualOriginUrl(raw);
+        },
         set: function(v) {
           var rel = String(this.rel || "").toLowerCase();
           if (rel === "canonical" || rel === "alternate" || rel === "preconnect" || rel === "dns-prefetch") {
@@ -978,7 +1540,24 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
           configurable: true,
         });
       }
+      var sd = proto && Object.getOwnPropertyDescriptor(proto, "srcset");
+      if (sd && sd.set) {
+        Object.defineProperty(proto, "srcset", {
+          get: sd.get,
+          set: function(v) { return sd.set.call(this, rewriteSrcset(v)); },
+          configurable: true,
+        });
+      }
     });
+
+    var linkImgSrcsetDesc = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, "imageSrcset");
+    if (linkImgSrcsetDesc && linkImgSrcsetDesc.set) {
+      Object.defineProperty(HTMLLinkElement.prototype, "imageSrcset", {
+        get: linkImgSrcsetDesc.get,
+        set: function(v) { return linkImgSrcsetDesc.set.call(this, rewriteSrcset(v)); },
+        configurable: true,
+      });
+    }
 
     var videoPosterDesc = Object.getOwnPropertyDescriptor(HTMLVideoElement.prototype, "poster");
     if (videoPosterDesc && videoPosterDesc.set) {
@@ -989,61 +1568,6 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       });
     }
   } catch (e) {}
-
-  if (window.fetch) {
-    var origFetch = window.fetch;
-    window.fetch = function(input, init) {
-      var mappedInput = input;
-      var fetchInit = init;
-      try {
-        if (typeof input === "string") {
-          mappedInput = toProxyAsset(input);
-        } else if (typeof Request !== "undefined" && input instanceof Request) {
-          var mappedUrl = toProxyAsset(input.url);
-          if (mappedUrl !== input.url) {
-            mappedInput = new Request(mappedUrl, input);
-          }
-        }
-        var isProxied =
-          (typeof mappedInput === "string" && mappedInput.indexOf(CFG.proxyPrefix) === 0) ||
-          (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.url.indexOf(CFG.proxyPrefix) !== -1);
-        if (isProxied) {
-          if (init) {
-            fetchInit = Object.assign({}, init);
-            if (fetchInit.credentials === "omit") fetchInit.credentials = "same-origin";
-          } else if (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.credentials === "omit") {
-            mappedInput = new Request(mappedInput, { credentials: "same-origin" });
-          }
-        }
-      } catch (e) {}
-      return origFetch.call(this, mappedInput, fetchInit);
-    };
-  }
-
-  if (window.XMLHttpRequest) {
-    var origXhrOpen = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function(method, url) {
-      var args = Array.prototype.slice.call(arguments);
-      try {
-        args[1] = toProxyAsset(url);
-      } catch (e) {}
-      var ret = origXhrOpen.apply(this, args);
-      try {
-        // Only set withCredentials on same-origin proxied requests; never on third-party URLs to avoid breaking CORS
-        if (typeof args[1] === "string" && args[1].indexOf(CFG.proxyPrefix) === 0) {
-          this.withCredentials = true;
-        }
-      } catch (e) {}
-      return ret;
-    };
-  }
-
-  if (window.navigator && window.navigator.sendBeacon) {
-    var origBeacon = window.navigator.sendBeacon.bind(window.navigator);
-    window.navigator.sendBeacon = function(url, data) {
-      return origBeacon(toProxyAsset(url), data);
-    };
-  }
 
   var baseNormA = normPath(CFG.parsedBasePathname);
   var baseNormB = normPath(CFG.effectivePathname);
@@ -1164,6 +1688,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         // Whitelist mode: only base target and explicitly allowed prefixes are permitted
         var isTarget =
           attemptNorm === baseNormA ||
+          (CFG.isNestedEmbed && attemptNorm === baseNormB) ||
           (hasExplicitRoot && attemptNorm === "") ||
           (baseNormA === "" && attemptNorm === "");
         var isAllowedPrefix = allowedRoutes.some(function(p) {
@@ -1199,9 +1724,16 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     } catch (e) {}
   }
 
+  function getGateWindow() {
+    if (CFG.isNestedEmbed) {
+      return window.top || window.parent;
+    }
+    return window.parent;
+  }
+
   function notifyBlocked(blockedUrl) {
     try {
-      window.parent.postMessage(
+      getGateWindow().postMessage(
         {
           type: "PATHLOCK_NAVIGATE",
           url: blockedUrl || "/blocked",
@@ -1213,6 +1745,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
   }
 
   function notifyAllowedNavigate(nextPathname) {
+    if (CFG.isNestedEmbed) return;
     try {
       window.parent.postMessage(
         {
@@ -1224,6 +1757,158 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         "*"
       );
     } catch (e) {}
+  }
+
+  function notifyLoading(isLoading) {
+    if (CFG.isNestedEmbed) return;
+    try {
+      window.parent.postMessage({ type: "PATHLOCK_LOADING", loading: Boolean(isLoading) }, "*");
+    } catch (e) {}
+  }
+
+  function navigateViaProxy(targetHref) {
+    notifyLoading(true);
+    window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(targetHref) + (CFG.isNestedEmbed ? "&embed=1" : "") + (isUnlocked ? "&unlocked=1" : "");
+  }
+
+  var origFetch = window.fetch ? window.fetch.bind(window) : null;
+  if (origFetch) {
+    window.fetch = function(input, init) {
+      var mappedInput = input;
+      var fetchInit = init;
+      var originalUrlStr = "";
+      var isProxied = false;
+      try {
+        if (typeof input === "string") {
+          originalUrlStr = input;
+          mappedInput = toProxyAsset(input);
+        } else if (typeof URL !== "undefined" && input instanceof URL) {
+          // Critical for Next.js App Router (13/14/15/16), Remix & SvelteKit which pass URL instances to fetch()
+          originalUrlStr = input.href;
+          mappedInput = toProxyAsset(input.href);
+        } else if (typeof Request !== "undefined" && input instanceof Request) {
+          originalUrlStr = input.url;
+          var mappedUrl = toProxyAsset(input.url);
+          if (mappedUrl !== input.url) {
+            mappedInput = new Request(mappedUrl, input);
+          }
+        } else if (input && typeof input === "object" && typeof input.href === "string") {
+          originalUrlStr = input.href;
+          mappedInput = toProxyAsset(input.href);
+        }
+
+        isProxied =
+          (typeof mappedInput === "string" && mappedInput.indexOf(CFG.proxyPrefix) === 0) ||
+          (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.url.indexOf(CFG.proxyPrefix) !== -1);
+
+        // Short-circuit blocked SPA prefetches & dynamic route fetches in 0ms client-side
+        if (isProxied && !isUnlocked && CFG.mode !== "off" && originalUrlStr) {
+          var reqHeaders = (init && init.headers) || (typeof Request !== "undefined" && input instanceof Request ? input.headers : null);
+          var isPrefetch = Boolean(
+            getHeaderValue(reqHeaders, "next-router-prefetch") ||
+            getHeaderValue(reqHeaders, "next-router-segment-prefetch") ||
+            String(getHeaderValue(reqHeaders, "purpose") || "").toLowerCase() === "prefetch" ||
+            String(getHeaderValue(reqHeaders, "sec-purpose") || "").toLowerCase() === "prefetch"
+          );
+          var isSpaRouteFetch =
+            (getHeaderValue(reqHeaders, "rsc") === "1" || String(getHeaderValue(reqHeaders, "x-inertia") || "").toLowerCase() === "true") &&
+            !getHeaderValue(reqHeaders, "next-action");
+
+          if (isPrefetch || isSpaRouteFetch) {
+            var candPath = "";
+            try { candPath = new URL(originalUrlStr, CFG.effectiveUrl).pathname || ""; } catch (e) {}
+            if (candPath.indexOf("/_next/") !== 0 && candPath.indexOf("/api/") !== 0 && candPath.indexOf(CFG.proxyPrefix) !== 0) {
+              var fetchCheck = checkUrlAllowed(originalUrlStr);
+              if (!fetchCheck.allowed) {
+                if (!isPrefetch) {
+                  notifyBlocked(fetchCheck.url || originalUrlStr);
+                }
+                return Promise.resolve(new Response(null, { status: isPrefetch ? 204 : 403 }));
+              }
+            }
+          }
+        }
+
+        if (isProxied) {
+          if (init) {
+            fetchInit = Object.assign({}, init);
+            if (fetchInit.credentials === "omit") fetchInit.credentials = "same-origin";
+          } else if (typeof Request !== "undefined" && mappedInput instanceof Request && mappedInput.credentials === "omit") {
+            mappedInput = new Request(mappedInput, { credentials: "same-origin" });
+          }
+        }
+      } catch (e) {}
+
+      var p = origFetch(mappedInput, fetchInit);
+      if (!isProxied) return p;
+
+      return p.then(function(res) {
+        try {
+          var finalHdr = res.headers && res.headers.get("x-pathlock-final-url");
+          var wasRedir = Boolean(res.headers && res.headers.get("x-pathlock-redirected") === "1");
+          var virtualUrl = toVirtualOriginUrl(finalHdr || res.url);
+          return patchProxiedResponse(res, virtualUrl, wasRedir);
+        } catch (e) {
+          return res;
+        }
+      });
+    };
+  }
+
+  if (window.XMLHttpRequest) {
+    var origXhrOpen = window.XMLHttpRequest.prototype.open;
+    window.XMLHttpRequest.prototype.open = function(method, url) {
+      var args = Array.prototype.slice.call(arguments);
+      try {
+        args[1] = toProxyAsset(url);
+      } catch (e) {}
+      var ret = origXhrOpen.apply(this, args);
+      try {
+        // Only set withCredentials on same-origin proxied requests; never on third-party URLs to avoid breaking CORS
+        if (typeof args[1] === "string" && args[1].indexOf(CFG.proxyPrefix) === 0) {
+          this.withCredentials = true;
+        }
+      } catch (e) {}
+      return ret;
+    };
+
+    try {
+      var xhrRespUrlDesc = Object.getOwnPropertyDescriptor(window.XMLHttpRequest.prototype, "responseURL");
+      if (xhrRespUrlDesc && xhrRespUrlDesc.get) {
+        Object.defineProperty(window.XMLHttpRequest.prototype, "responseURL", {
+          get: function() {
+            var raw = xhrRespUrlDesc.get.call(this);
+            try {
+              var finalHdr = this.getResponseHeader && this.getResponseHeader("x-pathlock-final-url");
+              return toVirtualOriginUrl(finalHdr || raw);
+            } catch (e) {
+              return toVirtualOriginUrl(raw);
+            }
+          },
+          configurable: true,
+        });
+      }
+    } catch (e) {}
+  }
+
+  if (window.EventSource) {
+    try {
+      var OrigEventSource = window.EventSource;
+      window.EventSource = function(url, eventSourceInitDict) {
+        return new OrigEventSource(toProxyAsset(url), eventSourceInitDict);
+      };
+      window.EventSource.prototype = OrigEventSource.prototype;
+      window.EventSource.CONNECTING = OrigEventSource.CONNECTING;
+      window.EventSource.OPEN = OrigEventSource.OPEN;
+      window.EventSource.CLOSED = OrigEventSource.CLOSED;
+    } catch (e) {}
+  }
+
+  if (window.navigator && window.navigator.sendBeacon) {
+    var origBeacon = window.navigator.sendBeacon.bind(window.navigator);
+    window.navigator.sendBeacon = function(url, data) {
+      return origBeacon(toProxyAsset(url), data);
+    };
   }
 
   // 1. Intercept history.pushState & history.replaceState
@@ -1299,6 +1984,22 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     }
   };
 
+  window.addEventListener("popstate", function() {
+    try {
+      var currentPath = window.location.pathname + window.location.search + window.location.hash;
+      if (currentPath.indexOf(CFG.proxyPrefix) === 0) return;
+      var check = checkUrlAllowed(currentPath);
+      if (!check.allowed) {
+        notifyBlocked(check.url || currentPath);
+        return;
+      }
+      if (check.url && !check.isProxySelf) {
+        updateEffectiveState(check.url);
+        notifyAllowedNavigate(CFG.effectivePathname);
+      }
+    } catch (e) {}
+  });
+
   // 2. Intercept Navigation API (Chromium 102+: prevents about:blank escapes & programmatic location.href escapes;
   //    Firefox/Safari fall back to click/submit/history/window.open hooks + parent CloakedViewer onLoad guard)
   if (window.navigation && window.navigation.addEventListener) {
@@ -1326,7 +2027,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         if (e.cancelable) {
           e.preventDefault();
           var reloadTarget = CFG.effectiveUrl || CFG.targetUrl;
-          window.location.href = CFG.proxyPrefix + (reloadTarget ? "?url=" + encodeURIComponent(reloadTarget) + (isUnlocked ? "&unlocked=1" : "") : (isUnlocked ? "?unlocked=1" : ""));
+          navigateViaProxy(reloadTarget);
         }
         return;
       }
@@ -1340,12 +2041,10 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         !e.defaultPrevented &&
         check.url &&
         destUrl.indexOf(CFG.proxyPrefix) === -1 &&
-        e.navigationType !== "traverse" &&
-        e.navigationType !== "push" &&
-        e.navigationType !== "replace"
+        e.navigationType !== "traverse"
       ) {
         e.preventDefault();
-        window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
+        navigateViaProxy(check.url);
       }
     });
   }
@@ -1374,8 +2073,75 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     return target;
   }
 
-  // 3a. Intercept anchor clicks in CAPTURE PHASE: Block disallowed routes immediately!
-  document.addEventListener("click", function(e) {
+  // 2b. Predictive hover & pointerdown HTML prefetching for traditional (non-SPA) dynamic routes
+  var prefetchedAt = {};
+  var activePrefetches = 0;
+  var hoverTimer = null;
+
+  function isActiveSpaFramework() {
+    return Boolean(
+      window.__next_f ||
+      window.__NEXT_DATA__ ||
+      window.__NUXT__ ||
+      window.__remixContext ||
+      window.__sveltekit_
+    );
+  }
+
+  function maybePrefetchAnchor(anchor, immediate) {
+    if (!origFetch || !anchor) return;
+    if (!immediate && isActiveSpaFramework()) return;
+    try {
+      var conn = window.navigator && window.navigator.connection;
+      if (conn && (conn.saveData || conn.effectiveType === "slow-2g")) return;
+      if (anchor.hasAttribute && anchor.hasAttribute("download")) return;
+      var rawHref = anchor.getAttribute("href");
+      if (!rawHref) return;
+      var trimmed = rawHref.trim();
+      if (!trimmed || trimmed.charAt(0) === "#" || trimmed.indexOf("javascript:") === 0 || trimmed.indexOf("mailto:") === 0 || trimmed.indexOf("tel:") === 0) return;
+
+      var check = checkUrlAllowed(rawHref);
+      if (!check.allowed || !check.url || check.isHashOnly || check.isProxySelf || check.url === CFG.effectiveUrl) return;
+      if (/\\/(logout|signout|sign-out|log-out|delete|remove|unsubscribe|cancel)(\\/|\\?|$)/i.test(check.url)) return;
+
+      var now = Date.now();
+      if (prefetchedAt[check.url] && now - prefetchedAt[check.url] < 12000) return;
+      if (activePrefetches >= 2) return;
+
+      prefetchedAt[check.url] = now;
+      activePrefetches++;
+      var prefetchUrl = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "") + "&prefetch=1";
+      origFetch(prefetchUrl, { method: "GET", credentials: "same-origin", priority: "low" })
+        .catch(function() {})
+        .finally(function() { activePrefetches = Math.max(0, activePrefetches - 1); });
+    } catch (e) {}
+  }
+
+  document.addEventListener("mouseover", function(e) {
+    var anchor = getAnchorFromEvent(e);
+    if (!anchor) return;
+    if (hoverTimer) clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(function() {
+      maybePrefetchAnchor(anchor, false);
+    }, 65);
+  }, true);
+
+  document.addEventListener("mouseout", function(e) {
+    if (hoverTimer && getAnchorFromEvent(e)) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+  }, true);
+
+  document.addEventListener("pointerdown", function(e) {
+    if (e.button && e.button !== 0) return;
+    if (isActiveSpaFramework()) return;
+    var anchor = getAnchorFromEvent(e);
+    if (anchor) maybePrefetchAnchor(anchor, true);
+  }, true);
+
+  // 3a. Intercept anchor clicks & middle-clicks in CAPTURE PHASE: Block disallowed routes immediately!
+  function captureBlockCheck(e) {
     var target = getAnchorFromEvent(e);
     if (!target) return;
     if (target.hasAttribute && target.hasAttribute("download")) return;
@@ -1396,27 +2162,33 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       return false;
     }
 
-    if (check.isHashOnly && check.hash) {
+    if (e.type === "click" && check.isHashOnly && check.hash) {
       e.preventDefault();
       scrollToHash(check.hash);
       return false;
     }
 
-    if (check.url && !isUnlocked && target.target === "_blank") {
+    if (e.type === "click" && check.url && !isUnlocked && target.target === "_blank") {
       e.preventDefault();
       target.removeAttribute("target");
-      window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
+      navigateViaProxy(check.url);
       return false;
     }
     // When allowed, DO NOT call e.preventDefault() in capture phase so that SPA routers
-    // (Next.js Link, React Router, Vue Router) can handle the transition dynamically in milliseconds!
-  }, true);
+    // (Next.js Link, React Router, Vue Router, SvelteKit, Remix) handle transitions dynamically in milliseconds!
+  }
 
-  // 3b. Intercept anchor clicks in BUBBLE PHASE: For non-SPA traditional links that were not handled
-  document.addEventListener("click", function(e) {
+  document.addEventListener("click", captureBlockCheck, true);
+  document.addEventListener("auxclick", captureBlockCheck, true);
+
+  // 3b. Intercept anchor clicks on WINDOW BUBBLE PHASE (strictly AFTER all document/#root SPA handlers!)
+  window.addEventListener("click", function(e) {
     if (e.defaultPrevented) {
-      // SPA framework already intercepted this click and will navigate via pushState
+      // SPA framework (Next.js hydrateRoot(document), React Router, Vue, Remix, SvelteKit) already intercepted this click
       return;
+    }
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      if (isUnlocked) return;
     }
     var target = getAnchorFromEvent(e);
     if (!target) return;
@@ -1432,7 +2204,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     var check = checkUrlAllowed(rawHref);
     if (check.allowed && check.url && !check.isProxySelf) {
       e.preventDefault();
-      window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
+      navigateViaProxy(check.url);
       return false;
     }
   }, false);
@@ -1469,7 +2241,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
           return false;
         }
         e.preventDefault();
-        window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(formUrl.href) + (isUnlocked ? "&unlocked=1" : "");
+        navigateViaProxy(formUrl.href);
         return false;
       } catch (err) {}
     }
@@ -1485,16 +2257,18 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         return null;
       }
       if (check.url) {
-        window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
+        navigateViaProxy(check.url);
         return null;
       }
     }
     return origOpen.apply(window, arguments);
   };
 
-  try {
-    window.parent.postMessage({ type: "PATHLOCK_READY", effectiveUrl: CFG.effectiveUrl }, "*");
-  } catch (e) {}
+  if (!CFG.isNestedEmbed) {
+    try {
+      window.parent.postMessage({ type: "PATHLOCK_READY", effectiveUrl: CFG.effectiveUrl }, "*");
+    } catch (e) {}
+  }
 })();
 </script>`;
 }
