@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
 import {
   buildPathLockHeadInjection,
   buildRestrictedFallbackHtml,
@@ -55,6 +56,38 @@ export async function GET(
       const sameSite = isSameSiteOrAllowedHost(candidate.href, allowedHosts);
       // Strictly require same-site origin even when unlocked; never act as an arbitrary open forward proxy
       if (isSafeProxyTargetUrl(candidate.href, baseTargetUrl) && sameSite) {
+        if (!isUnlockedParam) {
+          const isAllowed = isPathAllowedByPathLock({
+            mode: config.pathLockMode || "strict",
+            attemptPathOrUrl: candidate.href,
+            rawPrefix: config.pathLockPrefix || "",
+            slug: config.slug,
+            targetPaths: [parsedBase.pathname || "/"],
+          });
+          if (!isAllowed) {
+            return new NextResponse(
+              buildRestrictedFallbackHtml(
+                {
+                  restricted: true,
+                  status: 403,
+                  provider: "PathLock™ Gate",
+                  reason: "pathlock_blocked",
+                  message:
+                    config.pathLockMessage ||
+                    "Cette route est restreinte par la protection PathLock™.",
+                },
+                baseTargetUrl,
+              ),
+              {
+                status: 403,
+                headers: {
+                  "Content-Type": "text/html; charset=utf-8",
+                  "X-Frame-Options": "SAMEORIGIN",
+                },
+              },
+            );
+          }
+        }
         fetchTargetUrl = candidate.href;
         hasSubpageOverride = true;
         subpageAllowedHosts = allowedHosts;

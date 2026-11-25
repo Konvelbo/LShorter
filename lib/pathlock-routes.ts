@@ -1,10 +1,14 @@
 export interface ParsedPathLockRoutes {
+  /** "whitelist" (only allowed routes accessible) or "blacklist" (all accessible except blocked routes) */
+  filterType: "whitelist" | "blacklist";
   /** True when empty or an explicit wildcard/root token ("/", "*", "/*", "/**") allows the entire same-site funnel */
   allowAllSubpaths: boolean;
   /** True when a non-empty entry explicitly resolved to root ("/" or "*" or URL with "/" pathname) */
   hasExplicitRoot: boolean;
   /** Deduplicated normalized route prefixes without leading/trailing slashes (lowercased) */
   routes: string[];
+  /** Deduplicated normalized blocked route prefixes without leading/trailing slashes (lowercased) */
+  blockedRoutes: string[];
   /** True when the raw prefix string is empty or whitespace-only */
   isEmpty: boolean;
 }
@@ -45,28 +49,45 @@ export function normalizePathLockAttempt(rawPathOrUrl: string): string {
 
 /**
  * Parses user-configured PathLock routes (comma, semicolon, pipe, newline, or whitespace separated).
- * Supports leading/trailing slashes, pasted full URLs, query/hash stripping, and trailing /* wildcards.
+ * Supports leading/trailing slashes, pasted full URLs, query/hash stripping, trailing /* wildcards,
+ * and block prefixes (e.g. `block:/pricing,/admin` or `!/admin`).
  */
 export function parsePathLockRoutes(rawPrefix?: string | null): ParsedPathLockRoutes {
-  const trimmedRaw = String(rawPrefix ?? "").trim();
+  let trimmedRaw = String(rawPrefix ?? "").trim();
   if (!trimmedRaw) {
     return {
+      filterType: "whitelist",
       allowAllSubpaths: true,
       hasExplicitRoot: false,
       routes: [],
+      blockedRoutes: [],
       isEmpty: true,
     };
+  }
+
+  let filterType: "whitelist" | "blacklist" = "whitelist";
+  if (/^(block:|blacklist:|deny:)/i.test(trimmedRaw)) {
+    filterType = "blacklist";
+    trimmedRaw = trimmedRaw.replace(/^(block:|blacklist:|deny:)/i, "").trim();
   }
 
   const tokens = trimmedRaw.split(/[,\n\r;| \t]+/);
   let hasWildcard = false;
   let hasExplicitRoot = false;
   const routes: string[] = [];
-  const seen = new Set<string>();
+  const blockedRoutes: string[] = [];
+  const seenRoutes = new Set<string>();
+  const seenBlocked = new Set<string>();
 
   for (const rawToken of tokens) {
     let entry = rawToken.trim();
     if (!entry) continue;
+
+    let isExplicitBlock = false;
+    if (entry.startsWith("!") || entry.startsWith("-") || /^block:/i.test(entry)) {
+      isExplicitBlock = true;
+      entry = entry.replace(/^(!+|-+|block:)/i, "").trim();
+    }
 
     if (/^(https?:)?\/\//i.test(entry)) {
       try {
@@ -86,7 +107,14 @@ export function parsePathLockRoutes(rawPrefix?: string | null): ParsedPathLockRo
     }
 
     if (entry === "/") {
-      hasExplicitRoot = true;
+      if (isExplicitBlock || filterType === "blacklist") {
+        if (!seenBlocked.has("")) {
+          seenBlocked.add("");
+          blockedRoutes.push("");
+        }
+      } else {
+        hasExplicitRoot = true;
+      }
       continue;
     }
 
@@ -94,20 +122,46 @@ export function parsePathLockRoutes(rawPrefix?: string | null): ParsedPathLockRo
     const clean = entry.replace(/^\/+/, "").replace(/\/+$/, "").toLowerCase();
 
     if (!clean) {
-      hasExplicitRoot = true;
+      if (isExplicitBlock || filterType === "blacklist") {
+        if (!seenBlocked.has("")) {
+          seenBlocked.add("");
+          blockedRoutes.push("");
+        }
+      } else {
+        hasExplicitRoot = true;
+      }
       continue;
     }
 
-    if (!seen.has(clean)) {
-      seen.add(clean);
-      routes.push(clean);
+    if (isExplicitBlock || filterType === "blacklist") {
+      if (!seenBlocked.has(clean)) {
+        seenBlocked.add(clean);
+        blockedRoutes.push(clean);
+      }
+    } else {
+      if (!seenRoutes.has(clean)) {
+        seenRoutes.add(clean);
+        routes.push(clean);
+      }
     }
   }
 
+  // If filterType was whitelist, but all specified tokens were explicit blocks (!/admin), treat as blacklist
+  if (filterType === "whitelist" && blockedRoutes.length > 0 && routes.length === 0) {
+    filterType = "blacklist";
+  }
+
+  const allowAllSubpaths =
+    filterType === "blacklist"
+      ? true
+      : hasWildcard || (hasExplicitRoot && routes.length === 0);
+
   return {
-    allowAllSubpaths: hasWildcard || (hasExplicitRoot && routes.length === 0),
+    filterType,
+    allowAllSubpaths,
     hasExplicitRoot,
     routes,
+    blockedRoutes,
     isEmpty: false,
   };
 }
@@ -155,6 +209,14 @@ export function isPathAllowedByPathLock({
   const parsed = parsePathLockRoutes(rawPrefix);
 
   if (normalizedMode === "strict") {
+    if (parsed.blockedRoutes.length > 0) {
+      const isBlocked = parsed.blockedRoutes.some((b) => {
+        if (b === "" || b === "/") return cleanAttempt === "";
+        return cleanAttempt === b || cleanAttempt.startsWith(`${b}/`);
+      });
+      if (isBlocked) return false;
+    }
+
     return (
       baseTargets.has(cleanAttempt) ||
       (parsed.hasExplicitRoot && cleanAttempt === "") ||
@@ -163,11 +225,32 @@ export function isPathAllowedByPathLock({
   }
 
   if (normalizedMode === "funnel") {
-    if (
-      parsed.allowAllSubpaths ||
-      cleanAttempt === "" ||
-      baseTargets.has(cleanAttempt)
-    ) {
+    // 1. Primary check: blocked routes always win
+    if (parsed.blockedRoutes.length > 0) {
+      const isBlocked = parsed.blockedRoutes.some((b) => {
+        if (b === "" || b === "/") return cleanAttempt === "";
+        return cleanAttempt === b || cleanAttempt.startsWith(`${b}/`);
+      });
+      if (isBlocked) {
+        return false;
+      }
+    }
+
+    // 2. Blacklist mode: anything not explicitly blocked is permitted
+    if (parsed.filterType === "blacklist") {
+      return true;
+    }
+
+    // 3. Whitelist mode: only base target and explicitly allowed routes are permitted
+    if (parsed.allowAllSubpaths) {
+      return true;
+    }
+
+    if (baseTargets.has(cleanAttempt)) {
+      return true;
+    }
+
+    if (cleanAttempt === "" && (parsed.hasExplicitRoot || baseTargets.has(""))) {
       return true;
     }
 

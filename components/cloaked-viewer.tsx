@@ -135,7 +135,7 @@ export function CloakedViewer({
           attemptPathOrUrl: urlOrPath,
           rawPrefix,
           slug: link.slug,
-          targetPaths: [targetPathname, effectivePathnameRef.current],
+          targetPaths: [targetPathname],
         });
 
         if (!allowed) {

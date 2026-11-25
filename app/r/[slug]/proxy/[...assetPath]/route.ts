@@ -15,6 +15,35 @@ import {
 
 export const dynamic = "force-dynamic";
 
+interface CachedStaticAsset {
+  body: ArrayBuffer | string;
+  contentType: string;
+  status: number;
+  headers: Record<string, string>;
+  expiresAt: number;
+}
+
+const staticAssetCache = new Map<string, CachedStaticAsset>();
+const MAX_STATIC_CACHE = 600;
+
+function getCachedAsset(key: string): CachedStaticAsset | null {
+  const item = staticAssetCache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiresAt) {
+    staticAssetCache.delete(key);
+    return null;
+  }
+  return item;
+}
+
+function setCachedAsset(key: string, asset: CachedStaticAsset): void {
+  if (staticAssetCache.size >= MAX_STATIC_CACHE) {
+    const oldest = staticAssetCache.keys().next().value;
+    if (oldest !== undefined) staticAssetCache.delete(oldest);
+  }
+  staticAssetCache.set(key, asset);
+}
+
 async function handleAssetProxy(
   req: Request,
   context: { params: Promise<{ slug: string; assetPath: string[] }> },
@@ -36,6 +65,28 @@ async function handleAssetProxy(
   const parsedTarget = parseProxyAssetSegments(assetPath, reqUrl.search);
   if (!parsedTarget) {
     return NextResponse.json({ error: "Invalid proxy asset path" }, { status: 400 });
+  }
+
+  const isStaticFileCandidate =
+    req.method === "GET" &&
+    /\.(js|mjs|cjs|css|woff2?|ttf|eot|otf|png|jpe?g|gif|webp|avif|ico|svg|wasm|map)$/i.test(
+      new URL(parsedTarget.url).pathname,
+    );
+
+  const assetCacheKey = `${slug}:${parsedTarget.url}`;
+  if (isStaticFileCandidate && !reqUrl.searchParams.has("force")) {
+    const cached = getCachedAsset(assetCacheKey);
+    if (cached) {
+      return new NextResponse(cached.body, {
+        status: cached.status,
+        headers: {
+          "Content-Type": cached.contentType,
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800, immutable",
+          ...cached.headers,
+        },
+      });
+    }
   }
 
   const config = await resolvePathLockLinkConfig(slug);
@@ -161,10 +212,18 @@ async function handleAssetProxy(
       contentType.toLowerCase().includes("application/json") ||
       (upstreamRes.headers.get("cache-control") || "").toLowerCase().includes("no-store");
 
+    const isStaticAsset =
+      req.method === "GET" &&
+      /\.(js|mjs|cjs|css|woff2?|ttf|eot|otf|png|jpe?g|gif|webp|avif|ico|svg|wasm|map)$/i.test(
+        new URL(parsedTarget.url).pathname,
+      );
+
     const cacheControlHeader =
       upstreamRes.status >= 400 || isDynamicAjax
         ? "no-store, no-cache, must-revalidate"
-        : "private, max-age=300";
+        : isStaticAsset
+          ? "public, max-age=86400, stale-while-revalidate=604800, immutable"
+          : "private, max-age=300";
 
     if (contentType.toLowerCase().includes("text/css")) {
       const cssText = await upstreamRes.text();
@@ -174,6 +233,17 @@ async function handleAssetProxy(
         slug,
         finalAllowedHosts,
       );
+
+      if (isStaticAsset && upstreamRes.status === 200) {
+        setCachedAsset(assetCacheKey, {
+          body: rewrittenCss,
+          contentType,
+          status: upstreamRes.status,
+          headers: {},
+          expiresAt: Date.now() + 600000,
+        });
+      }
+
       const cssRes = new NextResponse(rewrittenCss, {
         status: upstreamRes.status,
         headers: {
@@ -204,6 +274,17 @@ async function handleAssetProxy(
 
     const isNoBodyStatus = [204, 205, 304].includes(upstreamRes.status);
     const resBuffer = isNoBodyStatus ? null : await upstreamRes.arrayBuffer();
+
+    if (isStaticAsset && upstreamRes.status === 200 && resBuffer) {
+      setCachedAsset(assetCacheKey, {
+        body: resBuffer,
+        contentType,
+        status: upstreamRes.status,
+        headers: {},
+        expiresAt: Date.now() + 600000,
+      });
+    }
+
     const binRes = new NextResponse(resBuffer, {
       status: upstreamRes.status,
       headers: {

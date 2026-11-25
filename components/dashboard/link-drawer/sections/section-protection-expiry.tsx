@@ -85,56 +85,66 @@ export function SectionProtectionExpiry({
   const prefixTagInputId = useId();
   const [activePrefixTagIndex, setActivePrefixTagIndex] = useState<number | null>(null);
 
-  const parsePrefixesToTags = (prefixStr: string): EmblorTag[] => {
+  const parsePrefixesToTags = (prefixStr: string): { tags: EmblorTag[]; filterType: "whitelist" | "blacklist" } => {
     const parsed = parsePathLockRoutes(prefixStr);
-    if (
-      parsed.isEmpty ||
-      (parsed.allowAllSubpaths &&
-        parsed.routes.length === 0 &&
-        !String(prefixStr || "").includes("*"))
-    ) {
-      return [];
+    const filterType = parsed.filterType;
+    if (parsed.isEmpty) {
+      return { tags: [], filterType };
     }
-    const items = parsed.routes.map((route) => `/${route}`);
-    if (parsed.allowAllSubpaths && !items.includes("/*")) {
+    const sourceList = filterType === "blacklist" ? parsed.blockedRoutes : parsed.routes;
+    const items = sourceList.map((route) => (route === "" ? "/" : `/${route}`));
+    if (filterType === "whitelist" && parsed.allowAllSubpaths && !items.includes("/*") && items.length > 0) {
       items.unshift("/*");
     }
-    return items.map((text, idx) => ({
-      id: `prefix-${text}-${idx}`,
-      text,
-    }));
+    return {
+      filterType,
+      tags: items.map((text, idx) => ({
+        id: `prefix-${text}-${idx}`,
+        text,
+      })),
+    };
   };
 
-  const [emblorPrefixTags, setEmblorPrefixTags] = useState<EmblorTag[]>(() =>
-    parsePrefixesToTags(pathLockPrefix)
-  );
+  const initialParsed = parsePrefixesToTags(pathLockPrefix);
+  const [filterType, setFilterType] = useState<"whitelist" | "blacklist">(initialParsed.filterType);
+  const [emblorPrefixTags, setEmblorPrefixTags] = useState<EmblorTag[]>(initialParsed.tags);
 
   const isLocalTagEditRef = useRef<boolean>(false);
   const lastDispatchedPrefixRef = useRef<string>(
-    emblorPrefixTags.map((t) => t.text).join(", ")
+    (initialParsed.filterType === "blacklist" ? "block:" : "") +
+    initialParsed.tags.map((t) => t.text).join(", ")
   );
 
   // 1. Sync external pathLockPrefix into local emblorPrefixTags when edited/loaded externally
   useEffect(() => {
-    const externalTags = parsePrefixesToTags(pathLockPrefix);
-    const externalJoined = externalTags.map((t) => t.text).join(", ");
+    const externalParsed = parsePrefixesToTags(pathLockPrefix);
+    const tagText = externalParsed.tags.map((t) => t.text).join(", ");
+    const externalJoined = externalParsed.filterType === "blacklist"
+      ? (tagText ? `block:${tagText}` : "block:")
+      : tagText;
+
     if (externalJoined !== lastDispatchedPrefixRef.current) {
       isLocalTagEditRef.current = false;
       lastDispatchedPrefixRef.current = externalJoined;
-      setEmblorPrefixTags(externalTags);
+      setFilterType(externalParsed.filterType);
+      setEmblorPrefixTags(externalParsed.tags);
     }
   }, [pathLockPrefix]);
 
-  // 2. Sync user edits from emblorPrefixTags up to parent state without fighting external loads
+  // 2. Sync user edits from emblorPrefixTags and filterType up to parent state without fighting external loads
   useEffect(() => {
     if (!isLocalTagEditRef.current) return;
     isLocalTagEditRef.current = false;
-    const joined = emblorPrefixTags.map((t) => t.text).join(", ");
+    const tagText = emblorPrefixTags.map((t) => t.text).join(", ");
+    const joined = filterType === "blacklist"
+      ? (tagText ? `block:${tagText}` : "block:")
+      : tagText;
+
     if (joined !== lastDispatchedPrefixRef.current) {
       lastDispatchedPrefixRef.current = joined;
       setPathLockPrefix(joined);
     }
-  }, [emblorPrefixTags, setPathLockPrefix]);
+  }, [emblorPrefixTags, filterType, setPathLockPrefix]);
 
   const handleUpdatePrefixTags = (newTags: React.SetStateAction<EmblorTag[]>) => {
     isLocalTagEditRef.current = true;
@@ -143,21 +153,28 @@ export function SectionProtectionExpiry({
       const seen = new Set<string>();
       const normalizedTags: EmblorTag[] = [];
       for (const item of resolved) {
-        const parsed = parsePathLockRoutes(item.text);
-        const candidates = [
-          ...(parsed.allowAllSubpaths && String(item.text || "").includes("*")
-            ? ["/*"]
-            : []),
-          ...parsed.routes.map((route) => `/${route}`),
-        ];
-        for (const text of candidates) {
-          if (!seen.has(text)) {
-            seen.add(text);
+        let clean = String(item.text || "").trim();
+        clean = clean.replace(/^(block:|!+|-+)/i, "").trim();
+        clean = clean.replace(/^[#?]+/, "");
+        if (clean === "/" || clean === "/*") {
+          const formatted = clean;
+          if (!seen.has(formatted)) {
+            seen.add(formatted);
             normalizedTags.push({
-              id: `prefix-${text}-${normalizedTags.length}`,
-              text,
+              id: `prefix-${formatted}-${normalizedTags.length}`,
+              text: formatted,
             });
           }
+          continue;
+        }
+        clean = clean.replace(/^\/+/, "").replace(/\/+$/, "");
+        const formatted = clean ? `/${clean}` : "/";
+        if (!seen.has(formatted)) {
+          seen.add(formatted);
+          normalizedTags.push({
+            id: `prefix-${formatted}-${normalizedTags.length}`,
+            text: formatted,
+          });
         }
       }
       return normalizedTags;
@@ -488,76 +505,156 @@ export function SectionProtectionExpiry({
 
               {/* Funnel subpath prefix */}
               {pathLockMode === "funnel" && (
-                <div className="flex flex-col gap-1.5 w-full">
-                  <label
-                    htmlFor={prefixTagInputId}
-                    className="text-xs font-bold text-zinc-950 dark:text-white"
-                  >
-                    {isFr ? "Préfixes de sous-chemins autorisés" : "Allowed Subpath Prefix"}
-                  </label>
-                  <div
-                    className="lshorter-tag-container w-full flex flex-col items-start"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        // Crucial: stop propagation so pressing Enter in the route tag input NEVER submits the parent drawer form
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    <TagInput
-                      id={prefixTagInputId}
-                      tags={emblorPrefixTags}
-                      setTags={handleUpdatePrefixTags}
-                      activeTagIndex={activePrefixTagIndex}
-                      setActiveTagIndex={setActivePrefixTagIndex}
-                      inlineTags={false}
-                      inputFieldPosition="top"
-                      addTagsOnBlur
-                      addOnPaste
-                      delimiterList={["Enter", ",", ";", " "]}
-                      placeholder={
-                        isFr
-                          ? "Ajoutez des routes autorisées (ex. /pricing, /checkout)... vide = tout (/)"
-                          : "Add allowed routes (e.g. /pricing, /checkout)... empty = all (/)"
-                      }
-                      inputProps={
-                        {
-                          name: "pathlock_subpath_prefix_input",
-                          autoComplete: "off",
-                          autoCorrect: "off",
-                          autoCapitalize: "off",
-                          spellCheck: false,
-                          "data-lpignore": "true",
-                          "data-1p-ignore": "true",
-                          "data-bwignore": "true",
-                          "data-form-type": "other",
-                        } as React.InputHTMLAttributes<HTMLInputElement>
-                      }
-                      styleClasses={{
-                        input:
-                          "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
-                        tag: {
-                          body: "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-mono text-xs ps-2 pe-7 text-zinc-950 dark:text-white shadow-2xs transition-colors",
-                          closeButton:
-                            "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-500 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
-                        },
-                        tagList: {
-                          container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
-                        },
-                      }}
-                    />
+                <div className="flex flex-col gap-3 w-full">
+                  {/* Filter Type Toggle */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-zinc-950 dark:text-white">
+                      {isFr ? "Type de filtrage des routes" : "Route filtering type"}
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-[#16181d] border border-zinc-200 dark:border-[#22242a]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          isLocalTagEditRef.current = true;
+                          setFilterType("whitelist");
+                        }}
+                        className={cn(
+                          "py-1.5 px-2 rounded-md text-xs transition-all text-center cursor-pointer font-medium",
+                          filterType === "whitelist"
+                            ? "bg-white dark:bg-[#0e0f12] text-blue-600 dark:text-blue-400 shadow-sm border border-blue-500/40 font-bold"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white",
+                        )}
+                      >
+                        {isFr ? "Routes autorisées (Liste blanche)" : "Allowed routes (Whitelist)"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          isLocalTagEditRef.current = true;
+                          setFilterType("blacklist");
+                        }}
+                        className={cn(
+                          "py-1.5 px-2 rounded-md text-xs transition-all text-center cursor-pointer font-medium",
+                          filterType === "blacklist"
+                            ? "bg-white dark:bg-[#0e0f12] text-red-600 dark:text-red-400 shadow-sm border border-red-500/40 font-bold"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white",
+                        )}
+                      >
+                        {isFr ? "Routes bloquées (Liste noire)" : "Blocked routes (Blacklist)"}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                    {isFr ? (
-                      <>
-                        Appuyez sur Entrée, virgule ou cliquez à l&apos;extérieur pour ajouter des routes (ex. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Laissez vide pour autoriser tout le site (<code className="font-mono">/</code>).
-                      </>
-                    ) : (
-                      <>
-                        Press Enter, comma, or click outside to add routes (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/checkout</code>). Leave empty to allow the entire site (<code className="font-mono">/</code>).
-                      </>
-                    )}
-                  </p>
+
+                  {/* Route Tag Input */}
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <div className="flex items-center justify-between gap-2">
+                      <label
+                        htmlFor={prefixTagInputId}
+                        className="text-xs font-bold text-zinc-950 dark:text-white"
+                      >
+                        {filterType === "blacklist"
+                          ? (isFr ? "Sous-chemins bloqués / interdits" : "Blocked subpaths")
+                          : (isFr ? "Préfixes de sous-chemins autorisés" : "Allowed subpath prefixes")}
+                      </label>
+                      <span
+                        className={cn(
+                          "text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider uppercase border",
+                          filterType === "blacklist"
+                            ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30"
+                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                        )}
+                      >
+                        {filterType === "blacklist"
+                          ? (isFr ? "Bloquer" : "Blocklist")
+                          : (isFr ? "Autoriser" : "Allowlist")}
+                      </span>
+                    </div>
+
+                    <div
+                      className="lshorter-tag-container w-full flex flex-col items-start"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          // Crucial: stop propagation so pressing Enter in the route tag input NEVER submits the parent drawer form
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      <TagInput
+                        id={prefixTagInputId}
+                        tags={emblorPrefixTags}
+                        setTags={handleUpdatePrefixTags}
+                        activeTagIndex={activePrefixTagIndex}
+                        setActiveTagIndex={setActivePrefixTagIndex}
+                        inlineTags={false}
+                        inputFieldPosition="top"
+                        addTagsOnBlur
+                        addOnPaste
+                        delimiterList={["Enter", ",", ";", " "]}
+                        placeholder={
+                          filterType === "blacklist"
+                            ? (isFr
+                                ? "Ajoutez des routes à bloquer (ex. /pricing, /admin, /blog)..."
+                                : "Add routes to block (e.g. /pricing, /admin, /blog)...")
+                            : (isFr
+                                ? "Ajoutez des routes autorisées (ex. /checkout, /shop)... vide = tout (/)"
+                                : "Add allowed routes (e.g. /checkout, /shop)... empty = all (/)")
+                        }
+                        inputProps={
+                          {
+                            name: "pathlock_subpath_prefix_input",
+                            autoComplete: "off",
+                            autoCorrect: "off",
+                            autoCapitalize: "off",
+                            spellCheck: false,
+                            "data-lpignore": "true",
+                            "data-1p-ignore": "true",
+                            "data-bwignore": "true",
+                            "data-form-type": "other",
+                          } as React.InputHTMLAttributes<HTMLInputElement>
+                        }
+                        styleClasses={{
+                          input:
+                            "w-full h-10 rounded-[10px] bg-white dark:bg-[#16181d] border border-zinc-300 dark:border-[#27272a] text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#8a8f9a] text-sm px-3 focus:outline-none focus:ring-1 focus:ring-[#0066FF] dark:focus:ring-[#3b82f6] focus:border-[#0066FF] dark:focus:border-[#3b82f6] transition-colors text-left font-mono",
+                          tag: {
+                            body:
+                              filterType === "blacklist"
+                                ? "relative h-7 bg-red-500/10 dark:bg-red-950/30 border border-red-500/30 dark:border-red-800/50 hover:bg-red-500/15 rounded-md font-mono text-xs ps-2 pe-7 text-red-700 dark:text-red-300 shadow-2xs transition-colors"
+                                : "relative h-7 bg-zinc-100 dark:bg-[#20222a] border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/80 dark:hover:bg-[#282b35] rounded-md font-mono text-xs ps-2 pe-7 text-zinc-950 dark:text-white shadow-2xs transition-colors",
+                            closeButton:
+                              filterType === "blacklist"
+                                ? "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-red-500 hover:text-red-700 dark:hover:text-red-200 hover:bg-red-500/20"
+                                : "absolute -inset-y-px -end-px p-0 rounded-s-none rounded-e-md flex size-7 transition-colors outline-none text-zinc-500 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50",
+                          },
+                          tagList: {
+                            container: "flex flex-wrap items-center justify-start gap-1.5 pt-1 w-full",
+                          },
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      {filterType === "blacklist" ? (
+                        isFr ? (
+                          <>
+                            Toutes les pages du site restent navigables, <span className="font-bold text-red-600 dark:text-red-400">SAUF</span> celles listées ici qui seront immédiatement bloquées (ex. <code className="font-mono">/pricing</code>, <code className="font-mono">/admin</code>).
+                          </>
+                        ) : (
+                          <>
+                            All pages on the site remain navigable, <span className="font-bold text-red-600 dark:text-red-400">EXCEPT</span> those listed here which will be blocked immediately (e.g. <code className="font-mono">/pricing</code>, <code className="font-mono">/admin</code>).
+                          </>
+                        )
+                      ) : (
+                        isFr ? (
+                          <>
+                            Seules ces routes seront accessibles. Laissez vide pour autoriser tout le site (<code className="font-mono">/</code>).
+                          </>
+                        ) : (
+                          <>
+                            Only these routes will be accessible. Leave empty to allow the entire site (<code className="font-mono">/</code>).
+                          </>
+                        )
+                      )}
+                    </p>
+                  </div>
                 </div>
               )}
 

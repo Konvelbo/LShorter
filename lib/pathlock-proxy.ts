@@ -798,7 +798,9 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     proxyAssetBase,
     mode: String(opts.mode || "strict").trim().toLowerCase(),
     prefix: opts.prefix || "",
+    filterType: parsedRoutes.filterType,
     routes: parsedRoutes.routes,
+    blockedRoutes: parsedRoutes.blockedRoutes,
     allowAllSubpaths: parsedRoutes.allowAllSubpaths,
     hasExplicitRoot: parsedRoutes.hasExplicitRoot,
     initialUnlocked: opts.initialUnlocked,
@@ -1046,6 +1048,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
   var baseNormA = normPath(CFG.parsedBasePathname);
   var baseNormB = normPath(CFG.effectivePathname);
   var allowedRoutes = Array.isArray(CFG.routes) ? CFG.routes : [];
+  var blockedRoutes = Array.isArray(CFG.blockedRoutes) ? CFG.blockedRoutes : [];
   var allowAllSubpaths = Boolean(CFG.allowAllSubpaths);
   var hasExplicitRoot = Boolean(CFG.hasExplicitRoot);
 
@@ -1127,6 +1130,17 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       var curEffSearch = curEffUrl ? curEffUrl.search : "";
       var isSameDocHashOnly = Boolean(u.hash) && attemptNorm === curEffPath && u.search === curEffSearch;
 
+      // 1. First priority: if attempt matches any blocked route, BLOCK IMMEDIATELY!
+      if (blockedRoutes.length > 0) {
+        var isExplicitlyBlocked = blockedRoutes.some(function(b) {
+          if (b === "" || b === "/") return attemptNorm === "";
+          return attemptNorm === b || attemptNorm.indexOf(b + "/") === 0;
+        });
+        if (isExplicitlyBlocked) {
+          return { allowed: false, url: u.href, isSameSite: true };
+        }
+      }
+
       if (CFG.mode === "strict") {
         var strictAllowed =
           attemptNorm === baseNormA ||
@@ -1137,11 +1151,21 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       }
 
       if (CFG.mode === "funnel") {
-        var isRootOrTarget =
-          allowAllSubpaths ||
-          attemptNorm === "" ||
+        // Blacklist mode: if not blocked above, everything is permitted
+        if (CFG.filterType === "blacklist") {
+          return {
+            allowed: true,
+            isHashOnly: isSameDocHashOnly,
+            hash: u.hash,
+            url: u.href,
+          };
+        }
+
+        // Whitelist mode: only base target and explicitly allowed prefixes are permitted
+        var isTarget =
           attemptNorm === baseNormA ||
-          attemptNorm === baseNormB;
+          (hasExplicitRoot && attemptNorm === "") ||
+          (baseNormA === "" && attemptNorm === "");
         var isAllowedPrefix = allowedRoutes.some(function(p) {
           return attemptNorm === p || attemptNorm.indexOf(p + "/") === 0;
         });
@@ -1149,7 +1173,7 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         var isCoolorsGenerator = isHexPalette && allowedRoutes.some(function(p) {
           return p === "generate" || p.indexOf("generate") === 0;
         });
-        var funnelAllowed = isRootOrTarget || isAllowedPrefix || isCoolorsGenerator;
+        var funnelAllowed = allowAllSubpaths || isTarget || isAllowedPrefix || isCoolorsGenerator;
         return {
           allowed: funnelAllowed,
           isHashOnly: funnelAllowed && isSameDocHashOnly,
@@ -1311,15 +1335,22 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         return;
       }
       // Route real full-document same-site navigations (e.g. location.href redirect) via proxy
-      if (e.cancelable && check.url && destUrl.indexOf(CFG.proxyPrefix) === -1 && e.navigationType !== "traverse") {
+      if (
+        e.cancelable &&
+        !e.defaultPrevented &&
+        check.url &&
+        destUrl.indexOf(CFG.proxyPrefix) === -1 &&
+        e.navigationType !== "traverse" &&
+        e.navigationType !== "push" &&
+        e.navigationType !== "replace"
+      ) {
         e.preventDefault();
         window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
       }
     });
   }
 
-  // 3. Intercept anchor clicks inside page (including Shadow DOM / SVG links)
-  document.addEventListener("click", function(e) {
+  function getAnchorFromEvent(e) {
     var target = null;
     if (e.composedPath) {
       var cp = e.composedPath();
@@ -1340,6 +1371,12 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
         target = target.parentElement;
       }
     }
+    return target;
+  }
+
+  // 3a. Intercept anchor clicks in CAPTURE PHASE: Block disallowed routes immediately!
+  document.addEventListener("click", function(e) {
+    var target = getAnchorFromEvent(e);
     if (!target) return;
     if (target.hasAttribute && target.hasAttribute("download")) return;
     var rawHref = target.getAttribute("href");
@@ -1371,13 +1408,34 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
       window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
       return false;
     }
+    // When allowed, DO NOT call e.preventDefault() in capture phase so that SPA routers
+    // (Next.js Link, React Router, Vue Router) can handle the transition dynamically in milliseconds!
+  }, true);
 
-    if (check.url && !check.isProxySelf) {
+  // 3b. Intercept anchor clicks in BUBBLE PHASE: For non-SPA traditional links that were not handled
+  document.addEventListener("click", function(e) {
+    if (e.defaultPrevented) {
+      // SPA framework already intercepted this click and will navigate via pushState
+      return;
+    }
+    var target = getAnchorFromEvent(e);
+    if (!target) return;
+    if (target.hasAttribute && target.hasAttribute("download")) return;
+    var rawHref = target.getAttribute("href");
+    if (!rawHref) return;
+
+    var trimmed = rawHref.trim();
+    if (trimmed.indexOf("#") === 0 || trimmed.indexOf("javascript:") === 0 || trimmed.indexOf("mailto:") === 0 || trimmed.indexOf("tel:") === 0) {
+      return;
+    }
+
+    var check = checkUrlAllowed(rawHref);
+    if (check.allowed && check.url && !check.isProxySelf) {
       e.preventDefault();
       window.location.href = CFG.proxyPrefix + "?url=" + encodeURIComponent(check.url) + (isUnlocked ? "&unlocked=1" : "");
       return false;
     }
-  }, true);
+  }, false);
 
   // 4. Intercept form submissions
   document.addEventListener("submit", function(e) {
