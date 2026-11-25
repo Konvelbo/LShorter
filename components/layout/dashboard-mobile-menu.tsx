@@ -246,6 +246,19 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
     }
   }, [isOpen]);
 
+  // Close mobile modals on Escape key
+  useEffect(() => {
+    if (!isNotifModalOpen && !isProfileModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isNotifModalOpen) setIsNotifModalOpen(false);
+        if (isProfileModalOpen) setIsProfileModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isNotifModalOpen, isProfileModalOpen]);
+
   const [currentTabParam, setCurrentTabParam] = useState<string>("");
 
   useEffect(() => {
@@ -644,14 +657,24 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
 
       {/* ─── 2. MODALE NOTIFICATIONS MOBILE ─── */}
       {isNotifModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("topbar.notifications")}
+          data-testid="mobile-notifications-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsNotifModalOpen(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-xs cursor-pointer"
+        >
           <div
-            className="w-full max-w-sm rounded-[14px] ds-card p-4 shadow-2xl border ds-border flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200"
+            data-testid="mobile-notifications-modal"
+            className="w-full max-w-sm rounded-[14px] ds-card p-4 shadow-2xl border ds-border flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b ds-border">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 pb-3 border-b ds-border">
+              <div className="flex items-center gap-2 min-w-0">
                 <span className="text-sm font-bold ds-text-primary">
                   {t("topbar.notifications")}
                 </span>
@@ -661,7 +684,7 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {unreadCount > 0 && (
                   <button
                     type="button"
@@ -673,11 +696,13 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
                 )}
                 <button
                   type="button"
+                  data-testid="mobile-notifications-close-btn"
                   onClick={() => setIsNotifModalOpen(false)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-muted hover:text-primary transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.12] border border-black/[0.12] dark:border-white/[0.18] ds-text-primary hover:bg-black/10 dark:hover:bg-white/20 active:scale-95 transition-all cursor-pointer shrink-0"
                   aria-label={t("common.close")}
+                  title={t("common.close")}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 stroke-[2.25]" />
                 </button>
               </div>
             </div>
@@ -740,9 +765,16 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
 
       {/* ─── 3. MODALE PROFIL MOBILE (mêmes infos que sur le popup desktop) ─── */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsProfileModalOpen(false);
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-xs cursor-pointer"
+        >
           <div
-            className="w-full max-w-sm rounded-[14px] ds-card p-4 shadow-2xl border ds-border flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200"
+            className="w-full max-w-sm rounded-[14px] ds-card p-4 shadow-2xl border ds-border flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Profil */}
@@ -784,9 +816,11 @@ export const DashboardMobileMenu = React.memo(function DashboardMobileMenu({
               <button
                 type="button"
                 onClick={() => setIsProfileModalOpen(false)}
-                className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-muted hover:text-primary transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.12] border border-black/[0.12] dark:border-white/[0.18] ds-text-primary hover:bg-black/10 dark:hover:bg-white/20 active:scale-95 transition-all cursor-pointer shrink-0"
+                aria-label={t("common.close")}
+                title={t("common.close")}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 stroke-[2.25]" />
               </button>
             </div>
 
