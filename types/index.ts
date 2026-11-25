@@ -133,6 +133,10 @@ export interface ShortLink {
   path_lock_message?: string;
   pathLockPassword?: string;
   path_lock_password?: string;
+  pathLockAction?: "block" | "fallback";
+  path_lock_action?: "block" | "fallback";
+  pathLockFallbackPath?: string | null;
+  path_lock_fallback_path?: string | null;
   pixels?: string[] | any;
   isActive: boolean;
   is_active?: number | boolean;

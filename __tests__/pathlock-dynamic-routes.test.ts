@@ -9,6 +9,10 @@ import {
   rewriteHtmlForPathLock,
   verifyPathLockContextFromCookieHeader,
 } from "@/lib/pathlock-proxy";
+import {
+  getPathLockNavigableRoutes,
+  resolveSafePathLockFallbackUrl,
+} from "@/lib/pathlock-routes";
 
 describe("PathLock Dynamic Routes Optimization & Integrity", () => {
   const prevSecret = process.env.FRONTEND_API_SECRET;
@@ -383,5 +387,205 @@ describe("PathLock Dynamic Routes Optimization & Integrity", () => {
     expect(fetchCalls[fetchCalls.length - 1].input).toBe(
       "/r/funnel-test/proxy/__p/https/example.com/docs/intro?_rsc=ts&_plts=1",
     );
+  });
+
+  test("Option 1 & Option 3: getPathLockNavigableRoutes and resolveSafePathLockFallbackUrl handle whitelist, blacklist, strict, and anti-loop safely", () => {
+    // 1. Whitelist returns target + allowed routes deduplicated
+    const whitelistRoutes = getPathLockNavigableRoutes({
+      targetUrl: "https://ui.shadcn.com/",
+      rawPrefix: "/create, /docs/installation, /",
+      mode: "funnel",
+    });
+    expect(whitelistRoutes.map((r) => r.label)).toEqual([
+      "/",
+      "/create",
+      "/docs/installation",
+    ]);
+    expect(whitelistRoutes[1].url).toBe("https://ui.shadcn.com/create");
+
+    // 2. Blacklist never leaks blocked paths or "block:" prefix into clickable pills or dropdown
+    const blacklistRoutes = getPathLockNavigableRoutes({
+      targetUrl: "https://ui.shadcn.com/",
+      rawPrefix: "block:/blocks, /pricing",
+      mode: "funnel",
+    });
+    expect(blacklistRoutes.map((r) => r.label)).toEqual(["/"]);
+
+    // 3. Strict mode ignores fallback action completely
+    expect(
+      resolveSafePathLockFallbackUrl({
+        targetUrl: "https://ui.shadcn.com/",
+        rawPrefix: "/create",
+        mode: "strict",
+        action: "fallback",
+        fallbackPath: "/create",
+      }),
+    ).toEqual({ enabled: false, fallbackUrl: null, fallbackPath: null });
+
+    // 4. Valid single-choice fallback path in Tunnel mode
+    expect(
+      resolveSafePathLockFallbackUrl({
+        targetUrl: "https://ui.shadcn.com/",
+        rawPrefix: "/create, /docs/installation",
+        mode: "funnel",
+        action: "fallback",
+        fallbackPath: "/create",
+      }),
+    ).toEqual({
+      enabled: true,
+      fallbackUrl: "https://ui.shadcn.com/create",
+      fallbackPath: "/create",
+    });
+
+    // 5. Out-of-scope or malicious fallback path falls back safely to targetUrl
+    expect(
+      resolveSafePathLockFallbackUrl({
+        targetUrl: "https://ui.shadcn.com/",
+        rawPrefix: "/create",
+        mode: "funnel",
+        action: "fallback",
+        fallbackPath: "/blocks",
+      }),
+    ).toEqual({
+      enabled: true,
+      fallbackUrl: "https://ui.shadcn.com/",
+      fallbackPath: "/",
+    });
+
+    // 6. Blacklist blocking root "/" degrades safely to Security Gate (no infinite loop!)
+    expect(
+      resolveSafePathLockFallbackUrl({
+        targetUrl: "https://ui.shadcn.com/",
+        rawPrefix: "block:/",
+        mode: "funnel",
+        action: "fallback",
+        fallbackPath: "",
+      }),
+    ).toEqual({ enabled: false, fallbackUrl: null, fallbackPath: null });
+  });
+
+  test("Option 3 VM sandbox: Tunnel fallback redirects disallowed clicks to chosen page, avoids white-flash when already on fallback, and keeps prefetches silent (204)", async () => {
+    const buildSandbox = (effectivePathname: string) => {
+      const injected = buildPathLockHeadInjection({
+        slug: "fb-demo",
+        targetUrl: "https://example.com/",
+        effectiveUrl: `https://example.com${effectivePathname}`,
+        parsedBaseOrigin: "https://example.com",
+        parsedBasePathname: "/",
+        effectiveOrigin: "https://example.com",
+        effectivePathname,
+        mode: "funnel",
+        prefix: "/create, /docs/installation",
+        action: "fallback",
+        fallbackUrl: "https://example.com/create",
+        fallbackPath: "/create",
+        initialUnlocked: false,
+        hasExistingImportMap: false,
+      });
+      const scriptBody = injected.match(/<script>([\s\S]*?)<\/script>/)![1];
+      const posted: any[] = [];
+      const docListeners: Record<string, Array<{ fn: (...args: any[]) => any; capture: boolean }>> = {};
+      const store = new Map<string, string>();
+      let scrollCalls = 0;
+
+      const sandbox: any = {
+        URL,
+        URLSearchParams,
+        Headers,
+        Response: class MockResponse {
+          status: number;
+          body: string | null;
+          constructor(body: string | null, init?: { status?: number }) {
+            const status = init?.status ?? 200;
+            if ((status === 204 || status === 205 || status === 304) && body !== null && body !== undefined) {
+              throw new TypeError("Response with null body status cannot have body");
+            }
+            this.body = body;
+            this.status = status;
+          }
+        },
+        Element: { prototype: { setAttribute: () => {}, getAttribute: () => null } },
+        Document: { prototype: {} },
+        HTMLScriptElement: { prototype: {} },
+        HTMLIFrameElement: { prototype: {} },
+        HTMLLinkElement: { prototype: {} },
+        HTMLImageElement: { prototype: {} },
+        HTMLSourceElement: { prototype: {} },
+        HTMLVideoElement: { prototype: {} },
+        document: {
+          addEventListener(type: string, fn: (...args: any[]) => any, capture = false) {
+            docListeners[type] = docListeners[type] || [];
+            docListeners[type].push({ fn, capture: Boolean(capture) });
+          },
+        },
+        window: null as any,
+        setTimeout,
+        clearTimeout,
+      };
+
+      sandbox.window = {
+        location: {
+          origin: "https://lsho.cc",
+          pathname: effectivePathname,
+          search: "",
+          hash: "",
+          href: `https://lsho.cc${effectivePathname}`,
+        },
+        history: { state: null, pushState: () => {}, replaceState: () => {} },
+        parent: { postMessage: (msg: any) => posted.push(msg) },
+        sessionStorage: {
+          getItem: (k: string) => store.get(k) ?? null,
+          setItem: (k: string, v: string) => store.set(k, v),
+        },
+        scrollTo: () => { scrollCalls++; },
+        navigator: {},
+        fetch: async () => ({ status: 200, url: "", headers: { get: () => null } }),
+        open: () => null,
+        addEventListener: () => {},
+      };
+
+      vm.runInNewContext(scriptBody, sandbox);
+      return { sandbox, posted, docListeners, getScrollCalls: () => scrollCalls };
+    };
+
+    // Case A: Visitor on /docs/installation clicks disallowed /blocks -> redirects to /create via proxy with &fb=1
+    const caseA = buildSandbox("/docs/installation");
+    const captureClickA = caseA.docListeners["click"].find((l) => l.capture)!.fn;
+    captureClickA({
+      type: "click",
+      target: { tagName: "A", hasAttribute: () => false, getAttribute: (k: string) => (k === "href" ? "/blocks" : null) },
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      stopImmediatePropagation: () => {},
+    });
+    expect(caseA.sandbox.window.location.href).toBe(
+      "/r/fb-demo/proxy?url=https%3A%2F%2Fexample.com%2Fcreate&fb=1",
+    );
+    expect(caseA.posted.some((m) => m.type === "PATHLOCK_FALLBACK" && m.fallbackPath === "/create" && !m.alreadyOnFallback)).toBe(true);
+    expect(caseA.posted.some((m) => m.type === "PATHLOCK_NAVIGATE" && m.blocked === true)).toBe(false);
+
+    // Case B: Prefetch of /blocks in fallback mode stays silent 204 and NEVER redirects!
+    const caseB = buildSandbox("/docs/installation");
+    const prefetchRes = await caseB.sandbox.window.fetch(
+      new URL("https://lsho.cc/blocks?_rsc=123"),
+      { headers: { RSC: "1", "Next-Router-Prefetch": "1" } },
+    );
+    expect(prefetchRes.status).toBe(204);
+    expect(caseB.sandbox.window.location.href).toBe("https://lsho.cc/docs/installation");
+    expect(caseB.posted.some((m) => m.type === "PATHLOCK_FALLBACK")).toBe(false);
+
+    // Case C: Already on /create -> clicking /blocks scrolls smoothly to top + notifies toast WITHOUT reloading page
+    const caseC = buildSandbox("/create");
+    const captureClickC = caseC.docListeners["click"].find((l) => l.capture)!.fn;
+    captureClickC({
+      type: "click",
+      target: { tagName: "A", hasAttribute: () => false, getAttribute: (k: string) => (k === "href" ? "/blocks" : null) },
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      stopImmediatePropagation: () => {},
+    });
+    expect(caseC.sandbox.window.location.href).toBe("https://lsho.cc/create");
+    expect(caseC.getScrollCalls()).toBe(1);
+    expect(caseC.posted.some((m) => m.type === "PATHLOCK_FALLBACK" && m.alreadyOnFallback === true)).toBe(true);
   });
 });

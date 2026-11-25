@@ -561,6 +561,56 @@ export const baseLinkBodySchema = z
     path_lock_message: z.string().trim().max(500).optional().nullable(),
     pathLockPassword: z.string().max(128).optional().nullable(),
     path_lock_password: z.string().max(128).optional().nullable(),
+    pathLockAction: z
+      .union([
+        z.enum(["block", "fallback"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    path_lock_action: z
+      .union([
+        z.enum(["block", "fallback"]),
+        z.literal("").transform(() => undefined),
+        z.null(),
+      ])
+      .optional(),
+    pathLockFallbackPath: z
+      .union([
+        z
+          .string()
+          .trim()
+          .max(255)
+          .refine(
+            (v) =>
+              !v ||
+              (v.startsWith("/") &&
+                !v.startsWith("//") &&
+                !/[\s\x00-\x1F\x7F]/.test(v) &&
+                !/^\/?(javascript|data|vbscript|file):/i.test(v)),
+            "Fallback path must be a safe relative path starting with /",
+          ),
+        z.null(),
+      ])
+      .optional(),
+    path_lock_fallback_path: z
+      .union([
+        z
+          .string()
+          .trim()
+          .max(255)
+          .refine(
+            (v) =>
+              !v ||
+              (v.startsWith("/") &&
+                !v.startsWith("//") &&
+                !/[\s\x00-\x1F\x7F]/.test(v) &&
+                !/^\/?(javascript|data|vbscript|file):/i.test(v)),
+            "Fallback path must be a safe relative path starting with /",
+          ),
+        z.null(),
+      ])
+      .optional(),
     // Domain
     domainId: z.string().trim().max(100).optional().nullable(),
     customDomain: z.string().trim().max(255).optional().nullable(),

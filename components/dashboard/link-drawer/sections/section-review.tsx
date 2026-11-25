@@ -42,6 +42,8 @@ interface SectionReviewProps {
   fallbackUrl: string;
   pathLockMode: string;
   pathLockPrefix: string;
+  pathLockAction?: "block" | "fallback";
+  pathLockFallbackPath?: string;
   isCloaked: boolean;
   hideReferrer: boolean;
   // Routing
@@ -79,6 +81,8 @@ export function SectionReview({
   fallbackUrl,
   pathLockMode,
   pathLockPrefix,
+  pathLockAction,
+  pathLockFallbackPath,
   isCloaked,
   hideReferrer,
   routingRulesCount,
@@ -238,7 +242,11 @@ export function SectionReview({
                   )}
                   {pathLockMode && pathLockMode !== "off" && (
                     <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
-                      PathLock™
+                      {pathLockMode === "funnel" && pathLockAction === "fallback"
+                        ? pathLockFallbackPath
+                          ? `PathLock™ Fallback (${pathLockFallbackPath})`
+                          : "PathLock™ Fallback"
+                        : "PathLock™"}
                     </span>
                   )}
                 </span>

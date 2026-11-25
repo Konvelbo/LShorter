@@ -272,3 +272,189 @@ export function isPathAllowedByPathLock({
 
   return true;
 }
+
+export interface PathLockNavigableRoute {
+  label: string;
+  path: string;
+  url: string;
+  isTarget: boolean;
+}
+
+export interface PathLockFallbackResolution {
+  enabled: boolean;
+  fallbackUrl: string | null;
+  fallbackPath: string | null;
+}
+
+/**
+ * Normalizes a relative fallback path (e.g. "/create/") to canonical "/create" or "/".
+ * Rejects protocol-relative ("//..."), external URLs, whitespace, or control chars.
+ */
+export function normalizePathLockFallbackPath(raw?: string | null): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  if (
+    !s.startsWith("/") ||
+    s.startsWith("//") ||
+    /[\s\x00-\x1F\x7F]/.test(s) ||
+    /^\/?(javascript|data|vbscript|file):/i.test(s)
+  ) {
+    return null;
+  }
+  const clean = s.replace(/\/{2,}/g, "/");
+  return clean === "/" ? "/" : clean.replace(/\/+$/, "");
+}
+
+/**
+ * Returns the deduplicated list of navigable authorized routes for a PathLock link.
+ * Used both for clickable route pills on the Security Gate (Option 1) and for the
+ * pre-populated single-choice Fallback dropdown in Tunnel mode (Option 3).
+ */
+export function getPathLockNavigableRoutes(opts: {
+  targetUrl: string;
+  rawPrefix?: string | null;
+  mode?: string | null;
+  slug?: string | null;
+}): PathLockNavigableRoute[] {
+  const normalizedMode = String(opts.mode || "strict").trim().toLowerCase();
+  const rawTarget = String(opts.targetUrl || "").trim();
+  if (!rawTarget) return [];
+
+  let parsedTarget: URL;
+  try {
+    parsedTarget = new URL(
+      rawTarget.startsWith("http://") || rawTarget.startsWith("https://")
+        ? rawTarget
+        : `https://${rawTarget}`,
+    );
+  } catch {
+    return [];
+  }
+
+  const targetPath =
+    parsedTarget.pathname === "/" || !parsedTarget.pathname
+      ? "/"
+      : parsedTarget.pathname.replace(/\/+$/, "");
+  const parsed = parsePathLockRoutes(opts.rawPrefix);
+  const out: PathLockNavigableRoute[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (candidatePath: string, fullUrl: string, isTarget: boolean) => {
+    const cleanPath =
+      candidatePath === "/" || !candidatePath
+        ? "/"
+        : `/${candidatePath.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+    const key = cleanPath.toLowerCase();
+    if (seen.has(key)) return;
+
+    const allowed = isPathAllowedByPathLock({
+      mode: normalizedMode,
+      attemptPathOrUrl: cleanPath,
+      rawPrefix: opts.rawPrefix,
+      slug: opts.slug,
+      targetPaths: [targetPath],
+    });
+    if (!allowed) return;
+
+    seen.add(key);
+    out.push({
+      label: cleanPath,
+      path: cleanPath,
+      url: fullUrl,
+      isTarget,
+    });
+  };
+
+  // Always prefer the configured target page first when allowed
+  pushCandidate(targetPath, parsedTarget.href, true);
+
+  // In Tunnel whitelist mode, include each explicitly configured allowed route
+  if (normalizedMode === "funnel" && parsed.filterType === "whitelist") {
+    for (const r of parsed.routes) {
+      const routePath = r ? `/${r}` : "/";
+      pushCandidate(routePath, `${parsedTarget.origin}${routePath}`, false);
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Resolves a verified, loop-safe fallback destination URL for PathLock Tunnel mode.
+ * Returns `enabled: false` (degrading safely to the Security Gate) whenever mode is not "funnel",
+ * action is not "fallback", or no allowed target route exists (preventing infinite redirect loops).
+ */
+export function resolveSafePathLockFallbackUrl(opts: {
+  targetUrl: string;
+  rawPrefix?: string | null;
+  mode?: string | null;
+  action?: string | null;
+  fallbackPath?: string | null;
+  slug?: string | null;
+}): PathLockFallbackResolution {
+  const normalizedMode = String(opts.mode || "strict").trim().toLowerCase();
+  const normalizedAction = String(opts.action || "block").trim().toLowerCase();
+
+  if (normalizedMode !== "funnel" || normalizedAction !== "fallback") {
+    return { enabled: false, fallbackUrl: null, fallbackPath: null };
+  }
+
+  const rawTarget = String(opts.targetUrl || "").trim();
+  if (!rawTarget) {
+    return { enabled: false, fallbackUrl: null, fallbackPath: null };
+  }
+
+  let parsedTarget: URL;
+  try {
+    parsedTarget = new URL(
+      rawTarget.startsWith("http://") || rawTarget.startsWith("https://")
+        ? rawTarget
+        : `https://${rawTarget}`,
+    );
+  } catch {
+    return { enabled: false, fallbackUrl: null, fallbackPath: null };
+  }
+
+  const targetPath =
+    parsedTarget.pathname === "/" || !parsedTarget.pathname
+      ? "/"
+      : parsedTarget.pathname.replace(/\/+$/, "");
+
+  // 1. Explicit single-choice fallback path if valid and allowed
+  const cleanFallback = normalizePathLockFallbackPath(opts.fallbackPath);
+  if (cleanFallback) {
+    const isExplicitAllowed = isPathAllowedByPathLock({
+      mode: "funnel",
+      attemptPathOrUrl: cleanFallback,
+      rawPrefix: opts.rawPrefix,
+      slug: opts.slug,
+      targetPaths: [targetPath],
+    });
+    if (isExplicitAllowed) {
+      const targetNorm = targetPath.toLowerCase();
+      const url =
+        cleanFallback.toLowerCase() === targetNorm
+          ? parsedTarget.href
+          : `${parsedTarget.origin}${cleanFallback}`;
+      return { enabled: true, fallbackUrl: url, fallbackPath: cleanFallback };
+    }
+  }
+
+  // 2. Fallback to any safe navigable route (prefers targetUrl first, then first allowed route)
+  const navigable = getPathLockNavigableRoutes({
+    targetUrl: parsedTarget.href,
+    rawPrefix: opts.rawPrefix,
+    mode: "funnel",
+    slug: opts.slug,
+  });
+  if (navigable.length > 0) {
+    return {
+      enabled: true,
+      fallbackUrl: navigable[0].url,
+      fallbackPath: navigable[0].path,
+    };
+  }
+
+  // 3. No allowed route exists (e.g. blacklist blocking "/") -> degrade safely to block gate
+  return { enabled: false, fallbackUrl: null, fallbackPath: null };
+}

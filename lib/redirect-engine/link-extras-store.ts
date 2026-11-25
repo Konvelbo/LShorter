@@ -41,6 +41,10 @@ export interface LinkExtrasRecord {
   path_lock_message?: string;
   pathLockPassword?: string;
   path_lock_password?: string;
+  pathLockAction?: string;
+  path_lock_action?: string;
+  pathLockFallbackPath?: string | null;
+  path_lock_fallback_path?: string | null;
   updatedAt?: number;
 }
 
@@ -146,6 +150,10 @@ export function saveLinkExtras(
   assignIfDefined("banner_style", payload.banner_style, payload.bannerStyle);
   assignIfDefined("twitterCard", payload.twitterCard, payload.twitter_card);
   assignIfDefined("twitter_card", payload.twitter_card, payload.twitterCard);
+  assignIfDefined("pathLockAction", payload.pathLockAction, payload.path_lock_action);
+  assignIfDefined("path_lock_action", payload.path_lock_action, payload.pathLockAction);
+  assignIfDefined("pathLockFallbackPath", payload.pathLockFallbackPath, payload.path_lock_fallback_path);
+  assignIfDefined("path_lock_fallback_path", payload.path_lock_fallback_path, payload.pathLockFallbackPath);
 
   if (keys.slug) {
     store.set(`slug:${keys.slug.toLowerCase()}`, next);
@@ -214,6 +222,15 @@ export function mergeLinkWithExtras<T extends Record<string, unknown>>(link: T):
       : {}),
     ...(!link.deviceTargeting && !link.device_targeting && extras.deviceTargeting !== undefined
       ? { deviceTargeting: extras.deviceTargeting, device_targeting: extras.device_targeting ?? extras.deviceTargeting }
+      : {}),
+    ...(link.pathLockAction === undefined && link.path_lock_action === undefined && extras.pathLockAction !== undefined
+      ? { pathLockAction: extras.pathLockAction, path_lock_action: extras.path_lock_action ?? extras.pathLockAction }
+      : {}),
+    ...(link.pathLockFallbackPath === undefined && link.path_lock_fallback_path === undefined && extras.pathLockFallbackPath !== undefined
+      ? {
+          pathLockFallbackPath: extras.pathLockFallbackPath,
+          path_lock_fallback_path: extras.path_lock_fallback_path ?? extras.pathLockFallbackPath,
+        }
       : {}),
   };
 }

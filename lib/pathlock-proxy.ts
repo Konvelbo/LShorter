@@ -10,6 +10,8 @@ export interface PathLockProxyConfig {
   pathLockPrefix: string;
   pathLockMessage: string;
   pathLockPassword: string;
+  pathLockAction?: "block" | "fallback" | string;
+  pathLockFallbackPath?: string;
 }
 
 export interface UpstreamRestrictionInfo {
@@ -563,6 +565,8 @@ export async function resolvePathLockLinkConfig(
     pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
     pathLockMessage: found.path_lock_message || found.pathLockMessage || "",
     pathLockPassword: found.path_lock_password || found.pathLockPassword || "",
+    pathLockAction: found.path_lock_action || found.pathLockAction || "block",
+    pathLockFallbackPath: found.path_lock_fallback_path || found.pathLockFallbackPath || "",
   };
 }
 
@@ -1090,6 +1094,9 @@ export interface HeadInjectionOptions {
   effectivePathname: string;
   mode: string;
   prefix: string;
+  action?: "block" | "fallback" | string;
+  fallbackUrl?: string | null;
+  fallbackPath?: string | null;
   initialUnlocked: boolean;
   hasExistingImportMap?: boolean;
   isNestedEmbed?: boolean;
@@ -1107,6 +1114,14 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
   const effVirtualPath = effU.pathname + effU.search + effU.hash;
   const parsedRoutes = parsePathLockRoutes(opts.prefix);
 
+  const normalizedMode = String(opts.mode || "strict").trim().toLowerCase();
+  const resolvedAction =
+    normalizedMode === "funnel" &&
+    String(opts.action || "block").trim().toLowerCase() === "fallback" &&
+    Boolean(opts.fallbackUrl)
+      ? "fallback"
+      : "block";
+
   const clientConfig = {
     slug: opts.slug,
     targetUrl: opts.targetUrl,
@@ -1119,7 +1134,10 @@ export function buildPathLockHeadInjection(opts: HeadInjectionOptions): string {
     proxyPrefix,
     proxyAssetBase,
     isNestedEmbed: Boolean(opts.isNestedEmbed),
-    mode: String(opts.mode || "strict").trim().toLowerCase(),
+    mode: normalizedMode,
+    action: resolvedAction,
+    fallbackUrl: resolvedAction === "fallback" ? String(opts.fallbackUrl || "") : "",
+    fallbackPath: resolvedAction === "fallback" ? String(opts.fallbackPath || "/") : "",
     prefix: opts.prefix || "",
     filterType: parsedRoutes.filterType,
     routes: parsedRoutes.routes,
@@ -1731,7 +1749,9 @@ ${importMapTag}<script>
     return window.parent;
   }
 
-  function notifyBlocked(blockedUrl) {
+  var lastFallbackDispatchAt = 0;
+
+  function sendBlockedGate(blockedUrl) {
     try {
       getGateWindow().postMessage(
         {
@@ -1742,6 +1762,68 @@ ${importMapTag}<script>
         "*"
       );
     } catch (e) {}
+  }
+
+  function notifyBlocked(blockedUrl) {
+    if (CFG.mode === "funnel" && CFG.action === "fallback" && CFG.fallbackUrl) {
+      var nowTs = Date.now();
+      if (nowTs - lastFallbackDispatchAt < 250) {
+        return;
+      }
+      lastFallbackDispatchAt = nowTs;
+
+      // Anti-loop guard: max 2 fallback navigations within 2000ms before degrading safely to Security Gate
+      var loopTripped = false;
+      try {
+        if (window.sessionStorage) {
+          var loopKey = "pathlock_fb_loop_" + CFG.slug;
+          var prevRaw = window.sessionStorage.getItem(loopKey);
+          var prev = prevRaw ? JSON.parse(prevRaw) : null;
+          var count = prev && typeof prev.ts === "number" && nowTs - prev.ts < 2000 ? (prev.c || 0) + 1 : 1;
+          window.sessionStorage.setItem(loopKey, JSON.stringify({ ts: nowTs, c: count }));
+          if (count > 2) loopTripped = true;
+        }
+      } catch (e) {}
+
+      if (!loopTripped) {
+        var targetFbNorm = normPath(CFG.fallbackPath || CFG.fallbackUrl);
+        var currentNorm = normPath(CFG.effectivePathname);
+        var alreadyOnFallback = !CFG.isNestedEmbed && targetFbNorm === currentNorm;
+
+        try {
+          getGateWindow().postMessage(
+            {
+              type: "PATHLOCK_FALLBACK",
+              blockedUrl: blockedUrl || "/blocked",
+              fallbackUrl: CFG.fallbackUrl,
+              fallbackPath: CFG.fallbackPath || "/",
+              alreadyOnFallback: alreadyOnFallback,
+              fromNestedEmbed: Boolean(CFG.isNestedEmbed),
+            },
+            "*"
+          );
+        } catch (e) {}
+
+        if (CFG.isNestedEmbed) {
+          return;
+        }
+        if (alreadyOnFallback) {
+          try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
+          return;
+        }
+
+        notifyLoading(true);
+        window.location.href =
+          CFG.proxyPrefix +
+          "?url=" +
+          encodeURIComponent(CFG.fallbackUrl) +
+          "&fb=1" +
+          (isUnlocked ? "&unlocked=1" : "");
+        return;
+      }
+    }
+
+    sendBlockedGate(blockedUrl);
   }
 
   function notifyAllowedNavigate(nextPathname) {

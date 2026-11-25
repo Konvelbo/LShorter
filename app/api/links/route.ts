@@ -326,6 +326,10 @@ export async function GET(req: Request) {
         pathLockMessage: l.pathLockMessage ?? l.path_lock_message ?? null,
         path_lock_password: l.path_lock_password ?? l.pathLockPassword ?? null,
         pathLockPassword: l.pathLockPassword ?? l.path_lock_password ?? null,
+        path_lock_action: l.path_lock_action ?? l.pathLockAction ?? "block",
+        pathLockAction: l.pathLockAction ?? l.path_lock_action ?? "block",
+        path_lock_fallback_path: l.path_lock_fallback_path ?? l.pathLockFallbackPath ?? null,
+        pathLockFallbackPath: l.pathLockFallbackPath ?? l.path_lock_fallback_path ?? null,
         expires_at: l.expires_at ?? l.expiresAt ?? null,
         expiresAt: l.expiresAt ?? l.expires_at ?? null,
         is_active: finalIsActiveInt,
@@ -716,6 +720,26 @@ export async function POST(req: Request) {
         body.pathLockPassword || body.path_lock_password || undefined,
       path_lock_password:
         body.pathLockPassword || body.path_lock_password || undefined,
+      pathLockAction:
+        finalPathLockMode === "funnel" &&
+        (body.pathLockAction === "fallback" || body.path_lock_action === "fallback")
+          ? "fallback"
+          : "block",
+      path_lock_action:
+        finalPathLockMode === "funnel" &&
+        (body.pathLockAction === "fallback" || body.path_lock_action === "fallback")
+          ? "fallback"
+          : "block",
+      pathLockFallbackPath:
+        finalPathLockMode === "funnel" &&
+        (body.pathLockAction === "fallback" || body.path_lock_action === "fallback")
+          ? (body.pathLockFallbackPath ?? body.path_lock_fallback_path ?? null)
+          : null,
+      path_lock_fallback_path:
+        finalPathLockMode === "funnel" &&
+        (body.pathLockAction === "fallback" || body.path_lock_action === "fallback")
+          ? (body.pathLockFallbackPath ?? body.path_lock_fallback_path ?? null)
+          : null,
       isActive: finalIsActive,
       is_active: finalIsActive ? 1 : 0,
       tags: body.tags !== undefined ? parseTags(body.tags) : undefined,
@@ -862,6 +886,26 @@ export async function POST(req: Request) {
             (data.data as any)?.path_lock_password ||
             (data.data as any)?.pathLockPassword ||
             undefined,
+          pathLockAction:
+            workerPayload.pathLockAction ||
+            (data.data as any)?.pathLockAction ||
+            (data.data as any)?.path_lock_action ||
+            "block",
+          path_lock_action:
+            workerPayload.path_lock_action ||
+            (data.data as any)?.path_lock_action ||
+            (data.data as any)?.pathLockAction ||
+            "block",
+          pathLockFallbackPath:
+            workerPayload.pathLockFallbackPath ??
+            (data.data as any)?.pathLockFallbackPath ??
+            (data.data as any)?.path_lock_fallback_path ??
+            null,
+          path_lock_fallback_path:
+            workerPayload.path_lock_fallback_path ??
+            (data.data as any)?.path_lock_fallback_path ??
+            (data.data as any)?.pathLockFallbackPath ??
+            null,
           routingRules: body.routingRules ?? body.routing_rules ?? null,
           geoTargeting: body.geoTargeting ?? body.geo_targeting ?? null,
           deviceTargeting:

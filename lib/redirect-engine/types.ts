@@ -71,6 +71,10 @@ export interface LinkMetadata {
   path_lock_message?: string;
   pathLockPassword?: string;
   path_lock_password?: string;
+  pathLockAction?: "block" | "fallback" | string;
+  path_lock_action?: "block" | "fallback" | string;
+  pathLockFallbackPath?: string | null;
+  path_lock_fallback_path?: string | null;
   routingRules?: RoutingRule[] | string;
   routing_rules?: RoutingRule[] | string;
   abVariations?: Array<{ url: string; weight: number }> | string;

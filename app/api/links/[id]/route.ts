@@ -407,6 +407,32 @@ export async function PATCH(
       path_lock_message: body.pathLockMessage ?? body.path_lock_message,
       pathLockPassword: body.pathLockPassword ?? body.path_lock_password,
       path_lock_password: body.pathLockPassword ?? body.path_lock_password,
+      ...(body.pathLockAction !== undefined || body.path_lock_action !== undefined || finalPathLockMode !== undefined
+        ? {
+            pathLockAction:
+              finalPathLockMode && finalPathLockMode !== "funnel"
+                ? "block"
+                : (body.pathLockAction ?? body.path_lock_action),
+            path_lock_action:
+              finalPathLockMode && finalPathLockMode !== "funnel"
+                ? "block"
+                : (body.pathLockAction ?? body.path_lock_action),
+          }
+        : {}),
+      ...(body.pathLockFallbackPath !== undefined ||
+      body.path_lock_fallback_path !== undefined ||
+      (finalPathLockMode && finalPathLockMode !== "funnel")
+        ? {
+            pathLockFallbackPath:
+              finalPathLockMode && finalPathLockMode !== "funnel"
+                ? null
+                : (body.pathLockFallbackPath ?? body.path_lock_fallback_path ?? null),
+            path_lock_fallback_path:
+              finalPathLockMode && finalPathLockMode !== "funnel"
+                ? null
+                : (body.pathLockFallbackPath ?? body.path_lock_fallback_path ?? null),
+          }
+        : {}),
       ...(isInputExpired
         ? { isActive: false, is_active: 0 }
         : {}),
@@ -713,6 +739,28 @@ export async function PATCH(
             body.path_lock_password ??
             (data.data as any)?.path_lock_password ??
             (data.data as any)?.pathLockPassword,
+          pathLockAction:
+            (workerPayload as any).pathLockAction ??
+            (data.data as any)?.pathLockAction ??
+            (data.data as any)?.path_lock_action ??
+            "block",
+          path_lock_action:
+            (workerPayload as any).path_lock_action ??
+            (data.data as any)?.path_lock_action ??
+            (data.data as any)?.pathLockAction ??
+            "block",
+          pathLockFallbackPath:
+            (workerPayload as any).pathLockFallbackPath !== undefined
+              ? (workerPayload as any).pathLockFallbackPath
+              : ((data.data as any)?.pathLockFallbackPath ??
+                (data.data as any)?.path_lock_fallback_path ??
+                null),
+          path_lock_fallback_path:
+            (workerPayload as any).path_lock_fallback_path !== undefined
+              ? (workerPayload as any).path_lock_fallback_path
+              : ((data.data as any)?.path_lock_fallback_path ??
+                (data.data as any)?.pathLockFallbackPath ??
+                null),
           tags: body.tags !== undefined ? parseTags(body.tags) : parseTags((data.data as any)?.tags),
         },
       },

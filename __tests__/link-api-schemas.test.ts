@@ -182,6 +182,40 @@ describe("Link API Zod Schemas (Create & Update)", () => {
     expect(linkUpdateBodySchema.safeParse({ maxClicks: -10 }).success).toBe(false);
     expect(linkUpdateBodySchema.safeParse({ redirectType: "999" }).success).toBe(false);
     expect(linkUpdateBodySchema.safeParse({ pathLockMode: "invalid" }).success).toBe(false);
+    expect(linkUpdateBodySchema.safeParse({ pathLockAction: "invalid" }).success).toBe(false);
+  });
+
+  test("validates pathLockAction and pathLockFallbackPath safely", () => {
+    expect(
+      linkCreateBodySchema.safeParse({
+        targetUrl: "https://ui.shadcn.com/",
+        pathLockMode: "funnel",
+        pathLockPrefix: "/create, /docs/installation",
+        pathLockAction: "fallback",
+        pathLockFallbackPath: "/create",
+      }).success
+    ).toBe(true);
+
+    expect(
+      linkUpdateBodySchema.safeParse({
+        pathLockAction: "fallback",
+        pathLockFallbackPath: "",
+      }).success
+    ).toBe(true);
+
+    for (const badPath of [
+      "//evil.com/phish",
+      "https://evil.com/phish",
+      "javascript:alert(1)",
+      "/has space",
+    ]) {
+      expect(
+        linkUpdateBodySchema.safeParse({
+          pathLockAction: "fallback",
+          pathLockFallbackPath: badPath,
+        }).success
+      ).toBe(false);
+    }
   });
 
   test("uploadJsonBodySchema accepts valid image data URIs and rejects HTML/scripts", () => {

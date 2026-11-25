@@ -55,6 +55,12 @@ async function getLink(slug: string): Promise<ResolvedLinkResult> {
           pathLockPrefix: found.path_lock_prefix || found.pathLockPrefix || "",
           pathLockMessage:
             found.path_lock_message || found.pathLockMessage || "",
+          pathLockAction:
+            found.path_lock_action || (found as any).pathLockAction || "block",
+          pathLockFallbackPath:
+            found.path_lock_fallback_path ||
+            (found as any).pathLockFallbackPath ||
+            "",
           hasUnlockPassword: Boolean(
             found.path_lock_password || (found as any).pathLockPassword
           ),

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
+import {
+  isPathAllowedByPathLock,
+  resolveSafePathLockFallbackUrl,
+} from "@/lib/pathlock-routes";
 import {
   buildPathLockBlockedHtml,
   buildPathLockHeadInjection,
@@ -111,6 +114,16 @@ export async function GET(
   const isUnlockedParam = req.nextUrl.searchParams.get("unlocked") === "1";
   const isPrefetchParam = req.nextUrl.searchParams.get("prefetch") === "1";
   const isEmbedParam = req.nextUrl.searchParams.get("embed") === "1";
+  const isFallbackAttempt = req.nextUrl.searchParams.get("fb") === "1";
+
+  const fallbackResolution = resolveSafePathLockFallbackUrl({
+    targetUrl: baseTargetUrl,
+    rawPrefix: config.pathLockPrefix || "",
+    mode: config.pathLockMode || "strict",
+    action: config.pathLockAction || "block",
+    fallbackPath: config.pathLockFallbackPath || "",
+    slug: config.slug,
+  });
   const incomingCookieHeader = req.headers.get("cookie");
   const signedCtx = verifyPathLockContextFromCookieHeader(incomingCookieHeader, config.slug);
   if (signedCtx && signedCtx.hosts.length > 0) {
@@ -178,6 +191,19 @@ export async function GET(
             if (isPrefetchParam) {
               return new NextResponse(null, { status: 204 });
             }
+            if (
+              !isFallbackAttempt &&
+              fallbackResolution.enabled &&
+              fallbackResolution.fallbackUrl
+            ) {
+              return NextResponse.redirect(
+                new URL(
+                  `/r/${encodeURIComponent(config.slug)}/proxy?url=${encodeURIComponent(fallbackResolution.fallbackUrl)}&fb=1`,
+                  req.nextUrl.origin,
+                ),
+                302,
+              );
+            }
             return new NextResponse(
               buildPathLockBlockedHtml(candidate.href, config.pathLockMessage),
               {
@@ -201,7 +227,7 @@ export async function GET(
 
   const mergedCookie = getMergedUpstreamCookies(incomingCookieHeader);
   const cookieFp = hashCookieFingerprint(mergedCookie);
-  const prefetchKey = `${config.slug.toLowerCase()}|${fetchTargetUrl}|${isUnlockedParam ? "1" : "0"}|${isLegitimateNestedEmbed ? "e1" : "e0"}|${cookieFp}`;
+  const prefetchKey = `${config.slug.toLowerCase()}|${fetchTargetUrl}|${isUnlockedParam ? "1" : "0"}|${isLegitimateNestedEmbed ? "e1" : "e0"}|${fallbackResolution.enabled ? `fb:${fallbackResolution.fallbackPath || "/"}` : "blk"}|${cookieFp}`;
 
   // 1. Instant one-shot hit from hover/pointerdown prefetch cache (skip on explicit hard reload)
   const isManualReload =
@@ -303,6 +329,23 @@ export async function GET(
       });
       if (!postRedirectAllowed) {
         try { await upstreamRes.body?.cancel(); } catch {}
+        if (
+          !isPrefetchParam &&
+          !isFallbackAttempt &&
+          fallbackResolution.enabled &&
+          fallbackResolution.fallbackUrl
+        ) {
+          return {
+            kind: "raw",
+            response: NextResponse.redirect(
+              new URL(
+                `/r/${encodeURIComponent(config.slug)}/proxy?url=${encodeURIComponent(fallbackResolution.fallbackUrl)}&fb=1`,
+                req.nextUrl.origin,
+              ),
+              302,
+            ),
+          };
+        }
         return {
           kind: "raw",
           response: new NextResponse(
@@ -411,6 +454,9 @@ export async function GET(
       effectivePathname: effectiveTarget.pathname || "/",
       mode: config.pathLockMode || "strict",
       prefix: config.pathLockPrefix || "",
+      action: fallbackResolution.enabled ? "fallback" : "block",
+      fallbackUrl: fallbackResolution.fallbackUrl,
+      fallbackPath: fallbackResolution.fallbackPath,
       initialUnlocked: isUnlockedParam,
       hasExistingImportMap,
       isNestedEmbed: isLegitimateNestedEmbed,

@@ -5,6 +5,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import {
   ExternalLink,
@@ -17,8 +18,14 @@ import {
   EyeOff,
   ChevronUp,
   ChevronDown,
+  CornerUpRight,
+  X,
 } from "lucide-react";
-import { isPathAllowedByPathLock } from "@/lib/pathlock-routes";
+import {
+  getPathLockNavigableRoutes,
+  isPathAllowedByPathLock,
+  resolveSafePathLockFallbackUrl,
+} from "@/lib/pathlock-routes";
 import { verifyPathLockUnlockPassword } from "@/app/r/[slug]/view/actions";
 import { useI18n } from "@/components/providers/i18n-provider";
 
@@ -34,6 +41,10 @@ export interface CloakedViewerLink {
   path_lock_prefix?: string;
   pathLockMessage?: string;
   path_lock_message?: string;
+  pathLockAction?: "block" | "fallback" | string;
+  path_lock_action?: "block" | "fallback" | string;
+  pathLockFallbackPath?: string | null;
+  path_lock_fallback_path?: string | null;
   hasUnlockPassword?: boolean;
 }
 
@@ -58,6 +69,10 @@ export function CloakedViewer({
   const [unlockPasswordInput, setUnlockPasswordInput] = useState("");
   const [showUnlockPassword, setShowUnlockPassword] = useState(false);
   const [unlockError, setUnlockError] = useState("");
+  const [showFallbackUnlockModal, setShowFallbackUnlockModal] = useState(false);
+  const [fallbackToastMessage, setFallbackToastMessage] = useState<string | null>(null);
+  const fallbackToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackLoopGuardRef = useRef<{ ts: number; count: number }>({ ts: 0, count: 0 });
   const [iframeKey, setIframeKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -115,6 +130,100 @@ export function CloakedViewer({
           "Le propriétaire de ce lien a restreint l'accès aux seules pages de son périmètre autorisé. Toute navigation externe est verrouillée.",
         ));
 
+  const rawPrefix = link.pathLockPrefix || link.path_lock_prefix || "";
+  const effectiveLockAction = String(
+    link.pathLockAction || link.path_lock_action || "block",
+  )
+    .trim()
+    .toLowerCase();
+  const rawFallbackPath =
+    link.pathLockFallbackPath || link.path_lock_fallback_path || "";
+
+  const navigableRoutes = useMemo(
+    () =>
+      getPathLockNavigableRoutes({
+        targetUrl: link.targetUrl,
+        rawPrefix,
+        mode: effectiveLockMode,
+        slug: link.slug,
+      }),
+    [link.targetUrl, rawPrefix, effectiveLockMode, link.slug],
+  );
+
+  const fallbackResolution = useMemo(
+    () =>
+      resolveSafePathLockFallbackUrl({
+        targetUrl: link.targetUrl,
+        rawPrefix,
+        mode: effectiveLockMode,
+        action: effectiveLockAction,
+        fallbackPath: rawFallbackPath,
+        slug: link.slug,
+      }),
+    [
+      link.targetUrl,
+      rawPrefix,
+      effectiveLockMode,
+      effectiveLockAction,
+      rawFallbackPath,
+      link.slug,
+    ],
+  );
+
+  const fallbackNoticeText =
+    link.pathLockMessage ||
+    link.path_lock_message ||
+    tr(
+      "Out-of-scope route — redirected to the authorized page.",
+      "Accès hors périmètre — redirection vers la page autorisée.",
+    );
+
+  const showFallbackNotice = useCallback(
+    (customPath?: string) => {
+      const msg =
+        link.pathLockMessage ||
+        link.path_lock_message ||
+        (customPath
+          ? tr(
+              `Out-of-scope route — redirected to ${customPath}`,
+              `Accès hors périmètre — redirection vers ${customPath}`,
+            )
+          : fallbackNoticeText);
+      setFallbackToastMessage(msg);
+      if (fallbackToastTimerRef.current) {
+        clearTimeout(fallbackToastTimerRef.current);
+      }
+      fallbackToastTimerRef.current = setTimeout(() => {
+        setFallbackToastMessage(null);
+      }, 2500);
+    },
+    [link.pathLockMessage, link.path_lock_message, fallbackNoticeText, tr],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (fallbackToastTimerRef.current) {
+        clearTimeout(fallbackToastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleNavigateToRoute = useCallback(
+    (destinationUrl: string, isFallbackRedirect = false) => {
+      setIsBlocked(false);
+      setIsReloading(true);
+      const nextSrc = isPathLocked
+        ? `/r/${encodeURIComponent(link.slug)}/proxy?url=${encodeURIComponent(destinationUrl)}${isFallbackRedirect ? "&fb=1" : ""}${isDevUnlocked ? "&unlocked=1" : ""}`
+        : destinationUrl;
+      if (iframeRef.current) {
+        iframeRef.current.src = nextSrc;
+      } else {
+        setIframeKey((prev) => prev + 1);
+      }
+    },
+    [isPathLocked, link.slug, isDevUnlocked],
+  );
+
   const validateAndEnforce = useCallback(
     (urlOrPath: string) => {
       if (!isPathLocked || isDevUnlocked) return;
@@ -129,7 +238,6 @@ export function CloakedViewer({
           targetPathname = tu.pathname || "/";
         } catch {}
 
-        const rawPrefix = link.pathLockPrefix || link.path_lock_prefix || "";
         const allowed = isPathAllowedByPathLock({
           mode: effectiveLockMode,
           attemptPathOrUrl: urlOrPath,
@@ -139,6 +247,17 @@ export function CloakedViewer({
         });
 
         if (!allowed) {
+          if (fallbackResolution.enabled && fallbackResolution.fallbackUrl) {
+            const nowTs = Date.now();
+            const prev = fallbackLoopGuardRef.current;
+            const nextCount = nowTs - prev.ts < 2000 ? prev.count + 1 : 1;
+            fallbackLoopGuardRef.current = { ts: nowTs, count: nextCount };
+            if (nextCount <= 2) {
+              showFallbackNotice(fallbackResolution.fallbackPath || undefined);
+              handleNavigateToRoute(fallbackResolution.fallbackUrl, true);
+              return;
+            }
+          }
           setIsBlocked(true);
         } else {
           setIsBlocked(false);
@@ -149,10 +268,12 @@ export function CloakedViewer({
       isPathLocked,
       isDevUnlocked,
       link.targetUrl,
-      link.pathLockPrefix,
-      link.path_lock_prefix,
+      rawPrefix,
       link.slug,
       effectiveLockMode,
+      fallbackResolution,
+      showFallbackNotice,
+      handleNavigateToRoute,
     ],
   );
 
@@ -175,6 +296,23 @@ export function CloakedViewer({
         setIsBlocked(false);
         return;
       }
+      if (e.data.type === "PATHLOCK_FALLBACK") {
+        if (isDevUnlocked) return;
+        const fbPath =
+          typeof e.data.fallbackPath === "string" && e.data.fallbackPath
+            ? e.data.fallbackPath
+            : fallbackResolution.fallbackPath || undefined;
+        showFallbackNotice(fbPath);
+        if (e.data.fromNestedEmbed) {
+          const targetFbUrl =
+            (typeof e.data.fallbackUrl === "string" && e.data.fallbackUrl) ||
+            fallbackResolution.fallbackUrl;
+          if (targetFbUrl) {
+            handleNavigateToRoute(targetFbUrl, true);
+          }
+        }
+        return;
+      }
       if (e.data.type === "PATHLOCK_NAVIGATE") {
         if (isDevUnlocked) return;
         if (e.data.blocked) {
@@ -192,7 +330,14 @@ export function CloakedViewer({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isPathLocked, isDevUnlocked, validateAndEnforce]);
+  }, [
+    isPathLocked,
+    isDevUnlocked,
+    validateAndEnforce,
+    fallbackResolution,
+    showFallbackNotice,
+    handleNavigateToRoute,
+  ]);
 
   // Synchronize unlock state with the proxied iframe
   useEffect(() => {
@@ -267,6 +412,7 @@ export function CloakedViewer({
         }
         setIsDevUnlocked(true);
         setIsBlocked(false);
+        setShowFallbackUnlockModal(false);
         setUnlockError("");
         setUnlockPasswordInput("");
       } else {
@@ -351,6 +497,22 @@ export function CloakedViewer({
             </button>
           )}
 
+          {/* Discreet Team Unlock button in Fallback mode when unlock password is configured */}
+          {isPathLocked && hasUnlock && fallbackResolution.enabled && !isDevUnlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                setUnlockError("");
+                setShowFallbackUnlockModal(true);
+              }}
+              className="h-9 sm:h-10 px-2.5 sm:px-3.5 inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 hover:bg-white/[0.07] text-[#D5D9E2] hover:text-white text-xs sm:text-sm font-medium transition-colors cursor-pointer"
+              title={tr("Team unlock", "Déverrouillage équipe")}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{tr("Unlock", "Débloquer")}</span>
+            </button>
+          )}
+
           {/* Refresh Button */}
           <button
             type="button"
@@ -409,6 +571,72 @@ export function CloakedViewer({
           <span>{tr("Show bar", "Afficher la barre")}</span>
           <ChevronDown className="w-3.5 h-3.5 text-[#8DB0FF]" />
         </button>
+      )}
+
+      {/* ── SUBTLE FALLBACK REDIRECT TOAST (2.5s, sober & non-intrusive) ── */}
+      {fallbackToastMessage && !isBlocked && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed left-1/2 -translate-x-1/2 z-[95] max-w-[92vw] sm:max-w-md px-3.5 py-2 rounded-[10px] bg-[#121318]/95 border border-white/15 text-[#E4E7EC] text-xs font-medium shadow-lg backdrop-blur-md flex items-center gap-2 pointer-events-none transition-all duration-200 ${
+            isHeaderCollapsed ? "top-14" : "top-[72px] sm:top-[76px]"
+          }`}
+        >
+          <CornerUpRight className="w-3.5 h-3.5 text-[#8DB0FF] shrink-0" />
+          <span className="truncate">{fallbackToastMessage}</span>
+        </div>
+      )}
+
+      {/* ── DISCREET TEAM UNLOCK MODAL (Fallback Mode) ── */}
+      {showFallbackUnlockModal && hasUnlock && !isDevUnlocked && (
+        <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[#111216] border border-white/12 p-5 shadow-2xl text-white">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                <Lock className="w-4 h-4 text-[#8DB0FF]" />
+                {tr("Team / dev unlock", "Déverrouillage équipe / dev")}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowFallbackUnlockModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/[0.07] transition-colors cursor-pointer"
+                aria-label={tr("Close", "Fermer")}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleDevUnlockSubmit} className="flex flex-col gap-2.5">
+              <div className="relative">
+                <input
+                  type={showUnlockPassword ? "text" : "password"}
+                  placeholder={tr("Unlock password…", "Mot de passe de déblocage…")}
+                  value={unlockPasswordInput}
+                  onChange={(e) => {
+                    setUnlockPasswordInput(e.target.value);
+                    if (unlockError) setUnlockError("");
+                  }}
+                  className="w-full h-10 px-3 pr-10 rounded-[10px] bg-black/35 border border-white/[0.14] focus:border-blue-500 text-[#F5F6F8] placeholder:text-[#8A909C] text-xs sm:text-sm outline-none transition-colors"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowUnlockPassword(!showUnlockPassword)}
+                  aria-label={showUnlockPassword ? tr("Hide password", "Masquer le mot de passe") : tr("Show password", "Afficher le mot de passe")}
+                  className="absolute right-1 top-1 w-8 h-8 flex items-center justify-center text-[#A9AFBA] hover:text-white transition-colors cursor-pointer"
+                >
+                  {showUnlockPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              {unlockError && <p className="text-xs text-red-400 font-medium">{unlockError}</p>}
+              <button
+                type="submit"
+                className="w-full h-10 rounded-[10px] bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+              >
+                {tr("Unlock full access", "Déverrouiller l’accès complet")}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ── MAIN CONTENT (Iframe Container) — Pure GPU Transform, Zero Reflow, Zero White Band ── */}
@@ -475,12 +703,33 @@ export function CloakedViewer({
                 </p>
               </div>
 
-              {/* Authorized Perimeter Box */}
-              <div className="w-full box-border mt-4 sm:mt-5 h-11 sm:h-12 px-3.5 flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-xs sm:text-sm text-[#A9AFBA]">{tr("Allowed perimeter", "Périmètre autorisé")}</span>
-                <code className="font-mono text-xs sm:text-sm font-semibold text-[#A9C4FF] px-2 py-0.5 rounded-lg bg-black/30 border border-white/10">
-                  /{authorizedPath}
-                </code>
+              {/* Authorized Perimeter Box — Clickable Route Pills (Option 1) */}
+              <div className="w-full box-border mt-4 sm:mt-5 min-h-11 py-2.5 px-3.5 flex flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/10">
+                <span className="text-xs text-[#A9AFBA]">
+                  {navigableRoutes.length > 1
+                    ? tr("Allowed pages (click to open)", "Pages autorisées (cliquez pour ouvrir)")
+                    : tr("Allowed perimeter", "Périmètre autorisé")}
+                </span>
+                {navigableRoutes.length > 0 ? (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 w-full">
+                    {navigableRoutes.map((route) => (
+                      <button
+                        key={route.path}
+                        type="button"
+                        onClick={() => handleNavigateToRoute(route.url)}
+                        className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#A9C4FF] hover:text-white px-2.5 py-1 rounded-lg bg-black/35 hover:bg-blue-600/20 border border-white/12 hover:border-blue-400/50 transition-colors cursor-pointer"
+                        title={tr(`Open ${route.label}`, `Ouvrir ${route.label}`)}
+                      >
+                        <span>{route.label}</span>
+                        <CornerUpRight className="w-3 h-3 opacity-75" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <code className="font-mono text-xs sm:text-sm font-semibold text-[#A9C4FF] px-2 py-0.5 rounded-lg bg-black/30 border border-white/10">
+                    /{authorizedPath}
+                  </code>
+                )}
               </div>
 
               {/* Return Button */}

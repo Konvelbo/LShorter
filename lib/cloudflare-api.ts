@@ -580,6 +580,10 @@ export async function cfCreateLink(data: {
   path_lock_message?: string;
   pathLockPassword?: string;
   path_lock_password?: string;
+  pathLockAction?: "block" | "fallback" | string;
+  path_lock_action?: "block" | "fallback" | string;
+  pathLockFallbackPath?: string | null;
+  path_lock_fallback_path?: string | null;
   isActive?: boolean;
   is_active?: number | boolean;
   userPlan?: string;
@@ -644,6 +648,26 @@ export async function cfCreateLink(data: {
     path_lock_message: data.pathLockMessage || data.path_lock_message || undefined,
     pathLockPassword: data.pathLockPassword || data.path_lock_password || undefined,
     path_lock_password: data.pathLockPassword || data.path_lock_password || undefined,
+    pathLockAction:
+      finalPathLockMode === "funnel" &&
+      (data.pathLockAction === "fallback" || data.path_lock_action === "fallback")
+        ? "fallback"
+        : "block",
+    path_lock_action:
+      finalPathLockMode === "funnel" &&
+      (data.pathLockAction === "fallback" || data.path_lock_action === "fallback")
+        ? "fallback"
+        : "block",
+    pathLockFallbackPath:
+      finalPathLockMode === "funnel" &&
+      (data.pathLockAction === "fallback" || data.path_lock_action === "fallback")
+        ? (data.pathLockFallbackPath ?? data.path_lock_fallback_path ?? null)
+        : null,
+    path_lock_fallback_path:
+      finalPathLockMode === "funnel" &&
+      (data.pathLockAction === "fallback" || data.path_lock_action === "fallback")
+        ? (data.pathLockFallbackPath ?? data.path_lock_fallback_path ?? null)
+        : null,
     domain: data.domainName || undefined,
     domainName: data.domainName || undefined,
     slug: data.slug ? data.slug.trim() : undefined,
@@ -784,6 +808,18 @@ export async function cfUpdateLink(id: string, updates: any) {
     pathLockMessage: updates.pathLockMessage !== undefined ? updates.pathLockMessage : updates.path_lock_message,
     path_lock_password: updates.path_lock_password !== undefined ? updates.path_lock_password : updates.pathLockPassword,
     pathLockPassword: updates.pathLockPassword !== undefined ? updates.pathLockPassword : updates.path_lock_password,
+    path_lock_action:
+      updates.path_lock_action !== undefined ? updates.path_lock_action : updates.pathLockAction,
+    pathLockAction:
+      updates.pathLockAction !== undefined ? updates.pathLockAction : updates.path_lock_action,
+    path_lock_fallback_path:
+      updates.path_lock_fallback_path !== undefined
+        ? updates.path_lock_fallback_path
+        : updates.pathLockFallbackPath,
+    pathLockFallbackPath:
+      updates.pathLockFallbackPath !== undefined
+        ? updates.pathLockFallbackPath
+        : updates.path_lock_fallback_path,
     is_active: effectiveIsActive,
     isActive: effectiveIsActive !== undefined ? effectiveIsActive !== 0 : undefined,
     userPlan: updates.userPlan || updates.plan || undefined,

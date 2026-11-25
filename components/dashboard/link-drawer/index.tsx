@@ -547,6 +547,10 @@ export function LinkDrawer({
   const [pathLockPrefix, setPathLockPrefix] = useState<string>("");
   const [pathLockMessage, setPathLockMessage] = useState<string>("");
   const [pathLockPassword, setPathLockPassword] = useState<string>("");
+  const [pathLockAction, setPathLockAction] = useState<"block" | "fallback">(
+    "block",
+  );
+  const [pathLockFallbackPath, setPathLockFallbackPath] = useState<string>("");
 
   // 6. A/B Testing
   const [mainWeight, setMainWeight] = useState<number>(100);
@@ -794,6 +798,14 @@ export function LinkDrawer({
         setPathLockPassword(
           link.pathLockPassword || (link as any).path_lock_password || "",
         );
+        const loadedAction =
+          link.pathLockAction || (link as any).path_lock_action || "block";
+        setPathLockAction(loadedAction === "fallback" ? "fallback" : "block");
+        setPathLockFallbackPath(
+          link.pathLockFallbackPath ||
+            (link as any).path_lock_fallback_path ||
+            "",
+        );
 
         const rawVars =
           (link as any).abVariations || (link as any).ab_variations;
@@ -889,6 +901,8 @@ export function LinkDrawer({
         setPathLockPrefix("");
         setPathLockMessage("");
         setPathLockPassword("");
+        setPathLockAction("block");
+        setPathLockFallbackPath("");
         setMainWeight(100);
         setAbVariations([]);
         setRedirectType("302");
@@ -1578,6 +1592,28 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : null,
+          pathLockAction:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          path_lock_action:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          pathLockFallbackPath:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
+          path_lock_fallback_path:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
           pixels: isProPlan ? selectedPixels : [],
         };
 
@@ -1629,6 +1665,10 @@ export function LinkDrawer({
           path_lock_message: updates.path_lock_message || undefined,
           pathLockPassword: updates.pathLockPassword || undefined,
           path_lock_password: updates.path_lock_password || undefined,
+          pathLockAction: updates.pathLockAction,
+          path_lock_action: updates.path_lock_action,
+          pathLockFallbackPath: updates.pathLockFallbackPath || null,
+          path_lock_fallback_path: updates.path_lock_fallback_path || null,
         };
 
         cfInvalidateCache();
@@ -1746,6 +1786,28 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : undefined,
+          pathLockAction:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          path_lock_action:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          pathLockFallbackPath:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
+          path_lock_fallback_path:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
           pixels: isProPlan ? selectedPixels : [],
         };
 
@@ -1823,6 +1885,28 @@ export function LinkDrawer({
             isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
               ? pathLockPassword.trim()
               : undefined,
+          pathLockAction:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          path_lock_action:
+            isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+              ? "fallback"
+              : "block",
+          pathLockFallbackPath:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
+          path_lock_fallback_path:
+            isProPlan &&
+            pathLockMode === "funnel" &&
+            pathLockAction === "fallback" &&
+            pathLockFallbackPath.trim()
+              ? pathLockFallbackPath.trim()
+              : null,
         });
 
         if (res?.data) {
@@ -1881,6 +1965,28 @@ export function LinkDrawer({
               isProPlan && pathLockMode !== "off" && pathLockPassword.trim()
                 ? pathLockPassword.trim()
                 : undefined,
+            pathLockAction:
+              isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+                ? "fallback"
+                : "block",
+            path_lock_action:
+              isProPlan && pathLockMode === "funnel" && pathLockAction === "fallback"
+                ? "fallback"
+                : "block",
+            pathLockFallbackPath:
+              isProPlan &&
+              pathLockMode === "funnel" &&
+              pathLockAction === "fallback" &&
+              pathLockFallbackPath.trim()
+                ? pathLockFallbackPath.trim()
+                : null,
+            path_lock_fallback_path:
+              isProPlan &&
+              pathLockMode === "funnel" &&
+              pathLockAction === "fallback" &&
+              pathLockFallbackPath.trim()
+                ? pathLockFallbackPath.trim()
+                : null,
             pixels: res.data.pixels || selectedPixels,
           };
         }
@@ -2292,13 +2398,23 @@ export function LinkDrawer({
                     expiresAt={expiresAt}
                     setExpiresAt={setExpiresAt}
                     pathLockMode={pathLockMode}
-                    setPathLockMode={setPathLockMode}
+                    setPathLockMode={(nextMode) => {
+                      setPathLockMode(nextMode);
+                      if (nextMode !== "funnel") {
+                        setPathLockAction("block");
+                        setPathLockFallbackPath("");
+                      }
+                    }}
                     pathLockPrefix={pathLockPrefix}
                     setPathLockPrefix={setPathLockPrefix}
                     pathLockMessage={pathLockMessage}
                     setPathLockMessage={setPathLockMessage}
                     pathLockPassword={pathLockPassword}
                     setPathLockPassword={setPathLockPassword}
+                    pathLockAction={pathLockAction}
+                    setPathLockAction={setPathLockAction}
+                    pathLockFallbackPath={pathLockFallbackPath}
+                    setPathLockFallbackPath={setPathLockFallbackPath}
                     targetUrl={targetUrl}
                     fieldErrors={fieldErrors}
                     setFieldErrors={setFieldErrors}
@@ -2353,6 +2469,8 @@ export function LinkDrawer({
                     fallbackUrl={fallbackUrl}
                     pathLockMode={pathLockMode}
                     pathLockPrefix={pathLockPrefix}
+                    pathLockAction={pathLockAction}
+                    pathLockFallbackPath={pathLockFallbackPath}
                     isCloaked={isCloaked}
                     hideReferrer={hideReferrer}
                     routingRulesCount={routingRules.length}
