@@ -21,8 +21,6 @@ const SOCIAL_CRAWLERS = [
   "discordbot",
   "pinterestbot",
   "applebot",
-  "bingbot",
-  "googlebot",
   "vkshare",
   "w3c_validator",
   "redditbot",
@@ -263,7 +261,7 @@ export function renderSocialHtml(options: {
   <meta name="description" content="${safeDesc}" />
   <meta name="author" content="LShorter" />
   <meta name="theme-color" content="#0066FF" />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="robots" content="noindex, nofollow, max-image-preview:large" />
 
   <!-- Canonical URL -->
   <link rel="canonical" href="${safeCanonical}" />
@@ -331,7 +329,7 @@ export function renderSocialHtml(options: {
   <meta name="description" content="${safeDesc}" />
   <meta name="author" content="LShorter" />
   <meta name="theme-color" content="#0066FF" />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="robots" content="noindex, nofollow, max-image-preview:large" />
 
   <!-- Canonical URL -->
   <link rel="canonical" href="${safeCanonical}" />

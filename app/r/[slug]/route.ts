@@ -84,6 +84,19 @@ export async function GET(
         ? rawQDomain
         : undefined;
       const qTitle = url.searchParams.get("title") || url.searchParams.get("og_title");
+
+      // Never serve HTTP 200 thin preview HTML for non-existent slugs to crawlers (prevents Soft-404 / duplicate indexing)
+      if (!meta && !isPreviewMode && !qTitle) {
+        return new Response("Not Found", {
+          status: 404,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Robots-Tag": "noindex, nofollow",
+            "Vary": "User-Agent",
+          },
+        });
+      }
       const qDesc = url.searchParams.get("desc") || url.searchParams.get("og_description");
       const qImage = url.searchParams.get("image") || url.searchParams.get("og_image");
       const qCard = url.searchParams.get("card") || url.searchParams.get("twitter_card");
@@ -197,8 +210,7 @@ export async function GET(
         }
       }
 
-      const isRRoute = url.pathname.startsWith("/r/");
-      const canonicalUrl = `https://${detectedDomain}${isRRoute ? "/r/" : "/"}${encodeURIComponent(slug)}${searchStr}`;
+      const canonicalUrl = `https://${detectedDomain}/${encodeURIComponent(slug)}`;
 
       // Do not leak the real destination URL in crawler HTML when the link is password-protected,
       // cloaked, PathLock-restricted, paused, or expired.
@@ -235,6 +247,7 @@ export async function GET(
       const headers = {
         "Content-Type": "text/html; charset=utf-8",
         "Vary": "User-Agent",
+        "X-Robots-Tag": "noindex, nofollow",
         "Cache-Control": hasCacheBuster || !meta
           ? "no-store, no-cache, must-revalidate, max-age=0"
           : "public, max-age=5, s-maxage=10, stale-while-revalidate=20",
@@ -258,6 +271,21 @@ export async function GET(
     // Fetch link metadata
     const link = await fetchWorkerLink(slug);
     if (!link || (!link.target_url && !link.targetUrl)) {
+      const isSearchEngineBot =
+        /googlebot|bingbot|yandex|duckduckbot|baiduspider|slurp|sogou|exabot|ahrefsbot|semrushbot|mj12bot|dotbot|petalbot|gptbot|claudebot|oai-searchbot/i.test(
+          userAgent,
+        );
+      if (isSearchEngineBot) {
+        return new Response("Not Found", {
+          status: 404,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "X-Robots-Tag": "noindex, nofollow",
+            "Vary": "User-Agent",
+          },
+        });
+      }
       const notFoundRedirect = NextResponse.redirect(new URL(`/r/${slug}/not-found`, req.url), 307);
       notFoundRedirect.headers.set("X-Robots-Tag", "noindex, nofollow");
       return notFoundRedirect;

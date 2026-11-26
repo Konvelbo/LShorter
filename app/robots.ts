@@ -62,26 +62,20 @@ export default function robots(): MetadataRoute.Robots {
           "/api/og.png",
           "/api/images/",
           "/api/v1/images/",
-          "/r/",
         ],
         disallow: [
           "/dashboard",
           "/dashboard/",
           "/api/",
           "/auth/",
-          "/login",
-          "/register",
           "/onboarding",
-          "/video-preview",
+          "/r/",
           "/*?*debug=*",
           "/*?*preview=*",
         ],
       },
     ],
-    sitemap: [
-      `${baseUrl}/sitemap.xml`,
-      `${baseUrl}/sitemap_index.xml`,
-    ],
+    sitemap: `${baseUrl}/sitemap.xml`,
     host: baseUrl.replace(/^https?:\/\//, "").replace(/\/.*$/, ""),
   };
 }
